@@ -182,11 +182,23 @@ body {
 .medals { display: flex; justify-content: center; gap: 20px; font-size: 3.3rem; }.medals .locked { filter: grayscale(1); opacity: .25; }
 
 .settings { display: grid; gap: 11px; padding-top: 12px; }
-.settings label, .setting-button, .profile-row { min-height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 10px 17px; border: 1px solid #e2e8f0; border-radius: 18px; background: var(--surface); font-weight: 900; }
+.settings > label, .setting-button, .profile-row { min-height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 10px 17px; border: 1px solid #e2e8f0; border-radius: 18px; background: var(--surface); font-weight: 900; }
 .settings input { width: 25px; height: 25px; accent-color: var(--purple); }
 .setting-button, .profile-row { width: 100%; }
 .settings section h2 { font: 900 1.2rem 'Segoe UI Rounded'; }
-.profile-row { justify-content: flex-start; margin-bottom: 7px; }
+.profile-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 7px; padding: 7px; }
+.profile-row.active { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(79, 70, 229, .12); }
+.profile-select, .profile-edit { border: 0; background: transparent; color: inherit; }
+.profile-select { min-height: 45px; display: flex; align-items: center; gap: 10px; text-align: left; font-weight: 900; }
+.profile-select span { font-size: 1.65rem; }
+.profile-select small { margin-left: auto; color: var(--purple); }
+.profile-edit { width: 45px; min-height: 45px; border-radius: 14px; background: #eef2ff; cursor: pointer; }
+.profile-form { grid-column: 1 / -1; display: grid; gap: 8px; padding: 12px; border-radius: 16px; background: #f8faff; }
+.profile-form label { font-weight: 900; color: #35405a; }
+.profile-form input { width: 100%; height: 50px; padding: 0 14px; border: 2px solid #dce2f0; border-radius: 14px; background: var(--surface); color: inherit; }
+.profile-form div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.new-profile-form { border: 1px solid #dfe4ff; }
+.form-error { margin: 0; color: #c24141; text-align: center; font-weight: 900; }
 .parent-note { text-align: center; color: #69738c; font-size: .78rem; font-weight: 700; }
 
 @media (max-width: 540px) {
