@@ -19,7 +19,8 @@ type ProgressState = {
   script: 'cyrillic' | 'latin';
   profile: ChildProfile;
   learnLetter: (letter: string) => void;
-  addProfile: (name: string, avatar: string) => void;
+  addProfile: (name: string, avatar: string) => boolean;
+  renameProfile: (id: string, name: string) => boolean;
   setActiveProfile: (id: string) => void;
   toggleSound: () => void;
   toggleTheme: () => void;
@@ -63,10 +64,29 @@ export const useProgressStore = create<ProgressState>()(
         });
         return { profiles, profile: profiles.find((item) => item.id === state.activeProfileId) ?? profiles[0] };
       }),
-      addProfile: (name, avatar) => set((state) => {
-        const profile = { ...initialProfile, id: crypto.randomUUID(), name, avatar };
+      addProfile: (name, avatar) => {
+        const cleanName = name.trim().slice(0, 32);
+        if (!cleanName) return false;
+        set((state) => {
+        const profile = { ...initialProfile, id: crypto.randomUUID(), name: cleanName, avatar };
         return { profiles: [...state.profiles, profile], activeProfileId: profile.id, profile };
-      }),
+        });
+        return true;
+      },
+      renameProfile: (id, name) => {
+        const cleanName = name.trim().slice(0, 32);
+        if (!cleanName) return false;
+        set((state) => {
+          const profiles = state.profiles.map((profile) => (
+            profile.id === id ? { ...profile, name: cleanName } : profile
+          ));
+          return {
+            profiles,
+            profile: profiles.find((profile) => profile.id === state.activeProfileId) ?? state.profile
+          };
+        });
+        return true;
+      },
       setActiveProfile: (activeProfileId) => set((state) => ({
         activeProfileId,
         profile: state.profiles.find((item) => item.id === activeProfileId) ?? state.profile

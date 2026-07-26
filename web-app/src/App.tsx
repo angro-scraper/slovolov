@@ -251,6 +251,35 @@ function Progress({ onBack }: { onBack: () => void }) {
 
 function Settings({ onBack }: { onBack: () => void }) {
   const store = useProgressStore();
+  const [addingProfile, setAddingProfile] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [editedName, setEditedName] = useState('');
+  const [nameError, setNameError] = useState('');
+
+  const saveNewProfile = (event: React.FormEvent) => {
+    event.preventDefault();
+    const avatar = ['🐉', '🦉', '🐝'][store.profiles.length % 3];
+    if (!store.addProfile(newName, avatar)) {
+      setNameError('Upišite ime deteta.');
+      return;
+    }
+    setNewName('');
+    setNameError('');
+    setAddingProfile(false);
+  };
+
+  const saveEditedName = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingProfileId || !store.renameProfile(editingProfileId, editedName)) {
+      setNameError('Upišite novo ime deteta.');
+      return;
+    }
+    setEditedName('');
+    setNameError('');
+    setEditingProfileId(null);
+  };
+
   return (
     <>
       <Header title="Podešavanja za roditelje" onBack={onBack} />
@@ -258,8 +287,75 @@ function Settings({ onBack }: { onBack: () => void }) {
         <label><span>🔊 Zvuk</span><input type="checkbox" checked={store.soundEnabled} onChange={store.toggleSound} /></label>
         <label><span>🌙 Tamni režim</span><input type="checkbox" checked={store.darkMode} onChange={store.toggleTheme} /></label>
         <button className="setting-button" onClick={store.toggleScript}><span>🔤 Pismo</span><strong>{store.script === 'cyrillic' ? 'Ćirilica' : 'Latinica'}</strong></button>
-        <section><h2>Profili dece</h2>{store.profiles.map((profile) => <button key={profile.id} className="profile-row" onClick={() => store.setActiveProfile(profile.id)}>{profile.avatar} {profile.name}</button>)}</section>
-        <button className="secondary" onClick={() => store.addProfile(`Дете ${store.profiles.length + 1}`, ['🐉', '🦉', '🐝'][store.profiles.length % 3])}>+ Dodaj profil</button>
+        <section className="profiles-section">
+          <h2>Profili dece</h2>
+          {store.profiles.map((profile) => (
+            <div key={profile.id} className={`profile-row ${store.activeProfileId === profile.id ? 'active' : ''}`}>
+              <button className="profile-select" onClick={() => store.setActiveProfile(profile.id)} aria-label={`Izaberi profil ${profile.name}`}>
+                <span>{profile.avatar}</span><strong>{profile.name}</strong>
+                {store.activeProfileId === profile.id && <small>Aktivan</small>}
+              </button>
+              <button
+                className="profile-edit"
+                aria-label={`Promeni ime za ${profile.name}`}
+                onClick={() => {
+                  setEditingProfileId(profile.id);
+                  setEditedName(profile.name);
+                  setAddingProfile(false);
+                  setNameError('');
+                }}
+              >
+                ✏️
+              </button>
+              {editingProfileId === profile.id && (
+                <form className="profile-form" onSubmit={saveEditedName}>
+                  <label htmlFor={`profile-name-${profile.id}`}>Novo ime deteta</label>
+                  <input
+                    id={`profile-name-${profile.id}`}
+                    value={editedName}
+                    onChange={(event) => setEditedName(event.target.value)}
+                    maxLength={32}
+                    autoFocus
+                  />
+                  <div>
+                    <button type="button" className="secondary" onClick={() => setEditingProfileId(null)}>Odustani</button>
+                    <button type="submit" className="primary">Sačuvaj ime</button>
+                  </div>
+                </form>
+              )}
+            </div>
+          ))}
+        </section>
+        {!addingProfile && (
+          <button
+            className="secondary"
+            onClick={() => {
+              setAddingProfile(true);
+              setEditingProfileId(null);
+              setNameError('');
+            }}
+          >
+            + Dodaj profil
+          </button>
+        )}
+        {addingProfile && (
+          <form className="profile-form new-profile-form" onSubmit={saveNewProfile}>
+            <label htmlFor="new-profile-name">Ime deteta</label>
+            <input
+              id="new-profile-name"
+              value={newName}
+              onChange={(event) => setNewName(event.target.value)}
+              placeholder="Na primer: Лука"
+              maxLength={32}
+              autoFocus
+            />
+            <div>
+              <button type="button" className="secondary" onClick={() => setAddingProfile(false)}>Odustani</button>
+              <button type="submit" className="primary">Sačuvaj profil</button>
+            </div>
+          </form>
+        )}
+        {nameError && <p className="form-error" role="alert">{nameError}</p>}
         <p className="parent-note">Aplikacija nema reklame, naloge ni praćenje. Napredak ostaje samo na uređaju.</p>
       </main>
     </>
