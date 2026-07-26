@@ -561,7 +561,7 @@ class _LettersPageState extends State<_LettersPage> {
             final lesson = SerbianLetterCatalog.lessons[index];
             return Semantics(
               button: true,
-              label: 'Slovo ${lesson.upper(script)}, ${lesson.word}',
+              label: 'Slovo ${lesson.upper(script)}, ${lesson.wordFor(script)}',
               child: FilledButton.tonal(
                 onPressed: () async {
                   final result = await Navigator.of(context)
@@ -622,6 +622,7 @@ class _LessonPageState extends ConsumerState<_LessonPage> {
   String speechMessage = 'Dodirni zvučnik da čuješ slovo i reč.';
   bool speaking = false;
   bool tracingActive = false;
+  int activeLessonPanel = 0;
   LearningProgress? completedProgress;
 
   @override
@@ -696,18 +697,13 @@ class _LessonPageState extends ConsumerState<_LessonPage> {
   }
 
   Future<void> _speakLetter() => _say(
-    widget.lesson.cyrillicUpper,
-    'Slušaj i ponovi slovo ${widget.lesson.cyrillicUpper}.',
+    widget.lesson.upper(widget.script),
+    'Slušaj i ponovi slovo ${widget.lesson.upper(widget.script)}.',
   );
 
   Future<void> _speakExample() => _say(
-    '${widget.lesson.cyrillicUpper}. ${widget.lesson.spokenPrompt}.',
-    'Slušaj i ponovi: ${widget.lesson.spokenPrompt}.',
-  );
-
-  Future<void> _speakInstruction() => _say(
-    'Prstom prati svetlu putanju slova. Ako pogrešiš, pokušaj ponovo.',
-    'Sada prstom prati svetlu putanju.',
+    '${widget.lesson.upper(widget.script)}. ${widget.lesson.spokenPromptFor(widget.script)}.',
+    'Slušaj i ponovi: ${widget.lesson.spokenPromptFor(widget.script)}.',
   );
 
   @override
@@ -720,137 +716,95 @@ class _LessonPageState extends ConsumerState<_LessonPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
       title: Text(
-        '${widget.lesson.upper(widget.script)} kao ${widget.lesson.word}',
+        '${widget.lesson.upper(widget.script)} kao ${widget.lesson.wordFor(widget.script)}',
       ),
     ),
     body: SafeArea(
-      child: ListView(
-        physics: tracingActive
-            ? const NeverScrollableScrollPhysics()
-            : const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(24),
-        children: [
-          Semantics(
-            label: 'Slovo ${widget.lesson.upper(widget.script)}',
-            child: Text(
-              '${widget.lesson.upper(widget.script)} '
-              '${widget.lesson.lower(widget.script)}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 112,
-                fontWeight: FontWeight.w900,
-                color: Color(0xFF6757E5),
-              ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+        child: Column(
+          children: [
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, icon: Icon(Icons.menu_book_rounded), label: Text('Uči')),
+                ButtonSegment(value: 1, icon: Icon(Icons.gesture_rounded), label: Text('Piši')),
+              ],
+              selected: {activeLessonPanel},
+              onSelectionChanged: (value) => setState(() => activeLessonPanel = value.first),
             ),
-          ),
-          Card(
-            color: const Color(0xFFFFF1D6),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  AnimatedLessonIllustration(lesson: widget.lesson),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 10),
+            Expanded(
+              child: activeLessonPanel == 0
+                  ? _LessonOverview(
+                      lesson: widget.lesson,
+                      script: widget.script,
+                      speaking: speaking,
+                      speechMessage: speechMessage,
+                      onSpeakLetter: _speakLetter,
+                      onSpeakExample: _speakExample,
+                      onOpenWriting: () => setState(() => activeLessonPanel = 1),
+                    )
+                  : Column(
                       children: [
-                        Text(
-                          widget.lesson.word,
-                          style: Theme.of(context).textTheme.headlineSmall,
+                        Text(message, textAlign: TextAlign.center, maxLines: 2),
+                        const SizedBox(height: 8),
+                        _LetterTraceCanvas(
+                          lesson: widget.lesson,
+                          height: 230,
+                          enabled: completedProgress == null,
+                          onAccuracyChanged: _updateAccuracy,
+                          onInteractionChanged: _setTracingActive,
                         ),
-                        Text(speechMessage),
+                        Semantics(
+                          liveRegion: true,
+                          label: '${(accuracy * 100).round()}% tačnosti',
+                          child: Text('${(accuracy * 100).round()}% tačnosti', key: const ValueKey('trace-accuracy'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                        ),
+                        const SizedBox(height: 6),
+                        FilledButton.icon(
+                          onPressed: completedProgress == null && accuracy > 0 ? _finish : null,
+                          icon: const Icon(Icons.draw_rounded),
+                          label: const Text('Proveri potez'),
+                        ),
+                        if (completedProgress != null) OutlinedButton(onPressed: () => Navigator.pop(context, completedProgress), child: const Text('Nazad na slova')),
                       ],
                     ),
-                  ),
-                  IconButton.filled(
-                    key: const ValueKey('speak-letter'),
-                    tooltip: 'Poslušaj izgovor',
-                    onPressed: speaking ? null : _speakExample,
-                    icon: speaking
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.volume_up_rounded),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.tonalIcon(
-                onPressed: speaking ? null : _speakLetter,
-                icon: const Icon(Icons.hearing_rounded),
-                label: const Text('Čuj slovo'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: speaking ? null : _speakExample,
-                icon: const Icon(Icons.record_voice_over_rounded),
-                label: const Text('Čuj reč'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: speaking ? null : _speakInstruction,
-                icon: const Icon(Icons.help_outline_rounded),
-                label: const Text('Kako se crta?'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-          Text(message, textAlign: TextAlign.center),
-          if (completedProgress != null) ...[
-            const _SuccessCelebration(),
-            const SizedBox(height: 10),
-            OutlinedButton(
-              onPressed: () => Navigator.pop(context, completedProgress),
-              child: const Text('Nazad na slova'),
             ),
           ],
-          const SizedBox(height: 12),
-          _LetterTraceCanvas(
-            lesson: widget.lesson,
-            enabled: completedProgress == null,
-            onAccuracyChanged: _updateAccuracy,
-            onInteractionChanged: _setTracingActive,
-          ),
-          const SizedBox(height: 8),
-          Semantics(
-            liveRegion: true,
-            label: '${(accuracy * 100).round()}% tačnosti',
-            child: Text(
-              '${(accuracy * 100).round()}% tačnosti',
-              key: const ValueKey('trace-accuracy'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
-          FilledButton.icon(
-            onPressed: completedProgress == null && accuracy > 0
-                ? _finish
-                : null,
-            icon: const Icon(Icons.draw_rounded),
-            label: const Text('Proveri potez'),
-          ),
-        ],
+        ),
       ),
     ),
   );
 }
 
+class _LessonOverview extends StatelessWidget {
+  const _LessonOverview({required this.lesson, required this.script, required this.speaking, required this.speechMessage, required this.onSpeakLetter, required this.onSpeakExample, required this.onOpenWriting});
+  final LetterLesson lesson; final ScriptMode script; final bool speaking; final String speechMessage; final VoidCallback onSpeakLetter; final VoidCallback onSpeakExample; final VoidCallback onOpenWriting;
+  @override
+  Widget build(BuildContext context) => Column(children: [
+    Semantics(label: 'Slovo ${lesson.upper(script)}', child: Text('${lesson.upper(script)} ${lesson.lower(script)}', style: const TextStyle(fontSize: 88, fontWeight: FontWeight.w900, color: Color(0xFF6757E5)))),
+    Expanded(child: Card(color: const Color(0xFFFFF1D6), child: Padding(padding: const EdgeInsets.all(14), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      AnimatedLessonIllustration(lesson: lesson), const SizedBox(height: 4), Text(lesson.wordFor(script), style: Theme.of(context).textTheme.headlineSmall), Text(speechMessage, textAlign: TextAlign.center, maxLines: 2),
+      const SizedBox(height: 10), Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
+        FilledButton.tonalIcon(onPressed: speaking ? null : onSpeakLetter, icon: const Icon(Icons.hearing_rounded), label: const Text('Čuj slovo')),
+        FilledButton.tonalIcon(key: const ValueKey('speak-letter'), onPressed: speaking ? null : onSpeakExample, icon: const Icon(Icons.volume_up_rounded), label: const Text('Čuj reč')),
+      ]),
+    ])))),
+    const SizedBox(height: 10), FilledButton.icon(onPressed: onOpenWriting, icon: const Icon(Icons.gesture_rounded), label: const Text('Piši slovo')),
+  ]);
+}
+
 class _LetterTraceCanvas extends StatefulWidget {
   const _LetterTraceCanvas({
     required this.lesson,
+    this.height = 300,
     required this.enabled,
     required this.onAccuracyChanged,
     required this.onInteractionChanged,
   });
 
   final LetterLesson lesson;
+  final double height;
   final bool enabled;
   final ValueChanged<double> onAccuracyChanged;
   final ValueChanged<bool> onInteractionChanged;
@@ -929,7 +883,7 @@ class _LetterTraceCanvasState extends State<_LetterTraceCanvas>
         explicitChildNodes: true,
         label: 'Platno za pisanje slova ${widget.lesson.cyrillicUpper}',
         child: Container(
-          height: 300,
+          height: widget.height,
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: Colors.white,
@@ -1042,30 +996,6 @@ class _LetterTracePainter extends CustomPainter {
       oldDelegate.strokes != strokes ||
       oldDelegate.guide != guide ||
       oldDelegate.guideProgress != guideProgress;
-}
-
-class _SuccessCelebration extends StatelessWidget {
-  const _SuccessCelebration();
-
-  @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-    key: const ValueKey('success-celebration'),
-    tween: Tween(begin: .35, end: 1),
-    duration: const Duration(milliseconds: 700),
-    curve: Curves.elasticOut,
-    builder: (context, value, child) =>
-        Transform.scale(scale: value, child: child),
-    child: const Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Text('✨', style: TextStyle(fontSize: 30)),
-        Text('⭐', style: TextStyle(fontSize: 42)),
-        Text('🎉', style: TextStyle(fontSize: 40)),
-        Text('⭐', style: TextStyle(fontSize: 42)),
-        Text('✨', style: TextStyle(fontSize: 30)),
-      ],
-    ),
-  );
 }
 
 class _WordLabPage extends StatefulWidget {
@@ -1627,13 +1557,11 @@ class _ColoringPageState extends State<_ColoringPage> {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('Bojanka')),
     body: SafeArea(
-      child: ListView(
-        physics: drawingActive
-            ? const NeverScrollableScrollPhysics()
-            : const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(20),
-        children: [
-          Row(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Column(
+          children: [
+            Row(
             children: [
               Expanded(
                 child: Text(
@@ -1658,13 +1586,10 @@ class _ColoringPageState extends State<_ColoringPage> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Oboji: ${lesson.cyrillicUpper} kao ${lesson.word}. '
-            'Izaberi boju i crtaj prstom.',
-          ),
-          const SizedBox(height: 16),
-          Wrap(
+            const SizedBox(height: 2),
+            Text('Oboji: ${lesson.cyrillicUpper} kao ${lesson.wordFor(ScriptMode.cyrillic)}.', maxLines: 1),
+            const SizedBox(height: 6),
+            Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
@@ -1712,11 +1637,11 @@ class _ColoringPageState extends State<_ColoringPage> {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
-          Semantics(
-            label: 'Platno bojanke za ${lesson.word}',
-            child: Container(
-              height: 360,
+            const SizedBox(height: 8),
+            Expanded(
+              child: Semantics(
+                label: 'Platno bojanke za ${lesson.wordFor(ScriptMode.cyrillic)}',
+                child: Container(
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -1765,10 +1690,11 @@ class _ColoringPageState extends State<_ColoringPage> {
                   );
                 },
               ),
+                ),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Semantics(
+            const SizedBox(height: 6),
+            Semantics(
             liveRegion: true,
             child: Text(
               saved
@@ -1777,9 +1703,9 @@ class _ColoringPageState extends State<_ColoringPage> {
               key: const ValueKey('coloring-status'),
               textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
+            ),
+            const SizedBox(height: 6),
+            Wrap(
             alignment: WrapAlignment.center,
             spacing: 10,
             runSpacing: 10,
@@ -1800,8 +1726,9 @@ class _ColoringPageState extends State<_ColoringPage> {
                 label: const Text('Obriši crtež'),
               ),
             ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     ),
   );

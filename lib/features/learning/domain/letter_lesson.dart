@@ -21,7 +21,15 @@ class LetterLesson {
   final String emoji;
   final bool isFree;
 
-  String get spokenPrompt => '$cyrillicUpper kao ${word.toLowerCase()}';
+  /// Katalog zadržava jednu kanonsku reč na latinici, a prikaz uvek prati
+  /// izabrano pismo. Time se ne može desiti da dete uz slovo М vidi `Meda`.
+  String wordFor(ScriptMode mode) =>
+      mode == ScriptMode.cyrillic ? _toCyrillic(word) : word;
+
+  String spokenPromptFor(ScriptMode mode) =>
+      '${upper(mode)} ${mode == ScriptMode.cyrillic ? 'као' : 'kao'} ${wordFor(mode).toLowerCase()}';
+
+  String get spokenPrompt => spokenPromptFor(ScriptMode.cyrillic);
 
   List<String> get syllables {
     final normalized = word.toLowerCase();
@@ -59,4 +67,24 @@ class LetterLesson {
 
   String lower(ScriptMode mode) =>
       mode == ScriptMode.cyrillic ? cyrillicLower : latinLower;
+
+  static String _toCyrillic(String value) {
+    final digraphs = <String, String>{
+      'Dž': 'Џ', 'dž': 'џ', 'Lj': 'Љ', 'lj': 'љ', 'Nj': 'Њ', 'nj': 'њ',
+    };
+    var result = value;
+    digraphs.forEach((latin, cyrillic) => result = result.replaceAll(latin, cyrillic));
+    const letters = <String, String>{
+      'A': 'А', 'a': 'а', 'B': 'Б', 'b': 'б', 'V': 'В', 'v': 'в',
+      'G': 'Г', 'g': 'г', 'D': 'Д', 'd': 'д', 'Đ': 'Ђ', 'đ': 'ђ',
+      'E': 'Е', 'e': 'е', 'Ž': 'Ж', 'ž': 'ж', 'Z': 'З', 'z': 'з',
+      'I': 'И', 'i': 'и', 'J': 'Ј', 'j': 'ј', 'K': 'К', 'k': 'к',
+      'L': 'Л', 'l': 'л', 'M': 'М', 'm': 'м', 'N': 'Н', 'n': 'н',
+      'O': 'О', 'o': 'о', 'P': 'П', 'p': 'п', 'R': 'Р', 'r': 'р',
+      'S': 'С', 's': 'с', 'T': 'Т', 't': 'т', 'Ć': 'Ћ', 'ć': 'ћ',
+      'U': 'У', 'u': 'у', 'F': 'Ф', 'f': 'ф', 'H': 'Х', 'h': 'х',
+      'C': 'Ц', 'c': 'ц', 'Č': 'Ч', 'č': 'ч', 'Š': 'Ш', 'š': 'ш',
+    };
+    return result.split('').map((character) => letters[character] ?? character).join();
+  }
 }

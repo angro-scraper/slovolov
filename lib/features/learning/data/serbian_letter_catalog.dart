@@ -70,8 +70,8 @@ class SerbianLetterCatalog {
       cyrillicLower: 'е',
       latinUpper: 'E',
       latinLower: 'e',
-      word: 'Ekser',
-      emoji: '🔩',
+      word: 'Elf',
+      emoji: '🧝',
       isFree: false,
     ),
     LetterLesson(
@@ -140,8 +140,8 @@ class SerbianLetterCatalog {
       cyrillicLower: 'љ',
       latinUpper: 'Lj',
       latinLower: 'lj',
-      word: 'Ljuljaška',
-      emoji: '🛝',
+      word: 'Ljubičica',
+      emoji: '🪻',
       isFree: false,
     ),
     LetterLesson(
@@ -290,8 +290,8 @@ class SerbianLetterCatalog {
       cyrillicLower: 'џ',
       latinUpper: 'Dž',
       latinLower: 'dž',
-      word: 'Džem',
-      emoji: '🍓',
+      word: 'Džip',
+      emoji: '🚙',
       isFree: false,
     ),
     LetterLesson(
