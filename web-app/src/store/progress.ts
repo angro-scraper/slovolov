@@ -8,6 +8,7 @@ export type ChildProfile = {
   learnedLetters: string[];
   learnedNumbers: number[];
   completedReading: string[];
+  storyBookmarks: Record<string, number>;
   completedDailyChallenges: string[];
   completedGames: string[];
   difficulty: 'easy' | 'standard' | 'challenge';
@@ -26,6 +27,7 @@ type ProgressState = {
   learnLetter: (letter: string) => void;
   learnNumber: (number: number) => void;
   completeReading: (levelId: string) => void;
+  setStoryBookmark: (storyId: string, sentenceIndex: number) => void;
   completeDailyChallenge: (dateKey: string) => void;
   completeGame: (gameId: string) => void;
   setDifficulty: (difficulty: ChildProfile['difficulty']) => void;
@@ -45,6 +47,7 @@ const initialProfile: ChildProfile = {
   learnedLetters: [],
   learnedNumbers: [],
   completedReading: [],
+  storyBookmarks: {},
   completedDailyChallenges: [],
   completedGames: [],
   difficulty: 'standard',
@@ -99,6 +102,14 @@ export const useProgressStore = create<ProgressState>()(
             stars: profile.stars + 1
           };
         });
+        return { profiles, profile: profiles.find((item) => item.id === state.activeProfileId) ?? profiles[0] };
+      }),
+      setStoryBookmark: (storyId, sentenceIndex) => set((state) => {
+        const profiles = state.profiles.map((profile) => (
+          profile.id === state.activeProfileId
+            ? { ...profile, storyBookmarks: { ...profile.storyBookmarks, [storyId]: Math.max(0, sentenceIndex) } }
+            : profile
+        ));
         return { profiles, profile: profiles.find((item) => item.id === state.activeProfileId) ?? profiles[0] };
       }),
       completeDailyChallenge: (dateKey) => set((state) => {
@@ -164,7 +175,7 @@ export const useProgressStore = create<ProgressState>()(
     }),
     {
       name: 'slovolov-progress-v2',
-      version: 4,
+      version: 5,
       migrate: (persisted) => {
         const state = persisted as Partial<ProgressState>;
         const profiles = (state.profiles ?? [initialProfile]).map((profile) => ({
@@ -173,6 +184,7 @@ export const useProgressStore = create<ProgressState>()(
           learnedLetters: profile.learnedLetters ?? [],
           learnedNumbers: profile.learnedNumbers ?? [],
           completedReading: profile.completedReading ?? [],
+          storyBookmarks: profile.storyBookmarks ?? {},
           completedDailyChallenges: profile.completedDailyChallenges ?? [],
           completedGames: profile.completedGames ?? [],
           difficulty: profile.difficulty ?? 'standard',

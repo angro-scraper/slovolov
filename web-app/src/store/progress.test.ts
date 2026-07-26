@@ -25,6 +25,11 @@ describe('lokalni napredak', () => {
     expect(useProgressStore.getState().profile.stars).toBe(1);
   });
 
+  it('pamti mesto slušanja bajke po profilu', () => {
+    useProgressStore.getState().setStoryBookmark('zmaj-4-6', 3);
+    expect(useProgressStore.getState().profile.storyBookmarks['zmaj-4-6']).toBe(3);
+  });
+
   it('dnevni izazov daje tri zvezdice samo jednom dnevno', () => {
     useProgressStore.getState().completeDailyChallenge('2026-07-26');
     useProgressStore.getState().completeDailyChallenge('2026-07-26');

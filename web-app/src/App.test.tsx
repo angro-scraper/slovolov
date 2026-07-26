@@ -110,6 +110,29 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: 'Sledeća priča' })).toBeVisible();
   });
 
+  it('otvara audio bajke, pamti rečenicu i prikazuje 30 priča po uzrastu', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+
+    expect(screen.getByRole('heading', { name: 'Bajke i priče' })).toBeVisible();
+    expect(screen.getByText('Bajka 1/30')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Slušaj celu priču' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Pauza' })).toBeVisible();
+    const sentence = screen.getAllByRole('button', { name: /Rečenica/i })[1];
+    fireEvent.click(sentence);
+    const activeStory = screen.getByTestId('fairy-tale').getAttribute('data-story-id');
+    expect(useProgressStore.getState().profile.storyBookmarks[activeStory ?? '']).toBe(1);
+  });
+
+  it('tačan odgovor posle bajke dodeljuje zvezdicu samo jednom', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Светлуцаво перо' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Светлуцаво перо' }));
+    expect(useProgressStore.getState().profile.stars).toBe(1);
+    expect(screen.getByRole('status')).toHaveTextContent('Bravo');
+  });
+
   it('memory igra stvarno otvara i spaja par slova i slika', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Igre/i }));

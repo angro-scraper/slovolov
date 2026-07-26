@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
+import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
 import { seededChoices } from './domain/choices';
 import { displayLetter, letters, transliterate, type Letter } from './domain/letters';
+import { narrateSentences, type NarrationSession } from './services/narration';
 import { speak } from './services/speech';
 import { useProgressStore } from './store/progress';
 
-type Screen = 'home' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'progress' | 'settings';
+type Screen = 'home' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'progress' | 'settings';
 
 const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: string }> = [
   { screen: 'daily', icon: '🌞', title: 'Dnevni izazov', subtitle: 'Tri kratka koraka i 3 zvezdice' },
@@ -19,6 +21,7 @@ const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: stri
   { screen: 'quiz', icon: '🏆', title: 'Kviz', subtitle: 'Osvoji novu medalju' },
   { screen: 'numbers', icon: '🔢', title: 'Brojevi 0–10', subtitle: 'Broj, količina i zvuk' },
   { screen: 'reading', icon: '📚', title: 'Čitanje', subtitle: 'Slogovi, reči i priče' },
+  { screen: 'fairy-tales', icon: '🌙', title: 'Bajke i priče', subtitle: 'Slušaj, čitaj i osvajaj zvezdice' },
   { screen: 'progress', icon: '⭐', title: 'Moj napredak', subtitle: 'Zvezdice, streak i nagrade' }
 ];
 
@@ -219,6 +222,7 @@ export function App() {
     if (screen === 'quiz') return <Quiz onBack={() => setScreen('home')} />;
     if (screen === 'numbers') return <Numbers onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'reading') return <Reading onBack={() => setScreen('home')} sound={sound} />;
+    if (screen === 'fairy-tales') return <FairyTales onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'progress') return <Progress onBack={() => setScreen('home')} />;
     return <Settings onBack={() => setScreen('home')} />;
   }, [celebrate, coloringMessage, letterCase, profile, screen, script, selected, sound, traceMessage]);
@@ -563,6 +567,135 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           </section>
         )}
         <p className="reading-feedback" role="status">{message}</p>
+      </main>
+    </div>
+  );
+}
+
+function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+  const [age, setAge] = useState<FairyTaleAge>('4–6');
+  const [storyIndex, setStoryIndex] = useState(0);
+  const stories = fairyTales.filter((story) => story.age === age);
+  const story = stories[storyIndex];
+  const profile = useProgressStore((state) => state.profile);
+  const completeReading = useProgressStore((state) => state.completeReading);
+  const setStoryBookmark = useProgressStore((state) => state.setStoryBookmark);
+  const [activeSentence, setActiveSentence] = useState(profile.storyBookmarks[story.id] ?? 0);
+  const [playback, setPlayback] = useState<'idle' | 'playing' | 'paused'>('idle');
+  const [message, setMessage] = useState('Izaberi rečenicu ili poslušaj celu priču.');
+  const sessionRef = useRef<NarrationSession | null>(null);
+
+  const openStory = (nextIndex: number, nextAge = age) => {
+    sessionRef.current?.stop();
+    const nextStories = fairyTales.filter((item) => item.age === nextAge);
+    const nextStory = nextStories[nextIndex];
+    setStoryIndex(nextIndex);
+    setActiveSentence(profile.storyBookmarks[nextStory.id] ?? 0);
+    setPlayback('idle');
+    setMessage('Izaberi rečenicu ili poslušaj celu priču.');
+  };
+
+  const stop = () => {
+    sessionRef.current?.stop();
+    setPlayback('idle');
+    setMessage('Slušanje je zaustavljeno. Možeš da nastaviš od obeležene rečenice.');
+  };
+
+  const start = () => {
+    sessionRef.current?.stop();
+    setPlayback('playing');
+    setMessage('Priča se čita naglas. Aktivna rečenica je označena.');
+    sessionRef.current = narrateSentences(story.sentences, {
+      enabled: sound,
+      audioKey: story.audioKey,
+      startIndex: activeSentence,
+      onSentence: (index) => {
+        setActiveSentence(index);
+        setStoryBookmark(story.id, index);
+      },
+      onComplete: () => {
+        setPlayback('idle');
+        setMessage('Priča je pročitana. Odgovori na pitanje i osvoji zvezdicu!');
+      }
+    });
+  };
+
+  useEffect(() => () => sessionRef.current?.stop(), []);
+
+  return (
+    <div className="single-screen fairy-screen">
+      <Header title="Bajke i priče" onBack={() => { stop(); onBack(); }} />
+      <main className="fairy-tales" data-testid="fairy-tale" data-story-id={story.id}>
+        <div className="fairy-age-tabs">
+          {fairyTaleAges.map((item) => (
+            <button
+              key={item}
+              className={age === item ? 'active' : ''}
+              onClick={() => { setAge(item); openStory(0, item); }}
+            >{item} godina</button>
+          ))}
+        </div>
+        <div className="story-navigation">
+          <button aria-label="Prethodna bajka" disabled={storyIndex === 0} onClick={() => openStory(storyIndex - 1)}>←</button>
+          <strong>Bajka {storyIndex + 1}/{stories.length}</strong>
+          <button aria-label="Sledeća bajka" disabled={storyIndex === stories.length - 1} onClick={() => openStory(storyIndex + 1)}>→</button>
+        </div>
+        <section className="fairy-card">
+          <div className="fairy-title">
+            <span aria-hidden="true">{story.art}</span>
+            <div><small>{story.category}</small><h2>{story.title}</h2></div>
+          </div>
+          <div className="fairy-sentences">
+            {story.sentences.map((sentence, index) => (
+              <button
+                key={sentence}
+                className={index === activeSentence ? 'active' : ''}
+                aria-label={`Rečenica ${index + 1}: ${sentence}`}
+                onClick={() => {
+                  sessionRef.current?.stop();
+                  setActiveSentence(index);
+                  setStoryBookmark(story.id, index);
+                  setPlayback('idle');
+                  void speak(sentence, sound);
+                }}
+              >{sentence}</button>
+            ))}
+          </div>
+          <div className="narration-controls">
+            <button className="primary" aria-label="Slušaj celu priču" onClick={start}>▶ Slušaj</button>
+            <button
+              className="secondary"
+              aria-label="Pauza"
+              disabled={playback !== 'playing'}
+              onClick={() => { sessionRef.current?.pause(); setPlayback('paused'); setMessage('Priča je pauzirana.'); }}
+            >⏸ Pauza</button>
+            <button
+              className="secondary"
+              aria-label="Nastavi slušanje"
+              disabled={playback !== 'paused'}
+              onClick={() => { sessionRef.current?.resume(); setPlayback('playing'); setMessage('Nastavljamo priču.'); }}
+            >▶ Nastavi</button>
+            <button className="secondary" aria-label="Zaustavi slušanje" disabled={playback === 'idle'} onClick={stop}>■ Stop</button>
+          </div>
+          <div className="fairy-question">
+            <p>{story.question}</p>
+            <div>
+              {seededChoices(story.answers, storyIndex).map((answer) => (
+                <button key={answer} onClick={() => {
+                  if (answer !== story.correct) {
+                    setMessage('Pokušaj ponovo. Priseti se šta je pronađeno.');
+                    void speak('Pokušaj ponovo.', sound);
+                    return;
+                  }
+                  completeReading(`fairy-${story.id}`);
+                  setMessage('⭐ Bravo! Razumeo si priču i osvojio zvezdicu!');
+                  void speak('Bravo! Razumeo si priču i osvojio zvezdicu!', sound);
+                }}>{answer}</button>
+              ))}
+            </div>
+          </div>
+        </section>
+        <p className="fairy-status" role="status">{message}</p>
       </main>
     </div>
   );
