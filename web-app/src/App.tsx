@@ -675,6 +675,10 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             <div className="fairy-title">
               <div><small>{story.category}</small><h2>{story.title}</h2></div>
             </div>
+            <p className="storybook-source" aria-label={`Izvor bajke: ${story.source.author}`}>
+              Prema javnodomenskom delu: <strong>{story.source.author}</strong>
+              <span>Originalna srpska adaptacija</span>
+            </p>
             <span className="storybook-sparkle sparkle-one" aria-hidden="true">✦</span>
             <span className="storybook-sparkle sparkle-two" aria-hidden="true">✧</span>
           </div>

@@ -115,9 +115,9 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
 
     expect(screen.getByRole('heading', { name: 'Bajke i priče' })).toBeVisible();
-    expect(screen.getByText('Bajka 1/30')).toBeVisible();
+    expect(screen.getByText('Bajka 1/37')).toBeVisible();
     expect(screen.getByText(/Strana 1\//)).toBeVisible();
-    expect(screen.queryByText('Шта је пронађено у причи?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Како су Ивица и Марица први пут обележили пут?')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Slušaj celu priču' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Pauza' })).toBeVisible();
     const sentence = screen.getAllByRole('button', { name: /Rečenica/i })[1];
@@ -132,7 +132,7 @@ describe('Slovolov glavni tok', () => {
 
     const reader = screen.getByTestId('storybook-reader');
     expect(reader).toHaveAttribute('data-reader-mode', 'immersive');
-    expect(screen.getByRole('img', { name: 'Ilustracija za Светлуцаво перо' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Ilustracija za Ивица и Марица' })).toBeVisible();
     expect(screen.getByRole('progressbar', { name: 'Napredak kroz bajku' })).toHaveAttribute('aria-valuenow', '1');
     expect(screen.getByRole('article', { name: 'Tekst priče' })).toBeVisible();
     expect(screen.getByText(/Snimljeni glas ima prednost/)).toBeVisible();
@@ -141,15 +141,23 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('article', { name: 'Tekst priče' })).toHaveClass('large-text');
   });
 
+  it('prikazuje autora i napomenu da je tekst originalna adaptacija klasika', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+
+    expect(screen.getByLabelText('Izvor bajke: Braća Grim')).toBeVisible();
+    expect(screen.getByText(/Originalna srpska adaptacija/i)).toBeVisible();
+  });
+
   it('pitanje se otključava na poslednjoj strani i dodeljuje zvezdicu samo jednom', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
-    for (let page = 1; page < 8; page += 1) {
+    for (let page = 1; page < 10; page += 1) {
       fireEvent.click(screen.getByRole('button', { name: 'Sledeća stranica' }));
     }
-    expect(screen.getByText('Шта је пронађено у причи?')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Светлуцаво перо' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Светлуцаво перо' }));
+    expect(screen.getByText('Како су Ивица и Марица први пут обележили пут?')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Белим каменчићима' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Белим каменчићима' }));
     expect(useProgressStore.getState().profile.stars).toBe(1);
     expect(screen.getByRole('status')).toHaveTextContent('Bravo');
   });

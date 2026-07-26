@@ -240,6 +240,9 @@ body {
 .storybook-scene > [role="img"] { z-index: 1; display: block; font-size: clamp(3.2rem, 13vw, 5.7rem); text-align: center; filter: drop-shadow(0 9px 9px rgba(30,27,75,.24)); animation: story-float 3.2s ease-in-out infinite; }
 .fairy-title { z-index: 1; display: flex; align-items: center; justify-content: flex-start; text-align: left; }
 .fairy-title small { color: #fff4b7; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }.fairy-title h2 { margin: 2px 0 0; font: 900 clamp(1.35rem, 5vw, 2.15rem)/1.02 'Segoe UI Rounded'; }
+.storybook-source { z-index: 1; grid-column: 2; margin: -4px 0 0; font-size: .72rem; line-height: 1.25; color: rgba(255,255,255,.92); }
+.storybook-source strong { color: #fff; }
+.storybook-source span { display: block; margin-top: 2px; color: #fff4b7; font-weight: 800; }
 .storybook-sparkle { position: absolute; color: #fff4b7; font-size: 1.4rem; animation: story-sparkle 1.8s ease-in-out infinite alternate; }
 .sparkle-one { top: 13px; right: 20px; }.sparkle-two { left: 43%; bottom: 10px; animation-delay: .6s; }
 @keyframes story-float { 50% { transform: translateY(-5px) rotate(2deg); } }
@@ -330,6 +333,7 @@ body {
   .storybook-scene { min-height: 93px; grid-template-columns: 105px 1fr; padding: 6px 13px; }
   .storybook-scene > [role="img"] { font-size: 3.5rem; }
   .fairy-title h2 { font-size: 1.08rem; }
+  .storybook-source { font-size: .62rem; }
   .fairy-sentences { padding: 7px 8px; }
   .fairy-sentences button { padding: 6px 7px 6px 10px; font-size: .78rem; }
   .narration-controls { grid-template-columns: 1fr 1fr; }
