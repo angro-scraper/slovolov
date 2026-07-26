@@ -11,6 +11,32 @@ describe('lokalni napredak', () => {
     expect(useProgressStore.getState().profile.stars).toBe(1);
   });
 
+  it('dodeljuje jednu zvezdicu samo jednom po naučenom broju', () => {
+    useProgressStore.getState().learnNumber(3);
+    useProgressStore.getState().learnNumber(3);
+    expect(useProgressStore.getState().profile.learnedNumbers).toEqual([3]);
+    expect(useProgressStore.getState().profile.stars).toBe(1);
+  });
+
+  it('nagrađuje završeni nivo čitanja samo jednom', () => {
+    useProgressStore.getState().completeReading('prica-sova');
+    useProgressStore.getState().completeReading('prica-sova');
+    expect(useProgressStore.getState().profile.completedReading).toEqual(['prica-sova']);
+    expect(useProgressStore.getState().profile.stars).toBe(1);
+  });
+
+  it('dnevni izazov daje tri zvezdice samo jednom dnevno', () => {
+    useProgressStore.getState().completeDailyChallenge('2026-07-26');
+    useProgressStore.getState().completeDailyChallenge('2026-07-26');
+    expect(useProgressStore.getState().profile.completedDailyChallenges).toEqual(['2026-07-26']);
+    expect(useProgressStore.getState().profile.stars).toBe(3);
+  });
+
+  it('čuva roditeljski nivo težine po profilu', () => {
+    useProgressStore.getState().setDifficulty('challenge');
+    expect(useProgressStore.getState().profile.difficulty).toBe('challenge');
+  });
+
   it('podržava više lokalnih profila', () => {
     useProgressStore.getState().addProfile('Лука', '🐉');
     expect(useProgressStore.getState().profiles).toHaveLength(2);
