@@ -21,4 +21,11 @@ describe('biblioteka bajki sa zvukom', () => {
       expect(story.audioKey).toMatch(/^[a-z0-9-]+$/);
     }
   });
+
+  it('generičke završnice ne pripisuju detetu pogrešan gramatički rod', () => {
+    const allText = fairyTales.flatMap((story) => story.sentences).join(' ');
+
+    expect(allText).not.toContain('да би је сутра испричао');
+    expect(allText).not.toContain('да би је сутра испричала');
+  });
 });
