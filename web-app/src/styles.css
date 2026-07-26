@@ -158,8 +158,8 @@ body {
 @keyframes pop { from { transform: scale(.4) rotate(-8deg); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 .coloring { display: flex; flex-direction: column; min-height: 0; }
-.coloring-pad { flex: 1; min-height: 0; display: grid; grid-template-rows: 1fr auto auto; gap: 8px; position: relative; }
-.coloring-pad canvas { position: absolute; inset: 0 0 104px; width: 100%; height: calc(100% - 104px); z-index: 2; touch-action: none; border-radius: 28px; }
+.coloring-pad { flex: 1; min-height: 0; display: grid; grid-template-rows: 1fr auto auto auto; gap: 6px; position: relative; }
+.coloring-pad canvas { position: absolute; inset: 0 0 124px; width: 100%; height: calc(100% - 124px); z-index: 2; touch-action: none; border-radius: 28px; }
 .coloring-picture { position: relative; min-height: 0; display: grid; place-items: center; overflow: hidden; border-radius: 28px; background: white; box-shadow: inset 0 0 0 2px #e0e7ff; font-size: min(34vw, 10rem); }
 .coloring-picture strong { position: absolute; right: 9%; bottom: 2%; color: transparent; -webkit-text-stroke: 5px #d9d7ff; font-size: min(32vw, 9rem); }
 .palette { display: flex; align-items: center; justify-content: center; gap: 7px; z-index: 3; }
@@ -167,6 +167,7 @@ body {
 .palette button.active { outline: 3px solid var(--purple); transform: scale(1.12); }
 .palette .eraser { display: grid; place-items: center; background: #eef2ff; color: var(--purple); font-weight: 900; }
 .coloring-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; z-index: 3; }
+.coloring-message, .coloring-feedback { min-height: 18px; margin: 0; color: var(--purple); font-size: .78rem; font-weight: 900; text-align: center; }
 
 .game, .quiz, .reading { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; }
 .daily-challenge { display: flex; flex-direction: column; justify-content: center; gap: 10px; }
@@ -219,6 +220,10 @@ body {
 .reading-levels button.active { background: white; box-shadow: 0 4px 12px rgba(67,56,202,.12); }
 .reading-stage { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .age-tabs { grid-template-columns: repeat(3, 1fr); }
+.story-navigation { width: 100%; display: grid; grid-template-columns: 42px 1fr 42px; align-items: center; gap: 8px; }
+.story-navigation strong { color: #566078; font-size: .86rem; }
+.story-navigation button { height: 36px; border: 0; border-radius: 12px; background: #eef2ff; color: var(--purple); font-size: 1.25rem; font-weight: 900; }
+.story-navigation button:disabled { opacity: .35; cursor: not-allowed; }
 .syllable-grid, .word-reading-grid, .reading-answers { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .syllable-grid button, .word-reading-grid button, .reading-answers button { border: 0; border-radius: 16px; padding: 12px 16px; background: #eef2ff; color: var(--purple); font-weight: 900; }
 .reading-feedback { min-height: 22px; margin: 0; font-weight: 900; color: var(--purple); }

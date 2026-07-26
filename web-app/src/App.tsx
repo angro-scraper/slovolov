@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
 import { numberLessons } from './data/numbers';
+import { readingStories, storyAges, type ReadingAge } from './data/stories';
+import { seededChoices } from './domain/choices';
 import { displayLetter, letters, transliterate, type Letter } from './domain/letters';
 import { speak } from './services/speech';
 import { useProgressStore } from './store/progress';
@@ -40,6 +42,7 @@ export function App() {
   const [celebrate, setCelebrate] = useState(false);
   const [letterCase, setLetterCase] = useState<'upper' | 'lower'>('upper');
   const [traceMessage, setTraceMessage] = useState('Prati celo svetlo slovo prstom.');
+  const [coloringMessage, setColoringMessage] = useState('');
   const sound = useProgressStore((state) => state.soundEnabled);
   const darkMode = useProgressStore((state) => state.darkMode);
   const script = useProgressStore((state) => state.script);
@@ -115,24 +118,10 @@ export function App() {
           <button className="giant-letter" onClick={() => void speak(selected.upper, sound)}>
             {displayLetter(selected, script)} <small>{script === 'cyrillic' ? selected.lower : displayLetter(selected, script).toLowerCase()}</small>
           </button>
-          <div className="word-row">
-            {selected.words.map((word) => (
-              <button
-                key={word.word}
-                className="word-card"
-                aria-label={`Slušaj reč ${word.word}`}
-                onClick={() => void speak(word.word, sound)}
-              >
-                <span>{word.emoji}</span>
-                <strong>{script === 'cyrillic' ? word.word : transliterate(word.word)}</strong>
-              </button>
-            ))}
-          </div>
           <section className="picture-challenge" aria-live="polite">
-            <h2>Pronađi sliku za reč {selected.words[0].word}</h2>
+            <h2>Pronađi sliku za reč {script === 'cyrillic' ? selected.words[0].word : transliterate(selected.words[0].word)}</h2>
             <div className="picture-options">
-              {[selected.words[0], letters[(letters.indexOf(selected) + 4) % letters.length].words[0], letters[(letters.indexOf(selected) + 9) % letters.length].words[0]]
-                .sort((first, second) => first.word.localeCompare(second.word, 'sr'))
+              {seededChoices(selected.words, letters.indexOf(selected))
                 .map((word) => (
                   <button
                     key={word.word}
@@ -147,6 +136,7 @@ export function App() {
                       setCelebrate(true);
                       void speak('Bravo! Dobio si zvezdicu. Idemo na sledeće slovo!', sound);
                       const nextIndex = (letters.indexOf(selected) + 1) % letters.length;
+                      setTraceMessage(`Bravo! Naučio si ${visibleLetter(selected)}. Sledeće slovo je ${visibleLetter(letters[nextIndex])}.`);
                       setSelected(letters[nextIndex]);
                       window.setTimeout(() => setCelebrate(false), 1400);
                     }}
@@ -202,12 +192,23 @@ export function App() {
         <main className="coloring">
           <div className="practice-letters">
             {letters.map((letter) => (
-              <button key={letter.upper} className={letter === selected ? 'active' : ''} onClick={() => setSelected(letter)}>
+              <button key={letter.upper} className={letter === selected ? 'active' : ''} onClick={() => { setSelected(letter); setColoringMessage(''); }}>
                 {displayLetter(letter, script)}
               </button>
             ))}
           </div>
-          <ColoringPad letter={displayLetter(selected, script)} />
+          <ColoringPad
+            key={`coloring-${selected.upper}-${script}`}
+            letter={displayLetter(selected, script)}
+            illustration={selected.words[0].emoji}
+            onSaved={() => {
+              const saved = selected;
+              const next = letters[(letters.indexOf(saved) + 1) % letters.length];
+              setColoringMessage(`Crtež za ${displayLetter(saved, script)} je sačuvan. Sledeće slovo je ${displayLetter(next, script)}.`);
+              setSelected(next);
+            }}
+          />
+          <p className="coloring-feedback" role="status">{coloringMessage}</p>
         </main>
       </div>
     );
@@ -220,7 +221,7 @@ export function App() {
     if (screen === 'reading') return <Reading onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'progress') return <Progress onBack={() => setScreen('home')} />;
     return <Settings onBack={() => setScreen('home')} />;
-  }, [celebrate, letterCase, profile, screen, script, selected, sound, traceMessage]);
+  }, [celebrate, coloringMessage, letterCase, profile, screen, script, selected, sound, traceMessage]);
 
   return <div className={darkMode ? 'app dark' : 'app'}>{body}</div>;
 }
@@ -371,7 +372,7 @@ function Quiz({ onBack }: { onBack: () => void }) {
   const [question, setQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const target = letters[question % letters.length];
-  const choices = [target, letters[(question + 5) % 30], letters[(question + 11) % 30]];
+  const choices = seededChoices([target, letters[(question + 5) % 30], letters[(question + 11) % 30]], question);
   return (
     <div className="single-screen">
       <Header title={`Kviz ${question + 1}/10`} onBack={onBack} />
@@ -436,7 +437,7 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               <span key={index}>{selectedNumber.emoji}</span>
             ))}
           </div>
-          <h2>Koliko ima zvezdica?</h2>
+          <h2>Koliko ima {selectedNumber.countLabel}?</h2>
           <div className="number-options">
             {options.map((option) => (
               <button key={option} onClick={() => {
@@ -472,32 +473,21 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   );
 }
 
-const readingStories = [
-  {
-    id: 'zvezda-4-6', age: '4–6', art: '⭐ 🐰 🌙', title: 'Мала звезда',
-    sentences: ['Зека гледа малу звезду.', 'Звезда сија изнад шуме.'],
-    question: 'Шта сија изнад шуме?', answers: ['Звезда', 'Лопта', 'Књига'], correct: 'Звезда'
-  },
-  {
-    id: 'prica-sova', age: '6–8', art: '🌙 🦉 🌲', title: 'Мила и мудра сова',
-    sentences: ['Мила има малу сову.', 'Сова лети изнад шуме.', 'У шуми је пронашла новог друга.'],
-    question: 'Кога је Мила пронашла у шуми?', answers: ['Сову', 'Медведа', 'Зеца'], correct: 'Сову'
-  },
-  {
-    id: 'hrast-8-10', age: '8–10', art: '🌳 🔑 🐿️', title: 'Тајна старог храста',
-    sentences: ['Лука је у кори старог храста пронашао мали кључ.', 'Веверица му је показала скривена врата.', 'Иза врата се налазила библиотека шумских прича.'],
-    question: 'Шта се налазило иза скривених врата?', answers: ['Библиотека', 'Језеро', 'Воз'], correct: 'Библиотека'
-  }
-];
-
 function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [active, setActive] = useState(0);
   const [level, setLevel] = useState<'syllables' | 'words' | 'story'>('syllables');
-  const [storyIndex, setStoryIndex] = useState(1);
+  const [age, setAge] = useState<ReadingAge>('6–8');
+  const [storyIndex, setStoryIndex] = useState(0);
   const [message, setMessage] = useState('Slušaj, pa pročitaj naglas.');
   const completeReading = useProgressStore((state) => state.completeReading);
-  const story = readingStories[storyIndex];
+  const storiesForAge = readingStories.filter((story) => story.age === age);
+  const story = storiesForAge[storyIndex];
   const sentences = story.sentences;
+  const selectStory = (nextIndex: number) => {
+    setStoryIndex(nextIndex);
+    setActive(0);
+    setMessage('Slušaj, pa pročitaj naglas.');
+  };
   return (
     <div className="single-screen">
       <Header title="Čitam samostalno" onBack={onBack} />
@@ -534,14 +524,19 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
         {level === 'story' && (
           <section className="reading-stage">
             <div className="age-tabs">
-              {readingStories.map((item, index) => (
+              {storyAges.map((item) => (
                 <button
-                  key={item.id}
-                  className={index === storyIndex ? 'active' : ''}
-                  aria-label={`Uzrast ${item.age}`}
-                  onClick={() => { setStoryIndex(index); setActive(0); setMessage('Slušaj, pa pročitaj naglas.'); }}
-                >{item.age}</button>
+                  key={item}
+                  className={item === age ? 'active' : ''}
+                  aria-label={`Uzrast ${item}`}
+                  onClick={() => { setAge(item); selectStory(0); }}
+                >{item}</button>
               ))}
+            </div>
+            <div className="story-navigation">
+              <button aria-label="Prethodna priča" disabled={storyIndex === 0} onClick={() => selectStory(storyIndex - 1)}>←</button>
+              <strong>Priča {storyIndex + 1}/{storiesForAge.length}</strong>
+              <button aria-label="Sledeća priča" disabled={storyIndex === storiesForAge.length - 1} onClick={() => selectStory(storyIndex + 1)}>→</button>
             </div>
             <div className="story-art">{story.art}</div>
             <h2>{story.title}</h2>
