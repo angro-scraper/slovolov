@@ -584,6 +584,15 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [playback, setPlayback] = useState<'idle' | 'playing' | 'paused'>('idle');
   const [message, setMessage] = useState('Izaberi rečenicu ili poslušaj celu priču.');
   const sessionRef = useRef<NarrationSession | null>(null);
+  const pageStarts = story.pages.map((_, pageIndex) => (
+    story.pages.slice(0, pageIndex).reduce((total, page) => total + page.length, 0)
+  ));
+  const currentPageIndex = Math.max(0, story.pages.findIndex((page, pageIndex) => {
+    const start = pageStarts[pageIndex];
+    return activeSentence >= start && activeSentence < start + page.length;
+  }));
+  const currentPage = story.pages[currentPageIndex];
+  const isLastPage = currentPageIndex === story.pages.length - 1;
 
   const openStory = (nextIndex: number, nextAge = age) => {
     sessionRef.current?.stop();
@@ -599,6 +608,15 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     sessionRef.current?.stop();
     setPlayback('idle');
     setMessage('Slušanje je zaustavljeno. Možeš da nastaviš od obeležene rečenice.');
+  };
+
+  const openPage = (pageIndex: number) => {
+    sessionRef.current?.stop();
+    const firstSentence = pageStarts[pageIndex];
+    setActiveSentence(firstSentence);
+    setStoryBookmark(story.id, firstSentence);
+    setPlayback('idle');
+    setMessage(`Strana ${pageIndex + 1} je otvorena. Dodirni rečenicu ili nastavi čitanje.`);
   };
 
   const start = () => {
@@ -645,8 +663,23 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             <span aria-hidden="true">{story.art}</span>
             <div><small>{story.category}</small><h2>{story.title}</h2></div>
           </div>
+          <div className="book-page-navigation">
+            <button
+              aria-label="Prethodna stranica"
+              disabled={currentPageIndex === 0}
+              onClick={() => openPage(currentPageIndex - 1)}
+            >←</button>
+            <strong>Strana {currentPageIndex + 1}/{story.pages.length}</strong>
+            <button
+              aria-label="Sledeća stranica"
+              disabled={isLastPage}
+              onClick={() => openPage(currentPageIndex + 1)}
+            >→</button>
+          </div>
           <div className="fairy-sentences">
-            {story.sentences.map((sentence, index) => (
+            {currentPage.map((sentence, pageSentenceIndex) => {
+              const index = pageStarts[currentPageIndex] + pageSentenceIndex;
+              return (
               <button
                 key={sentence}
                 className={index === activeSentence ? 'active' : ''}
@@ -659,7 +692,8 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                   void speak(sentence, sound);
                 }}
               >{sentence}</button>
-            ))}
+              );
+            })}
           </div>
           <div className="narration-controls">
             <button className="primary" aria-label="Slušaj celu priču" onClick={start}>▶ Slušaj</button>
@@ -677,7 +711,7 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             >▶ Nastavi</button>
             <button className="secondary" aria-label="Zaustavi slušanje" disabled={playback === 'idle'} onClick={stop}>■ Stop</button>
           </div>
-          <div className="fairy-question">
+          {isLastPage && <div className="fairy-question">
             <p>{story.question}</p>
             <div>
               {seededChoices(story.answers, storyIndex).map((answer) => (
@@ -693,7 +727,7 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                 }}>{answer}</button>
               ))}
             </div>
-          </div>
+          </div>}
         </section>
         <p className="fairy-status" role="status">{message}</p>
       </main>

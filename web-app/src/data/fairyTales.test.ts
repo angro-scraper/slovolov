@@ -9,10 +9,14 @@ describe('biblioteka bajki sa zvukom', () => {
     expect(fairyTales.filter((story) => story.age === '7–10')).toHaveLength(30);
   });
 
-  it('svaka priča ima ćirilični tekst, pitanje i dovoljno rečenica', () => {
+  it('svaka priča je puna digitalna knjiga, a ne sažetak', () => {
     for (const story of fairyTales) {
       expect(story.sentences.join(' ')).toMatch(/[А-Ша-ш]/);
-      expect(story.sentences.length).toBeGreaterThanOrEqual(story.age === '4–6' ? 4 : 6);
+      expect(story.pages.length).toBeGreaterThanOrEqual(story.age === '4–6' ? 8 : 10);
+      expect(story.sentences).toEqual(story.pages.flat());
+      expect(story.sentences.join(' ').split(/\s+/).length).toBeGreaterThanOrEqual(
+        story.age === '4–6' ? 180 : 400
+      );
       expect(story.answers).toContain(story.correct);
       expect(story.audioKey).toMatch(/^[a-z0-9-]+$/);
     }

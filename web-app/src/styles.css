@@ -235,6 +235,10 @@ body {
 .fairy-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 7px; padding: 10px; border-radius: 25px; background: linear-gradient(155deg, #fffdf4, #f2f4ff); box-shadow: var(--shadow); }
 .fairy-title { display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left; }
 .fairy-title > span { font-size: 2.8rem; }.fairy-title small { color: var(--purple); font-weight: 900; }.fairy-title h2 { margin: 1px 0 0; font: 900 1.35rem 'Segoe UI Rounded'; }
+.book-page-navigation { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 6px; }
+.book-page-navigation strong { color: #566078; font-size: .8rem; text-align: center; }
+.book-page-navigation button { height: 32px; border: 0; border-radius: 11px; background: #e0e7ff; color: var(--purple); font-size: 1.1rem; font-weight: 900; }
+.book-page-navigation button:disabled { opacity: .3; cursor: not-allowed; }
 .fairy-sentences { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .fairy-sentences button { min-height: 48px; padding: 6px 8px; border: 2px solid #e5e7eb; border-radius: 13px; background: white; font-size: .77rem; font-weight: 800; text-align: left; }
 .fairy-sentences button.active { border-color: var(--purple); background: #eef2ff; color: #3730a3; }
