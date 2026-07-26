@@ -6,6 +6,7 @@ describe('audio pripovedanje', () => {
   const pause = vi.fn();
   const resume = vi.fn();
   const cancel = vi.fn();
+  const getVoices = vi.fn<() => SpeechSynthesisVoice[]>(() => []);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -14,12 +15,13 @@ describe('audio pripovedanje', () => {
       lang = '';
       rate = 1;
       pitch = 1;
+      voice: SpeechSynthesisVoice | null = null;
       onend: ((this: SpeechSynthesisUtterance, event: SpeechSynthesisEvent) => unknown) | null = null;
       constructor(text: string) { this.text = text; }
     } as typeof SpeechSynthesisUtterance;
     Object.defineProperty(window, 'speechSynthesis', {
       configurable: true,
-      value: { speak, pause, resume, cancel }
+      value: { speak, pause, resume, cancel, getVoices }
     });
   });
 
@@ -51,6 +53,26 @@ describe('audio pripovedanje', () => {
   it('ne pokreće zvuk kada je isključen', () => {
     narrateSentences(['Тишина.'], { enabled: false });
     expect(speak).not.toHaveBeenCalled();
+  });
+
+  it('koristi sporiji srpski ritam prilagođen dečjoj audio-bajci', () => {
+    narrateSentences(['Некада давно.'], { enabled: true });
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.lang).toBe('sr-RS');
+    expect(utterance.rate).toBeLessThanOrEqual(0.8);
+    expect(utterance.pitch).toBeGreaterThanOrEqual(1);
+  });
+
+  it('bira kvalitetan srpski glas uređaja kada je dostupan', () => {
+    const genericVoice = { name: 'Generic Serbian', lang: 'sr-RS' } as SpeechSynthesisVoice;
+    const preferredVoice = { name: 'Microsoft Sophie Online (Natural)', lang: 'sr-RS' } as SpeechSynthesisVoice;
+    getVoices.mockReturnValueOnce([genericVoice, preferredVoice]);
+
+    narrateSentences(['Некада давно.'], { enabled: true });
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.voice).toBe(preferredVoice);
   });
 
   it('jasno prijavljuje da zvuk nije dostupan kada uređaj nema čitač', () => {

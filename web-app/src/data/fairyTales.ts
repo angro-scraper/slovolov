@@ -1,3 +1,5 @@
+import { completeFairyTales } from './completeFairyTales.ts';
+
 export type FairyTaleAge = '4–6' | '7–10';
 export type FairyTaleCategory = 'Bajke' | 'Životinje' | 'Pred spavanje';
 
@@ -20,9 +22,14 @@ export type FairyTale = {
   answers: string[];
   correct: string;
   audioKey: string;
+  recordedAudio: boolean;
+  recordedVoice: 'sr-RS-SophieNeural';
   plotKey: string;
   source: FairyTaleSource;
   adaptation: 'originalna-srpska-adaptacija';
+  edition: 'complete' | 'abridged';
+  narration: 'audio-first';
+  reviewed: boolean;
 };
 
 type ClassicTaleSeed = {
@@ -950,52 +957,9 @@ const classics: ClassicTaleSeed[] = [
   }
 ];
 
-const youngCompanions = [
-  'Застани на тренутак и замисли почетак ове старе приче.',
-  'Сваки избор сада води јунаке у сасвим новом правцу.',
-  'Пажљиво слушај, јер овај детаљ касније постаје важан.',
-  'Опасност расте, али јунаци још могу да изаберу мудар корак.',
-  'Ово је тренутак у ком се показују намера и прави карактер.',
-  'Није лако, али радња се мења захваљујући храбрости и памети.',
-  'После велике препреке појављује се пут ка решењу.',
-  'Још један важан поступак приближава причу њеном расплету.',
-  'Последице ранијих одлука сада постају јасне свим јунацима.',
-  'Крај нам открива зашто се ова бајка памти толико дуго.'
-] as const;
-
-const olderCompanions = [
-  'У овој сцени упознајемо свет, односе и жељу која ће покренути целу радњу.',
-  'Сукоб се не појављује случајно: он настаје из одлуке чије ће се последице касније видети.',
-  'Стари приповедачи овде остављају важан траг који пажљив читалац може да препозна.',
-  'Јунак још нема готово решење, али учи коме може да верује и шта мора да промени.',
-  'Средиште бајке испитује стрпљење, искреност или храброст, а не само физичку снагу.',
-  'Преокрет стиже када неко примени знање, прихвати помоћ или коначно каже истину.',
-  'Напетост почиње да попушта, мада један последњи избор још одређује исход.',
-  'Расплет повезује детаље са почетка и показује да поступци нису остали без последица.',
-  'Ликови сада разумеју нешто што на почетку приче нису могли да виде.',
-  'Завршетак не доноси само награду или казну, већ поуку коју можемо применити и данас.'
-] as const;
-
-function buildPages(seed: ClassicTaleSeed, age: FairyTaleAge): string[][] {
-  return seed.plot.map((event, index) => {
-    if (age === '4–6') {
-      return [
-        event,
-        `${youngCompanions[index]} У бајци „${seed.title}” ништа од овога није само украс.`,
-        `Запамти овај део: ${seed.lesson}.`
-      ];
-    }
-    return [
-      event,
-      `${olderCompanions[index]} Тако оригинална радња бајке „${seed.title}” добија свој следећи корак.`,
-      `Приповедач нас не позива само да пратимо догађај, већ и да разумемо зашто су ликови баш сада тако поступили.`,
-      `Кроз овај део видимо да ${seed.lesson}.`
-    ];
-  });
-}
-
 function buildTale(seed: ClassicTaleSeed, age: FairyTaleAge): FairyTale {
-  const pages = buildPages(seed, age);
+  const complete = completeFairyTales[seed.id];
+  const pages = complete?.pages ?? seed.plot.map((event) => [event]);
   return {
     id: `${seed.id}-${age.replace('–', '-')}`,
     age,
@@ -1007,10 +971,15 @@ function buildTale(seed: ClassicTaleSeed, age: FairyTaleAge): FairyTale {
     question: seed.question,
     answers: seed.answers,
     correct: seed.correct,
-    audioKey: `${seed.id}-${age === '4–6' ? 'mali' : 'veliki'}`,
+    audioKey: `${seed.id}-${complete ? 'cela' : 'sazeta'}`,
+    recordedAudio: true,
+    recordedVoice: 'sr-RS-SophieNeural',
     plotKey: seed.id,
     source: seed.source,
-    adaptation: 'originalna-srpska-adaptacija'
+    adaptation: 'originalna-srpska-adaptacija',
+    edition: complete ? 'complete' : 'abridged',
+    narration: 'audio-first',
+    reviewed: complete?.reviewed ?? false
   };
 }
 

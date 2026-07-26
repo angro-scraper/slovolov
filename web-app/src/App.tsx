@@ -583,6 +583,7 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [activeSentence, setActiveSentence] = useState(profile.storyBookmarks[story.id] ?? 0);
   const [playback, setPlayback] = useState<'idle' | 'playing' | 'paused'>('idle');
   const [largeText, setLargeText] = useState(false);
+  const [showText, setShowText] = useState(false);
   const [narrationSource, setNarrationSource] = useState<'recorded' | 'system' | 'unavailable' | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [message, setMessage] = useState('Izaberi rečenicu ili poslušaj celu priču.');
@@ -604,6 +605,7 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     setStoryIndex(nextIndex);
     setActiveSentence(profile.storyBookmarks[nextStory.id] ?? 0);
     setPlayback('idle');
+    setShowText(false);
     setNarrationSource(null);
     setCelebrating(false);
     setMessage('Izaberi rečenicu ili poslušaj celu priču.');
@@ -627,11 +629,17 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
 
   const start = () => {
     sessionRef.current?.stop();
+    if (!sound) {
+      setPlayback('idle');
+      setNarrationSource('unavailable');
+      setMessage('Uključi zvuk u podešavanjima da bi slušao priču.');
+      return;
+    }
     setPlayback('playing');
     setMessage('Priča se čita naglas. Aktivna rečenica je označena.');
     sessionRef.current = narrateSentences(story.sentences, {
       enabled: sound,
-      audioKey: story.audioKey,
+      audioKey: story.recordedAudio ? story.audioKey : undefined,
       startIndex: activeSentence,
       onSentence: (index) => {
         setActiveSentence(index);
@@ -707,39 +715,62 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               onClick={() => openPage(currentPageIndex + 1)}
             >→</button>
           </div>
-          <article
-            className={`fairy-sentences storybook-page${largeText ? ' large-text' : ''}`}
-            aria-label="Tekst priče"
-          >
-            {currentPage.map((sentence, pageSentenceIndex) => {
-              const index = pageStarts[currentPageIndex] + pageSentenceIndex;
-              return (
-              <button
-                key={sentence}
-                className={index === activeSentence ? 'active' : ''}
-                aria-label={`Rečenica ${index + 1}: ${sentence}`}
-                onClick={() => {
-                  sessionRef.current?.stop();
-                  setActiveSentence(index);
-                  setStoryBookmark(story.id, index);
-                  setPlayback('idle');
-                  void speak(sentence, sound);
-                }}
-              >{sentence}</button>
-              );
-            })}
-          </article>
+          <div className="story-mode-controls">
+            <span className={`edition-badge ${story.edition}`}>
+              {story.edition === 'complete' ? 'Cela audio-bajka' : 'Sažeta verzija · cela priča je u pripremi'}
+            </span>
+            <button
+              className="read-along-toggle"
+              aria-label={showText ? 'Sakrij tekst' : 'Čitaj zajedno'}
+              onClick={() => setShowText((value) => !value)}
+            >{showText ? '🎧 Samo slušaj' : '📖 Čitaj zajedno'}</button>
+          </div>
+          {showText ? (
+            <article
+              className={`fairy-sentences storybook-page${largeText ? ' large-text' : ''}`}
+              aria-label="Tekst priče"
+            >
+              {currentPage.map((sentence, pageSentenceIndex) => {
+                const index = pageStarts[currentPageIndex] + pageSentenceIndex;
+                return (
+                <button
+                  key={sentence}
+                  className={index === activeSentence ? 'active' : ''}
+                  aria-label={`Rečenica ${index + 1}: ${sentence}`}
+                  onClick={() => {
+                    sessionRef.current?.stop();
+                    setActiveSentence(index);
+                    setStoryBookmark(story.id, index);
+                    setPlayback('idle');
+                    void speak(sentence, sound);
+                  }}
+                >{sentence}</button>
+                );
+              })}
+            </article>
+          ) : (
+            <div className="audio-story-stage" role="region" aria-label="Audio-bajka">
+              <span aria-hidden="true">{playback === 'playing' ? '🎙️' : '🎧'}</span>
+              <strong>{playback === 'playing' ? 'Slušamo priču…' : 'Spremno za slušanje'}</strong>
+              <small>Poglavlje {currentPageIndex + 1} od {story.pages.length}</small>
+            </div>
+          )}
           <div className="storybook-reader-tools">
             <button
               className="text-size-toggle"
               aria-label={largeText ? 'Smanji tekst' : 'Uvećaj tekst'}
+              disabled={!showText}
               onClick={() => setLargeText((value) => !value)}
             >Aa {largeText ? 'Normalno' : 'Veće'}</button>
             <p className={`narrator-source ${narrationSource ?? 'ready'}`}>
-              {narrationSource === 'recorded' && '🎙️ Reprodukuje se snimljeni narator'}
+              {narrationSource === 'recorded' && '🎙️ Čita topli ženski Sophie narator'}
               {narrationSource === 'system' && '🔊 Čita srpski glas ovog uređaja'}
               {narrationSource === 'unavailable' && '⚠️ Glas nije dostupan na ovom uređaju'}
-              {narrationSource === null && '🎙️ Snimljeni glas ima prednost; glas uređaja je rezerva'}
+              {narrationSource === null && (
+                story.recordedAudio
+                  ? '🎙️ Snimljeni glas ima prednost; glas uređaja je rezerva'
+                  : '🔊 Koristi najbolji srpski glas dostupan na uređaju'
+              )}
             </p>
           </div>
           <div className="narration-controls">

@@ -13,6 +13,20 @@ type NarrationOptions = {
   onComplete?: () => void;
 };
 
+function selectSerbianVoice(): SpeechSynthesisVoice | undefined {
+  const voices = window.speechSynthesis?.getVoices?.() ?? [];
+  const serbian = voices.filter((voice) => /^sr(?:-|_)/i.test(voice.lang));
+  const preferredNames = ['sophie', 'google', 'microsoft', 'neural', 'premium'];
+
+  return serbian.sort((left, right) => {
+    const leftRank = preferredNames.findIndex((name) => left.name.toLowerCase().includes(name));
+    const rightRank = preferredNames.findIndex((name) => right.name.toLowerCase().includes(name));
+    const normalizedLeft = leftRank === -1 ? preferredNames.length : leftRank;
+    const normalizedRight = rightRank === -1 ? preferredNames.length : rightRank;
+    return normalizedLeft - normalizedRight;
+  })[0];
+}
+
 export function narrateSentences(sentences: string[], options: NarrationOptions): NarrationSession {
   let index = Math.max(0, Math.min(options.startIndex ?? 0, sentences.length - 1));
   let stopped = !options.enabled || sentences.length === 0;
@@ -38,6 +52,8 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       const utterance = new SpeechSynthesisUtterance(sentences[index]);
       currentUtterance = utterance;
       utterance.lang = 'sr-RS';
+      const voice = selectSerbianVoice();
+      if (voice) utterance.voice = voice;
       utterance.rate = 0.72;
       utterance.pitch = 1.08;
       utterance.onend = () => {

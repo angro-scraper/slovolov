@@ -1,8 +1,12 @@
-# Slovolov
+# Slovolov 2.6
 
-Slovolov je radosna, potpuno offline Flutter aplikacija za decu uzrasta
+Slovolov je radosna edukativna PWA i mobilna aplikacija za decu uzrasta
 3–10 godina. Dete uči svih 30 srpskih slova na ćirilici i latinici, sluša
-izgovor, prati stvarnu putanju slova, boji, igra se i osvaja nagrade.
+izgovor, prati putanju slova, boji, igra se, čita priče i osvaja nagrade.
+
+Glavni proizvod je jedna React + TypeScript aplikacija. PWA radi u browseru
+i može da se instalira, dok Capacitor koristi isti kod za Android i iOS omot.
+Sadržaj, slike i audio čuvaju se lokalno da bi aplikacija radila i bez mreže.
 
 ## Šta stvarno radi
 
@@ -14,8 +18,12 @@ izgovor, prati stvarnu putanju slova, boji, igra se i osvaja nagrade.
   njiše i tako redom za svih 30 slova;
 - posebna vektorska putanja i animirani vodič za pisanje svakog slova;
 - merenje tačnosti, ponovno crtanje, pohvala, zvezdice i proslava;
-- offline izgovor slova, reči, uputstva i pohvale preko Android/iOS sistemskog
-  TTS glasa `sr-RS`, uz bezbedan fallback ako glas nije instaliran;
+- 37 bajki i priča sa 390 lokalno spakovanih MP3 segmenata koje čita topli
+  ženski glas `sr-RS-SophieNeural`;
+- puna, proverena adaptacija bajke „Ivica i Marica”; ostale priče su jasno
+  označene kao sažete dok se ne završe pune uredničke verzije;
+- audio radi offline posle instalacije/keširanja aplikacije, a sistemski
+  srpski glas ostaje bezbedan fallback;
 - bojanka za svako slovo sa bojama, tri veličine četkice, gumicom, undo
   funkcijom, dvostrukom potvrdom brisanja i lokalnim čuvanjem;
 - tri stvarne mini-igre: slovo i slika, pronađi izgovoreno slovo i baloni;
@@ -23,31 +31,33 @@ izgovor, prati stvarnu putanju slova, boji, igra se i osvaja nagrade.
 - sadržaj za uzraste 3–5, 6–8 i 8–10 godina;
 - roditeljski panel zaštićen matematičkim pitanjem, sa stvarnim napretkom,
   zvukom, izborom pisma, tamnom temom i dvostrukim resetom;
-- Riverpod podešavanja, lokalna persistence i responsive prikaz za telefon i
-  tablet.
+- lokalno čuvanje napretka i responsive prikaz za telefon i tablet.
 
 ## Pokretanje
 
-Iz foldera `products/slovoigra`:
+Iz foldera `web-app`:
 
 ```text
-C:\flutter\bin\flutter.bat pub get
-C:\flutter\bin\flutter.bat run
+npm ci
+npm run dev
 ```
 
-Za Android debug APK:
+Produkcijski web build:
 
 ```text
-C:\flutter\bin\flutter.bat build apk --debug
+npm run build
 ```
 
-APK se nalazi u `build/app/outputs/flutter-apk/app-debug.apk`.
+Android debug APK se nalazi u `artifacts/Slovolov-2.6.0-debug.apk`, a javna
+PWA verzija u folderu `web-download`.
 
 ## Audio
 
-Aplikacija ne koristi internet za govor. Na telefonu treba da bude instaliran
-srpski sistemski glas. Ako nedostaje, dete dobija jasnu poruku, a aplikacija
-nastavlja da radi bez rušenja.
+Objavljena verzija koristi jedan dosledan, topao ženski naratorski glas.
+Planirano proširenje audio-drame koristiće muški glas za kraljeve i čarobnjake
+i mlađi glas za decu i vile, tek nakon uredničkog označavanja dijaloga. Skripta
+`scripts/build_neural_story_audio.mjs` omogućava proverljivo ponovno generisanje
+audio biblioteke.
 
 ## Plaćanje
 

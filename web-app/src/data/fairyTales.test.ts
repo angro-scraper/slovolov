@@ -9,17 +9,30 @@ describe('biblioteka bajki sa zvukom', () => {
     expect(fairyTales.filter((story) => story.age === '7–10')).toHaveLength(37);
   });
 
-  it('svaka priča je puna digitalna knjiga, a ne sažetak', () => {
+  it('svaka priča ima istinit status izdanja i audio-first tok', () => {
     for (const story of fairyTales) {
       expect(story.sentences.join(' ')).toMatch(/[А-Ша-ш]/);
-      expect(story.pages.length).toBeGreaterThanOrEqual(story.age === '4–6' ? 8 : 10);
+      expect(['complete', 'abridged']).toContain(story.edition);
+      expect(story.narration).toBe('audio-first');
+      expect(story.pages.length).toBeGreaterThanOrEqual(10);
       expect(story.sentences).toEqual(story.pages.flat());
-      expect(story.sentences.join(' ').split(/\s+/).length).toBeGreaterThanOrEqual(
-        story.age === '4–6' ? 180 : 400
-      );
+      if (story.edition === 'complete') {
+        expect(story.reviewed).toBe(true);
+        expect(story.sentences.join(' ').split(/\s+/).length).toBeGreaterThanOrEqual(500);
+      } else {
+        expect(story.reviewed).toBe(false);
+      }
       expect(story.answers).toContain(story.correct);
       expect(story.audioKey).toMatch(/^[a-z0-9-]+$/);
     }
+  });
+
+  it('Ivicu i Maricu isporučuje kao ručno pregledanu celu priču', () => {
+    const editions = fairyTales.filter((story) => story.plotKey === 'ivica-i-marica');
+
+    expect(editions).toHaveLength(2);
+    expect(editions.every((story) => story.edition === 'complete' && story.reviewed)).toBe(true);
+    expect(editions[0].sentences.join(' ')).toContain('На самом рубу велике шуме');
   });
 
   it('generičke završnice ne pripisuju detetu pogrešan gramatički rod', () => {
@@ -62,5 +75,14 @@ describe('biblioteka bajki sa zvukom', () => {
     expect(allText).not.toContain('симболе сложили редом');
     expect(allText).not.toContain('Пронађено благо нису сакрили');
     expect(new Set(fairyTales.map((story) => story.plotKey)).size).toBe(37);
+  });
+
+  it('ne popunjava stranice ponavljajućim nastavnim rečenicama', () => {
+    const allText = fairyTales.flatMap((story) => story.sentences).join(' ');
+
+    expect(allText).not.toContain('Застани на тренутак и замисли почетак');
+    expect(allText).not.toContain('ништа од овога није само украс');
+    expect(allText).not.toContain('Тако оригинална радња бајке');
+    expect(allText).not.toContain('Приповедач нас не позива само');
   });
 });

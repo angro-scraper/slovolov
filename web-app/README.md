@@ -16,6 +16,10 @@ Jedinstvena React + TypeScript aplikacija za web/PWA, Android i iOS omote.
 - brojevi 0–10 mogu i da se pišu na proverenom platnu;
 - roditelj bira laki, standardni ili izazovni nivo po profilu;
 - napredak za slova, brojeve i čitanje čuva se odvojeno po profilu deteta.
+- audio-bajke prvo nude slušanje, dok se tekst uključuje dugmetom
+  `Čitaj zajedno`;
+- samo ručno pregledane celovite priče nose oznaku `Cela audio-bajka`;
+  kraće adaptacije su pošteno označene kao sažete.
 
 ## Lokalno
 
@@ -44,6 +48,11 @@ macOS, Xcode i Apple Developer nalog.
 
 ## Audio
 
-Aplikacija prvo traži lokalni snimak u `public/audio`, a zatim koristi srpski
-sistemski glas uređaja. Profesionalni studijski snimci nisu lažno predstavljeni
-kao završeni resurs; mogu se dodavati bez promene aplikacionog koda.
+Aplikacija prvo reprodukuje lokalno spakovane MP3 snimke. Svih 37 naslova ima
+srpsku naraciju glasom `sr-RS-SophieNeural` (390 segmenata), pa se posle prvog
+učitavanja snimci čuvaju u PWA kešu za offline slušanje. Ako snimak nije
+dostupan, aplikacija bira najbolji srpski glas uređaja.
+
+Probni Piper narator nije prihvaćen i nije deo izdanja. Tekst je poslat
+Microsoft Edge TTS servisu i Sophie snimci su napravljeni tek nakon izričitog
+odobrenja vlasnika.

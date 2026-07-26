@@ -120,6 +120,7 @@ describe('Slovolov glavni tok', () => {
     expect(screen.queryByText('Како су Ивица и Марица први пут обележили пут?')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Slušaj celu priču' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Pauza' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Čitaj zajedno' }));
     const sentence = screen.getAllByRole('button', { name: /Rečenica/i })[1];
     fireEvent.click(sentence);
     const activeStory = screen.getByTestId('fairy-tale').getAttribute('data-story-id');
@@ -134,8 +135,11 @@ describe('Slovolov glavni tok', () => {
     expect(reader).toHaveAttribute('data-reader-mode', 'immersive');
     expect(screen.getByRole('img', { name: 'Ilustracija za Ивица и Марица' })).toBeVisible();
     expect(screen.getByRole('progressbar', { name: 'Napredak kroz bajku' })).toHaveAttribute('aria-valuenow', '1');
+    expect(screen.queryByRole('article', { name: 'Tekst priče' })).not.toBeInTheDocument();
+    expect(screen.getByText('Cela audio-bajka')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Čitaj zajedno' }));
     expect(screen.getByRole('article', { name: 'Tekst priče' })).toBeVisible();
-    expect(screen.getByText(/Snimljeni glas ima prednost/)).toBeVisible();
+    expect(screen.getByText(/Snimljeni glas ima prednost/i)).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Uvećaj tekst' }));
     expect(screen.getByRole('article', { name: 'Tekst priče' })).toHaveClass('large-text');
@@ -147,6 +151,19 @@ describe('Slovolov glavni tok', () => {
 
     expect(screen.getByLabelText('Izvor bajke: Braća Grim')).toBeVisible();
     expect(screen.getByText(/Originalna srpska adaptacija/i)).toBeVisible();
+  });
+
+  it('ne prikazuje lažno aktivno slušanje kada je zvuk isključen', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Zvuk/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Slušaj celu priču' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('Uključi zvuk');
+    expect(screen.getByRole('button', { name: 'Pauza' })).toBeDisabled();
   });
 
   it('pitanje se otključava na poslednjoj strani i dodeljuje zvezdicu samo jednom', () => {
