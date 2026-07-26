@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: slovolov-download
+    runtime: static
+    staticPublishPath: web-download
+    pullRequestPreviewsEnabled: false
