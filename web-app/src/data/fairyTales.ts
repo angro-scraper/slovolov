@@ -78,7 +78,7 @@ function buildTale(seed: TaleSeed, index: number, age: FairyTaleAge): FairyTale 
       ...common,
       sentences: [
         `${seed.hero} креће у нову авантуру ${seed.place}.`,
-        `Тамо се појавио ${seed.helper} и затражио помоћ.`,
+        `Тамо је чекало изненађење — ${seed.helper}.`,
         `Заједно су пронашли ${seed.treasure.toLocaleLowerCase('sr')}.`,
         `Научили су да ${seed.lesson}.`
       ]
@@ -88,7 +88,7 @@ function buildTale(seed: TaleSeed, index: number, age: FairyTaleAge): FairyTale 
     ...common,
     sentences: [
       `Једног необичног јутра ${seed.hero} креће на путовање ${seed.place}.`,
-      `На путу се појавио ${seed.helper} и затражио помоћ.`,
+      `На путу су срели новог пријатеља — ${seed.helper}.`,
       `Пратили су тајанствене знакове и пажљиво слушали звуке око себе.`,
       `После дуге потраге пронашли су ${seed.treasure.toLocaleLowerCase('sr')}.`,
       `Налаз нису задржали само за себе, већ су радост поделили са другима.`,
