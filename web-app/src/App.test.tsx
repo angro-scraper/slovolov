@@ -126,6 +126,21 @@ describe('Slovolov glavni tok', () => {
     expect(useProgressStore.getState().profile.storyBookmarks[activeStory ?? '']).toBe(1);
   });
 
+  it('prikazuje bajku kao pristupačnu fullscreen slikovnicu za decu', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+
+    const reader = screen.getByTestId('storybook-reader');
+    expect(reader).toHaveAttribute('data-reader-mode', 'immersive');
+    expect(screen.getByRole('img', { name: 'Ilustracija za Светлуцаво перо' })).toBeVisible();
+    expect(screen.getByRole('progressbar', { name: 'Napredak kroz bajku' })).toHaveAttribute('aria-valuenow', '1');
+    expect(screen.getByRole('article', { name: 'Tekst priče' })).toBeVisible();
+    expect(screen.getByText(/Snimljeni glas ima prednost/)).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Uvećaj tekst' }));
+    expect(screen.getByRole('article', { name: 'Tekst priče' })).toHaveClass('large-text');
+  });
+
   it('pitanje se otključava na poslednjoj strani i dodeljuje zvezdicu samo jednom', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));

@@ -228,27 +228,48 @@ body {
 .syllable-grid, .word-reading-grid, .reading-answers { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .syllable-grid button, .word-reading-grid button, .reading-answers button { border: 0; border-radius: 16px; padding: 12px 16px; background: #eef2ff; color: var(--purple); font-weight: 900; }
 .reading-feedback { min-height: 22px; margin: 0; font-weight: 900; color: var(--purple); }
-.fairy-tales { display: flex; flex-direction: column; gap: 7px; min-height: 0; }
+.fairy-screen { position: relative; }
+.fairy-screen .screen-header { height: 62px; }
+.fairy-tales { display: flex; flex-direction: column; gap: 6px; min-height: 0; padding-bottom: 3px; }
 .fairy-age-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 4px; border-radius: 17px; background: #eef2ff; }
-.fairy-age-tabs button { min-height: 38px; border: 0; border-radius: 13px; background: transparent; color: var(--purple); font-weight: 900; }
+.fairy-age-tabs button { min-height: 34px; border: 0; border-radius: 13px; background: transparent; color: var(--purple); font-weight: 900; }
 .fairy-age-tabs button.active { background: white; box-shadow: 0 4px 12px rgba(67,56,202,.12); }
-.fairy-card { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 7px; padding: 10px; border-radius: 25px; background: linear-gradient(155deg, #fffdf4, #f2f4ff); box-shadow: var(--shadow); }
-.fairy-title { display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left; }
-.fairy-title > span { font-size: 2.8rem; }.fairy-title small { color: var(--purple); font-weight: 900; }.fairy-title h2 { margin: 1px 0 0; font: 900 1.35rem 'Segoe UI Rounded'; }
+.fairy-card { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; gap: 7px; padding: 9px; overflow: hidden; border: 1px solid rgba(99,102,241,.12); border-radius: 27px; background: linear-gradient(155deg, #fffdf4, #f2f4ff); box-shadow: var(--shadow); }
+.storybook-scene { min-height: 104px; position: relative; display: grid; grid-template-columns: minmax(100px, .75fr) 1.25fr; align-items: center; padding: 8px 20px; overflow: hidden; border-radius: 21px; color: white; background: radial-gradient(circle at 18% 10%, rgba(255,255,255,.35), transparent 24%), linear-gradient(130deg, #4742d5, #7567f2 58%, #b279ef); }
+.storybook-scene::after { content: ''; position: absolute; width: 155px; height: 155px; right: -45px; bottom: -95px; border-radius: 50%; background: rgba(255,255,255,.12); }
+.storybook-scene > [role="img"] { z-index: 1; display: block; font-size: clamp(3.2rem, 13vw, 5.7rem); text-align: center; filter: drop-shadow(0 9px 9px rgba(30,27,75,.24)); animation: story-float 3.2s ease-in-out infinite; }
+.fairy-title { z-index: 1; display: flex; align-items: center; justify-content: flex-start; text-align: left; }
+.fairy-title small { color: #fff4b7; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }.fairy-title h2 { margin: 2px 0 0; font: 900 clamp(1.35rem, 5vw, 2.15rem)/1.02 'Segoe UI Rounded'; }
+.storybook-sparkle { position: absolute; color: #fff4b7; font-size: 1.4rem; animation: story-sparkle 1.8s ease-in-out infinite alternate; }
+.sparkle-one { top: 13px; right: 20px; }.sparkle-two { left: 43%; bottom: 10px; animation-delay: .6s; }
+@keyframes story-float { 50% { transform: translateY(-5px) rotate(2deg); } }
+@keyframes story-sparkle { to { opacity: .35; transform: scale(.7) rotate(30deg); } }
 .book-page-navigation { display: grid; grid-template-columns: 40px 1fr 40px; align-items: center; gap: 6px; }
+.storybook-page-progress { display: grid; gap: 4px; }
 .book-page-navigation strong { color: #566078; font-size: .8rem; text-align: center; }
-.book-page-navigation button { height: 32px; border: 0; border-radius: 11px; background: #e0e7ff; color: var(--purple); font-size: 1.1rem; font-weight: 900; }
+.storybook-progress-track { height: 7px; overflow: hidden; border-radius: 999px; background: #e1e6f4; }
+.storybook-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--orange), var(--yellow), var(--green)); transition: width .3s ease; }
+.book-page-navigation button { height: 34px; border: 0; border-radius: 12px; background: #e0e7ff; color: var(--purple); font-size: 1.2rem; font-weight: 900; box-shadow: inset 0 -2px 0 rgba(79,70,229,.12); }
 .book-page-navigation button:disabled { opacity: .3; cursor: not-allowed; }
-.fairy-sentences { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.fairy-sentences button { min-height: 48px; padding: 6px 8px; border: 2px solid #e5e7eb; border-radius: 13px; background: white; font-size: .77rem; font-weight: 800; text-align: left; }
-.fairy-sentences button.active { border-color: var(--purple); background: #eef2ff; color: #3730a3; }
+.fairy-sentences { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 10px 12px; border: 1px solid #ebe7d8; border-radius: 19px; background: rgba(255,255,255,.9); box-shadow: inset 0 0 28px rgba(251,191,36,.06); }
+.fairy-sentences button { min-height: 0; padding: 7px 10px 7px 14px; border: 0; border-left: 4px solid transparent; border-radius: 11px; background: transparent; font-size: clamp(.84rem, 2.7vw, 1.08rem); font-weight: 800; line-height: 1.34; text-align: left; transition: transform .18s ease, background .18s ease; }
+.fairy-sentences button.active { border-left-color: var(--orange); background: linear-gradient(90deg, #fff4cf, #fffaf0); color: #42351a; transform: translateX(3px); box-shadow: 0 5px 15px rgba(245,158,11,.1); }
+.fairy-sentences.large-text button { font-size: clamp(1rem, 3.4vw, 1.28rem); line-height: 1.42; }
+.storybook-reader-tools { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 7px; }
+.text-size-toggle { min-height: 32px; padding: 5px 9px; border: 0; border-radius: 11px; background: #ede9fe; color: var(--purple); font-size: .72rem; font-weight: 900; }
+.narrator-source { min-height: 0; margin: 0; color: #64708a; font-size: .68rem; font-weight: 800; text-align: right; }
+.narrator-source.recorded { color: #167653; }.narrator-source.unavailable { color: #b45309; }
 .narration-controls { display: grid; grid-template-columns: 1.25fr repeat(3, 1fr); gap: 5px; }
-.narration-controls button { min-height: 40px; padding: 6px; font-size: .75rem; }
+.narration-controls button { min-height: 38px; padding: 5px; font-size: .72rem; }
 .narration-controls button:disabled { opacity: .42; cursor: not-allowed; }
 .fairy-question { text-align: center; }.fairy-question p { margin: 0 0 5px; font-weight: 900; }
 .fairy-question > div { display: flex; justify-content: center; flex-wrap: wrap; gap: 5px; }
 .fairy-question button { min-height: 36px; padding: 6px 10px; border: 0; border-radius: 12px; background: #eef2ff; color: var(--purple); font-size: .76rem; font-weight: 900; }
 .fairy-status { min-height: 19px; margin: 0; color: var(--purple); font-size: .78rem; font-weight: 900; text-align: center; }
+.storybook-celebration { position: absolute; inset: 35% 12% auto; z-index: 5; display: grid; justify-items: center; gap: 4px; padding: 18px; border: 3px solid #fde68a; border-radius: 24px; background: rgba(255,255,255,.97); box-shadow: 0 22px 60px rgba(67,56,202,.25); text-align: center; animation: celebration-pop .35s ease-out; }
+.storybook-celebration span { font-size: 3.2rem; animation: star-spin .8s ease-out; }.storybook-celebration strong { color: var(--purple); font-size: 1.2rem; }.storybook-celebration small { color: #64708a; font-weight: 800; }
+@keyframes celebration-pop { from { opacity: 0; transform: scale(.72); } }
+@keyframes star-spin { from { transform: rotate(-90deg) scale(.4); } }
 
 .progress { text-align: center; padding: 12px 0; }
 .profile-avatar { margin: 0 auto; width: 100px; height: 100px; display: grid; place-items: center; border-radius: 36px; background: #fef3c7; font-size: 4.5rem; }
@@ -305,11 +326,14 @@ body {
   .daily-step { min-height: 70px; grid-template-columns: 68px 1fr auto; padding: 9px 11px; }
   .memory-grid { gap: 9px; }
   .primary, .secondary { min-height: 46px; }
-  .fairy-card { padding: 8px; }
-  .fairy-title > span { font-size: 2.3rem; }
+  .fairy-card { padding: 7px; border-radius: 22px; }
+  .storybook-scene { min-height: 93px; grid-template-columns: 105px 1fr; padding: 6px 13px; }
+  .storybook-scene > [role="img"] { font-size: 3.5rem; }
   .fairy-title h2 { font-size: 1.08rem; }
-  .fairy-sentences button { min-height: 43px; font-size: .7rem; }
+  .fairy-sentences { padding: 7px 8px; }
+  .fairy-sentences button { padding: 6px 7px 6px 10px; font-size: .78rem; }
   .narration-controls { grid-template-columns: 1fr 1fr; }
+  .narrator-source { font-size: .62rem; }
 }
 
 @media (max-height: 700px) {
@@ -322,7 +346,13 @@ body {
   .story-art { font-size: 2.8rem; padding: 10px; }
   .age-tabs button { min-height: 32px; }
   .sentence { padding: 7px; }
-  .fairy-title > span { display: none; }
-  .fairy-sentences button { min-height: 36px; padding: 4px 6px; font-size: .65rem; }
-  .narration-controls button { min-height: 34px; }
+  .fairy-screen .screen-header { height: 50px; }
+  .fairy-age-tabs button { min-height: 29px; font-size: .72rem; }
+  .fairy-tales .story-navigation button { height: 30px; }
+  .storybook-scene { min-height: 72px; }
+  .storybook-scene > [role="img"] { font-size: 2.75rem; }
+  .fairy-sentences { padding: 5px 7px; }
+  .fairy-sentences button { padding: 4px 6px 4px 9px; font-size: .68rem; line-height: 1.22; }
+  .narration-controls button { min-height: 31px; }
+  .storybook-reader-tools { display: none; }
 }

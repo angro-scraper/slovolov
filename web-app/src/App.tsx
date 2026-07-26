@@ -582,6 +582,9 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const setStoryBookmark = useProgressStore((state) => state.setStoryBookmark);
   const [activeSentence, setActiveSentence] = useState(profile.storyBookmarks[story.id] ?? 0);
   const [playback, setPlayback] = useState<'idle' | 'playing' | 'paused'>('idle');
+  const [largeText, setLargeText] = useState(false);
+  const [narrationSource, setNarrationSource] = useState<'recorded' | 'system' | 'unavailable' | null>(null);
+  const [celebrating, setCelebrating] = useState(false);
   const [message, setMessage] = useState('Izaberi rečenicu ili poslušaj celu priču.');
   const sessionRef = useRef<NarrationSession | null>(null);
   const pageStarts = story.pages.map((_, pageIndex) => (
@@ -601,6 +604,8 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     setStoryIndex(nextIndex);
     setActiveSentence(profile.storyBookmarks[nextStory.id] ?? 0);
     setPlayback('idle');
+    setNarrationSource(null);
+    setCelebrating(false);
     setMessage('Izaberi rečenicu ili poslušaj celu priču.');
   };
 
@@ -616,6 +621,7 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     setActiveSentence(firstSentence);
     setStoryBookmark(story.id, firstSentence);
     setPlayback('idle');
+    setCelebrating(false);
     setMessage(`Strana ${pageIndex + 1} je otvorena. Dodirni rečenicu ili nastavi čitanje.`);
   };
 
@@ -631,6 +637,7 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
         setActiveSentence(index);
         setStoryBookmark(story.id, index);
       },
+      onSource: setNarrationSource,
       onComplete: () => {
         setPlayback('idle');
         setMessage('Priča je pročitana. Odgovori na pitanje i osvoji zvezdicu!');
@@ -658,10 +665,18 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           <strong>Bajka {storyIndex + 1}/{stories.length}</strong>
           <button aria-label="Sledeća bajka" disabled={storyIndex === stories.length - 1} onClick={() => openStory(storyIndex + 1)}>→</button>
         </div>
-        <section className="fairy-card">
-          <div className="fairy-title">
-            <span aria-hidden="true">{story.art}</span>
-            <div><small>{story.category}</small><h2>{story.title}</h2></div>
+        <section
+          className="fairy-card storybook-reader"
+          data-testid="storybook-reader"
+          data-reader-mode="immersive"
+        >
+          <div className="storybook-scene">
+            <span role="img" aria-label={`Ilustracija za ${story.title}`}>{story.art}</span>
+            <div className="fairy-title">
+              <div><small>{story.category}</small><h2>{story.title}</h2></div>
+            </div>
+            <span className="storybook-sparkle sparkle-one" aria-hidden="true">✦</span>
+            <span className="storybook-sparkle sparkle-two" aria-hidden="true">✧</span>
           </div>
           <div className="book-page-navigation">
             <button
@@ -669,14 +684,29 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               disabled={currentPageIndex === 0}
               onClick={() => openPage(currentPageIndex - 1)}
             >←</button>
-            <strong>Strana {currentPageIndex + 1}/{story.pages.length}</strong>
+            <div className="storybook-page-progress">
+              <strong>Strana {currentPageIndex + 1}/{story.pages.length}</strong>
+              <div
+                className="storybook-progress-track"
+                role="progressbar"
+                aria-label="Napredak kroz bajku"
+                aria-valuemin={1}
+                aria-valuemax={story.pages.length}
+                aria-valuenow={currentPageIndex + 1}
+              >
+                <span style={{ width: `${((currentPageIndex + 1) / story.pages.length) * 100}%` }} />
+              </div>
+            </div>
             <button
               aria-label="Sledeća stranica"
               disabled={isLastPage}
               onClick={() => openPage(currentPageIndex + 1)}
             >→</button>
           </div>
-          <div className="fairy-sentences">
+          <article
+            className={`fairy-sentences storybook-page${largeText ? ' large-text' : ''}`}
+            aria-label="Tekst priče"
+          >
             {currentPage.map((sentence, pageSentenceIndex) => {
               const index = pageStarts[currentPageIndex] + pageSentenceIndex;
               return (
@@ -694,6 +724,19 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               >{sentence}</button>
               );
             })}
+          </article>
+          <div className="storybook-reader-tools">
+            <button
+              className="text-size-toggle"
+              aria-label={largeText ? 'Smanji tekst' : 'Uvećaj tekst'}
+              onClick={() => setLargeText((value) => !value)}
+            >Aa {largeText ? 'Normalno' : 'Veće'}</button>
+            <p className={`narrator-source ${narrationSource ?? 'ready'}`}>
+              {narrationSource === 'recorded' && '🎙️ Reprodukuje se snimljeni narator'}
+              {narrationSource === 'system' && '🔊 Čita srpski glas ovog uređaja'}
+              {narrationSource === 'unavailable' && '⚠️ Glas nije dostupan na ovom uređaju'}
+              {narrationSource === null && '🎙️ Snimljeni glas ima prednost; glas uređaja je rezerva'}
+            </p>
           </div>
           <div className="narration-controls">
             <button className="primary" aria-label="Slušaj celu priču" onClick={start}>▶ Slušaj</button>
@@ -722,12 +765,20 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                     return;
                   }
                   completeReading(`fairy-${story.id}`);
+                  setCelebrating(true);
                   setMessage('⭐ Bravo! Razumeo si priču i osvojio zvezdicu!');
                   void speak('Bravo! Razumeo si priču i osvojio zvezdicu!', sound);
                 }}>{answer}</button>
               ))}
             </div>
           </div>}
+          {celebrating && (
+            <div className="storybook-celebration" role="region" aria-live="polite" aria-label="Osvojena zvezdica">
+              <span aria-hidden="true">⭐</span>
+              <strong>Bravo, mali čitaoče!</strong>
+              <small>Završio si bajku i osvojio zvezdicu.</small>
+            </div>
+          )}
         </section>
         <p className="fairy-status" role="status">{message}</p>
       </main>

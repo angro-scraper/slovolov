@@ -25,12 +25,15 @@ describe('audio pripovedanje', () => {
 
   it('čita rečenice redom i prijavljuje aktivnu rečenicu', () => {
     const active: number[] = [];
+    const sources: string[] = [];
     const session = narrateSentences(['Прва.', 'Друга.'], {
       enabled: true,
-      onSentence: (index) => active.push(index)
+      onSentence: (index) => active.push(index),
+      onSource: (source) => sources.push(source)
     });
 
     expect(active).toEqual([0]);
+    expect(sources).toEqual(['system']);
     expect(speak).toHaveBeenCalledTimes(1);
     const first = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
     first.onend?.call(first, {} as SpeechSynthesisEvent);
@@ -48,5 +51,17 @@ describe('audio pripovedanje', () => {
   it('ne pokreće zvuk kada je isključen', () => {
     narrateSentences(['Тишина.'], { enabled: false });
     expect(speak).not.toHaveBeenCalled();
+  });
+
+  it('jasno prijavljuje da zvuk nije dostupan kada uređaj nema čitač', () => {
+    const sources: string[] = [];
+    Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: undefined });
+
+    narrateSentences(['Тишина.'], {
+      enabled: true,
+      onSource: (source) => sources.push(source)
+    });
+
+    expect(sources).toEqual(['unavailable']);
   });
 });

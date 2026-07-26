@@ -9,6 +9,7 @@ type NarrationOptions = {
   audioKey?: string;
   startIndex?: number;
   onSentence?: (index: number) => void;
+  onSource?: (source: 'recorded' | 'system' | 'unavailable') => void;
   onComplete?: () => void;
 };
 
@@ -28,10 +29,12 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
     const fallbackToSystemVoice = () => {
       if (fallbackStarted || stopped) return;
       fallbackStarted = true;
-      if (!('speechSynthesis' in window)) {
+      if (!window.speechSynthesis || typeof window.speechSynthesis.speak !== 'function') {
         stopped = true;
+        options.onSource?.('unavailable');
         return;
       }
+      options.onSource?.('system');
       const utterance = new SpeechSynthesisUtterance(sentences[index]);
       currentUtterance = utterance;
       utterance.lang = 'sr-RS';
@@ -57,7 +60,9 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       playCurrent();
     };
     audio.onerror = fallbackToSystemVoice;
-    void audio.play().catch(fallbackToSystemVoice);
+    void audio.play()
+      .then(() => options.onSource?.('recorded'))
+      .catch(fallbackToSystemVoice);
   };
 
   const session: NarrationSession = {
