@@ -21,6 +21,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: web-app/package-lock.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -40,14 +41,18 @@ jobs:
         shell: bash
         run: printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$SLOVOLOV_UPLOAD_KEYSTORE"
       - run: npm ci
+        working-directory: web-app
       - run: npm test -- --run
+        working-directory: web-app
       - run: npm run cap:sync
+        working-directory: web-app
       - run: chmod +x android/gradlew
+        working-directory: web-app
       - name: Napravi potpisani AAB
         run: ./gradlew bundleRelease
-        working-directory: android
+        working-directory: web-app/android
       - uses: actions/upload-artifact@v4
         with:
           name: Slovolov-Google-Play-AAB
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: web-app/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error

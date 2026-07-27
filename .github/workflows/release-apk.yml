@@ -26,21 +26,26 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: web-app/package-lock.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 21
       - run: npm ci
+        working-directory: web-app
       - run: npm test -- --run
+        working-directory: web-app
       - run: npm run cap:sync
+        working-directory: web-app
       - run: chmod +x android/gradlew
+        working-directory: web-app
       - run: ./gradlew assembleDebug
-        working-directory: android
+        working-directory: web-app/android
       - name: Pripremi APK
         shell: bash
         run: |
           version="${RELEASE_TAG#v}"
-          cp android/app/build/outputs/apk/debug/app-debug.apk "Slovolov-${version}.apk"
+          cp web-app/android/app/build/outputs/apk/debug/app-debug.apk "Slovolov-${version}.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: Slovolov-Android-${{ env.RELEASE_TAG }}
