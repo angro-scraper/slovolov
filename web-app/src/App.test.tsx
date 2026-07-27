@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { quizQuestions } from './data/quizQuestions';
 import { clearFullStoryCache } from './services/fullStoryLibrary';
 import { convertInterfaceText } from './services/interfaceScript';
 import { useProgressStore } from './store/progress';
@@ -152,14 +153,25 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByLabelText('Platno za pisanje slova 1')).toBeVisible();
   });
 
-  it('kviz traži početno slovo samo na osnovu slike', () => {
+  it('kviz izgovara naziv slike, ne otkriva reč i nudi početna slova', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play');
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Kviz/i }));
 
-    expect(screen.getByText('Koje je početno slovo?')).toBeVisible();
-    expect(screen.getByRole('img', { name: 'Slika za kviz pitanje' })).toBeVisible();
-    expect(screen.queryByText('Avion')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'A' })).toBeVisible();
+    expect(screen.getByText('Poslušaj i pogodi početno slovo.')).toBeVisible();
+    const image = screen.getByRole('img', { name: 'Slika za kviz pitanje' });
+    const current = quizQuestions.find((question) => question.emoji === image.textContent);
+    expect(current).toBeDefined();
+    expect(screen.queryByText(convertInterfaceText(current!.word, 'latin'))).not.toBeInTheDocument();
+    expect(document.querySelectorAll('.quiz-choices button')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: 'Poslušaj naziv slike ponovo' })).toBeVisible();
+
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    expect((play.mock.instances.at(-1) as HTMLAudioElement).src).toContain(current!.audioSource);
+
+    play.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Poslušaj naziv slike ponovo' }));
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
   });
 
   it('brojevi imaju stvarno računanje prilagođeno deci', () => {

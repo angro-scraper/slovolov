@@ -60,6 +60,19 @@ export default defineConfig(({ mode }) => {
             }
           },
           {
+            urlPattern: ({ url }) => url.pathname.startsWith('/audio/quiz/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovolov-quiz-audio-v1',
+              expiration: {
+                maxEntries: 90,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: { statuses: [0, 200] },
+              rangeRequests: true
+            }
+          },
+          {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/stories/'),
             handler: 'CacheFirst',
             options: {

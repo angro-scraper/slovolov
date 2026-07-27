@@ -17,7 +17,8 @@ import {
   isStoryAvailableOffline,
   type StoryDownloadProgress
 } from './services/storyOffline';
-import { speak } from './services/speech';
+import { speak, speakRecordedPrompt } from './services/speech';
+import { createQuizRound } from './data/quizQuestions';
 import { applyInterfaceScript } from './services/interfaceScript';
 import {
   createDefaultPurchaseGateway,
@@ -310,7 +311,7 @@ export function App() {
     if (screen === 'daily') return <DailyChallenge onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'games') return <GameHub onBack={() => setScreen('home')} sound={sound} />;
 
-    if (screen === 'quiz') return <Quiz onBack={() => setScreen('home')} />;
+    if (screen === 'quiz') return <Quiz onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'numbers') return <Numbers onBack={() => setScreen('home')} onFamily={() => setScreen('settings')} sound={sound} />;
     if (screen === 'reading') return <Reading onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'fairy-tales') return <FairyTales onBack={() => setScreen('home')} onFamily={() => setScreen('settings')} sound={sound} />;
@@ -607,25 +608,54 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   );
 }
 
-function Quiz({ onBack }: { onBack: () => void }) {
+function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+  const [round] = useState(() => createQuizRound(Date.now()));
   const [question, setQuestion] = useState(0);
   const [score, setScore] = useState(0);
-  const target = letters[question % letters.length];
-  const choices = seededChoices([target, letters[(question + 5) % 30], letters[(question + 11) % 30]], question);
+  const [message, setMessage] = useState('Poslušaj naziv slike i izaberi početno slovo.');
+  const target = round[Math.min(question, round.length - 1)];
+  const targetLetter = letters[target.letterIndex];
+  const prompt = `Na slici je ${target.word}. Koje je prvo slovo?`;
+  const choices = seededChoices([
+    targetLetter,
+    letters[(target.letterIndex + 5) % 30],
+    letters[(target.letterIndex + 11) % 30]
+  ], question + target.letterIndex);
+
+  useEffect(() => {
+    if (question < round.length) {
+      void speakRecordedPrompt(prompt, target.audioSource, sound);
+    }
+  }, [prompt, question, round.length, sound, target.audioSource]);
+
   return (
     <div className="single-screen">
-      <Header title={`Kviz ${question + 1}/10`} onBack={onBack} />
+      <Header title={`Kviz ${Math.min(question + 1, round.length)}/${round.length}`} onBack={onBack} />
       <main className="quiz">
-        {question < 10 ? <>
-          <p>Koje je početno slovo?</p>
+        {question < round.length ? <>
+          <p>Poslušaj i pogodi početno slovo.</p>
           <div className="quiz-emoji" role="img" aria-label="Slika za kviz pitanje">
-            {target.words[0].emoji}
+            {target.emoji}
           </div>
+          <button
+            className="secondary quiz-listen"
+            aria-label="Poslušaj naziv slike ponovo"
+            onClick={() => void speakRecordedPrompt(prompt, target.audioSource, sound)}
+          >
+            🔊 Poslušaj ponovo
+          </button>
           <div className="quiz-choices">{choices.map((letter) => <button key={letter.upper} onClick={() => {
-            if (letter === target) setScore((value) => value + 1);
+            if (letter !== targetLetter) {
+              setMessage('Pokušaj ponovo. Poslušaj naziv slike još jednom.');
+              void speakRecordedPrompt(prompt, target.audioSource, sound);
+              return;
+            }
+            setScore((value) => value + 1);
+            setMessage('Bravo! Tačan odgovor.');
             setQuestion((value) => value + 1);
           }}>{letter.upper}</button>)}</div>
-        </> : <div className="result"><span>{score >= 9 ? '🥇' : score >= 7 ? '🥈' : '🥉'}</span><h2>{score}/10 tačnih!</h2><button className="primary" onClick={onBack}>Na početak</button></div>}
+          <p role="status">{message}</p>
+        </> : <div className="result"><span>{score >= 9 ? '🥇' : score >= 7 ? '🥈' : '🥉'}</span><h2>{score}/{round.length} tačnih!</h2><button className="primary" onClick={onBack}>Na početak</button></div>}
       </main>
     </div>
   );
