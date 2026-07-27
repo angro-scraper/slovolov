@@ -1,0 +1,77 @@
+workflows:
+  slovolov-ios-testflight:
+    name: Slovolov iOS TestFlight
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: "Sacuvaj Hranu App Store Connect"
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: rs.slovolov.app
+      vars:
+        BUNDLE_ID: "rs.slovolov.app"
+        APP_STORE_APPLE_ID: "6795110827"
+        XCODE_WORKSPACE: "App.xcworkspace"
+        XCODE_SCHEME: "App"
+        VITE_STORE_SAFE_CONTENT: "true"
+        VITE_COMMERCE_ENABLED: "true"
+      node: 22
+      xcode: latest
+      cocoapods: default
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $HOME/Library/Caches/CocoaPods
+    scripts:
+      - name: Install web dependencies
+        script: |
+          cd "$CM_BUILD_DIR/web-app"
+          npm ci
+      - name: Run web tests and typecheck
+        script: |
+          cd "$CM_BUILD_DIR/web-app"
+          npm test
+          npm run typecheck
+      - name: Build store-safe web app and sync Capacitor iOS
+        script: |
+          cd "$CM_BUILD_DIR/web-app"
+          npm run build
+          npx cap sync ios
+      - name: Install CocoaPods dependencies
+        script: |
+          cd "$CM_BUILD_DIR/web-app/ios/App"
+          pod install
+      - name: Set iOS build number
+        script: |
+          cd "$CM_BUILD_DIR/web-app/ios/App"
+          LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
+          if [ -z "$LATEST_BUILD_NUMBER" ]; then
+            LATEST_BUILD_NUMBER=0
+          fi
+          agvtool new-version -all "$((LATEST_BUILD_NUMBER + 1))"
+      - name: Prepare App Store signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build signed IPA
+        script: |
+          cd "$CM_BUILD_DIR/web-app/ios/App"
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - web-app/ios/App/build/ios/ipa/App.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        expire_build_submitted_for_review: false
+        submit_to_app_store: false
