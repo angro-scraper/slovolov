@@ -57,6 +57,15 @@ describe('Slovolov glavni tok', () => {
     vi.unstubAllEnvs();
   });
 
+  it('prikazuje novi dečji Slovolov logo na početnom ekranu', () => {
+    render(<App />);
+
+    expect(screen.getByRole('img', { name: 'Slovolov sova' })).toHaveAttribute(
+      'src',
+      '/icons/slovolov-icon-192.png'
+    );
+  });
+
   it('otvara školu slova i prikazuje reči u izabranom pismu', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));

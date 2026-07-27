@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
     excludeSourceStoryAssets(storeSafeContent),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/icon.svg'],
+      includeAssets: ['icons/slovolov-icon-192.png', 'icons/slovolov-icon-512.png'],
       manifest: {
         name: 'Slovolov — učimo srpska slova',
         short_name: 'Slovolov',
@@ -40,7 +40,10 @@ export default defineConfig(({ mode }) => {
         background_color: '#fffaf0',
         display: 'standalone',
         orientation: 'portrait',
-        icons: [{ src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
+        icons: [
+          { src: '/icons/slovolov-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/slovolov-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+        ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,json,woff2}'],

@@ -52,7 +52,11 @@ function Back({ onClick }: { onClick: () => void }) {
 function Header({ title, onBack }: { title: string; onBack?: () => void }) {
   return (
     <header className="screen-header">
-      {onBack ? <Back onClick={onBack} /> : <span className="mascot">🦉</span>}
+      {onBack ? (
+        <Back onClick={onBack} />
+      ) : (
+        <img className="mascot" src="/icons/slovolov-icon-192.png" alt="Slovolov sova" />
+      )}
       <div><small>Slovolov</small><h1>{title}</h1></div>
       <span className="star-pill">⭐ {useProgressStore((state) => state.profile.stars)}</span>
     </header>
