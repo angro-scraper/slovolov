@@ -1,4 +1,7 @@
-import { completeFairyTales } from './completeFairyTales.ts';
+import {
+  fullStoryContentCatalog,
+  hasFullStoryContent
+} from './fullStoryContentManifest.ts';
 
 export type FairyTaleAge = '4–6' | '7–10';
 export type FairyTaleCategory = 'Bajke' | 'Životinje' | 'Pred spavanje';
@@ -30,6 +33,7 @@ export type FairyTale = {
   edition: 'complete' | 'abridged';
   narration: 'audio-first';
   reviewed: boolean;
+  fullContentAvailable: boolean;
 };
 
 type ClassicTaleSeed = {
@@ -43,12 +47,13 @@ type ClassicTaleSeed = {
   question: string;
   answers: [string, string, string];
   correct: string;
+  recordedAudio?: boolean;
 };
 
 const grimm: FairyTaleSource = {
   author: 'Braća Grim',
-  work: 'Grimm’s Fairy Stories',
-  url: 'https://www.gutenberg.org/ebooks/11027',
+  work: 'Grimms’ Fairy Tales',
+  url: 'https://www.gutenberg.org/ebooks/2591',
   publicDomain: true
 };
 
@@ -69,7 +74,7 @@ const perrault: FairyTaleSource = {
 const jacobs: FairyTaleSource = {
   author: 'Džozef Džejkobs',
   work: 'English Fairy Tales',
-  url: 'https://www.gutenberg.org/ebooks/26460',
+  url: 'https://www.gutenberg.org/ebooks/7439',
   publicDomain: true
 };
 
@@ -958,8 +963,10 @@ const classics: ClassicTaleSeed[] = [
 ];
 
 function buildTale(seed: ClassicTaleSeed, age: FairyTaleAge): FairyTale {
-  const complete = completeFairyTales[seed.id];
-  const pages = complete?.pages ?? seed.plot.map((event) => [event]);
+  const hasFullContent = hasFullStoryContent(seed.id);
+  const pages = hasFullContent
+    ? [['Цела изворно проверена прича се учитава…']]
+    : seed.plot.map((event) => [event]);
   return {
     id: `${seed.id}-${age.replace('–', '-')}`,
     age,
@@ -971,19 +978,46 @@ function buildTale(seed: ClassicTaleSeed, age: FairyTaleAge): FairyTale {
     question: seed.question,
     answers: seed.answers,
     correct: seed.correct,
-    audioKey: `${seed.id}-${complete ? 'cela' : 'sazeta'}`,
-    recordedAudio: true,
+    audioKey: `${seed.id}-${hasFullContent ? 'full' : 'sazeta'}`,
+    recordedAudio: seed.recordedAudio ?? true,
     recordedVoice: 'sr-RS-SophieNeural',
     plotKey: seed.id,
     source: seed.source,
     adaptation: 'originalna-srpska-adaptacija',
-    edition: complete ? 'complete' : 'abridged',
+    edition: hasFullContent ? 'complete' : 'abridged',
     narration: 'audio-first',
-    reviewed: complete?.reviewed ?? false
+    reviewed: hasFullContent,
+    fullContentAvailable: hasFullContent
   };
 }
 
 export const fairyTaleAges: FairyTaleAge[] = ['4–6', '7–10'];
+const storyArt = ['📖 ✨ 🌙', '🏰 🌟 📚', '🌲 🧚 🦉', '👑 🐉 🗝️'];
+const publishedStories: ClassicTaleSeed[] = fullStoryContentCatalog.map((entry, index, catalog) => {
+  const otherTitles = [
+    catalog[(index + 1) % catalog.length].title,
+    catalog[(index + 2) % catalog.length].title
+  ];
+  return {
+    id: entry.id,
+    title: entry.title,
+    art: storyArt[index % storyArt.length],
+    category: index % 5 === 1 ? 'Pred spavanje' : (index % 5 === 2 ? 'Životinje' : 'Bajke'),
+    source: {
+      author: entry.author,
+      work: entry.title,
+      url: entry.sourceUrl,
+      publicDomain: true
+    },
+    plot: Array.from({ length: 10 }, () => 'Цела изворно проверена прича се учитава…') as ClassicTaleSeed['plot'],
+    lesson: 'пажљиво слушање и разговор помажу детету да разуме причу',
+    question: 'Коју си причу управо слушао?',
+    answers: [entry.title, otherTitles[0], otherTitles[1]],
+    correct: entry.title,
+    recordedAudio: entry.audioAvailable
+  };
+});
+
 export const fairyTales: FairyTale[] = fairyTaleAges.flatMap((age) =>
-  classics.map((seed) => buildTale(seed, age))
+  publishedStories.map((seed) => buildTale(seed, age))
 );

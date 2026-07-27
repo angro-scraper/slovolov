@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fairyTales } from './fairyTales';
+import { fullStoryContentIds } from './fullStoryContentManifest';
 
 describe('biblioteka bajki sa zvukom', () => {
   it('sadrži 74 jedinstvena izdanja, po 37 klasičnih bajki za svaki uzrast', () => {
@@ -9,30 +10,23 @@ describe('biblioteka bajki sa zvukom', () => {
     expect(fairyTales.filter((story) => story.age === '7–10')).toHaveLength(37);
   });
 
-  it('svaka priča ima istinit status izdanja i audio-first tok', () => {
+  it('svaka priča upućuje na zaseban, izvorno proveren puni sadržaj', () => {
     for (const story of fairyTales) {
       expect(story.sentences.join(' ')).toMatch(/[А-Ша-ш]/);
-      expect(['complete', 'abridged']).toContain(story.edition);
+      expect(story.edition).toBe('complete');
       expect(story.narration).toBe('audio-first');
-      expect(story.pages.length).toBeGreaterThanOrEqual(10);
       expect(story.sentences).toEqual(story.pages.flat());
-      if (story.edition === 'complete') {
-        expect(story.reviewed).toBe(true);
-        expect(story.sentences.join(' ').split(/\s+/).length).toBeGreaterThanOrEqual(500);
-      } else {
-        expect(story.reviewed).toBe(false);
-      }
+      expect(story.reviewed).toBe(true);
+      expect(story.fullContentAvailable).toBe(true);
+      expect(fullStoryContentIds).toContain(story.plotKey);
       expect(story.answers).toContain(story.correct);
       expect(story.audioKey).toMatch(/^[a-z0-9-]+$/);
     }
   });
 
-  it('Ivicu i Maricu isporučuje kao ručno pregledanu celu priču', () => {
-    const editions = fairyTales.filter((story) => story.plotKey === 'ivica-i-marica');
-
-    expect(editions).toHaveLength(2);
-    expect(editions.every((story) => story.edition === 'complete' && story.reviewed)).toBe(true);
-    expect(editions[0].sentences.join(' ')).toContain('На самом рубу велике шуме');
+  it('ne prikazuje sažete rukopise u objavljenoj biblioteci celih priča', () => {
+    expect(fairyTales.every((story) => story.edition === 'complete')).toBe(true);
+    expect(fairyTales.some((story) => story.plotKey === 'ivica-i-marica')).toBe(false);
   });
 
   it('generičke završnice ne pripisuju detetu pogrešan gramatički rod', () => {
@@ -42,29 +36,27 @@ describe('biblioteka bajki sa zvukom', () => {
     expect(allText).not.toContain('да би је сутра испричала');
   });
 
-  it('sadrži stvarne klasične bajke umesto varijacija istog šablona', () => {
+  it('sadrži 37 različitih izvornih bajki i srpskih narodnih pripovedaka', () => {
     const titles = [...new Set(fairyTales.map((story) => story.title))];
 
     expect(titles).toEqual(expect.arrayContaining([
-      'Ивица и Марица',
-      'Пинокио',
-      'Црвенкапа',
-      'Три прасета',
       'Пепељуга',
-      'Снежана и седам патуљака',
       'Ружно паче',
-      'Царево ново одело'
+      'Царево ново одело',
+      'Чардак ни на небу ни на земљи',
+      'Златна јабука и девет пауница',
+      'Немушти језик'
     ]));
     expect(titles).toHaveLength(37);
   });
 
-  it('navodi javnodomenski izvor i autora za svaku originalnu adaptaciju', () => {
+  it('navodi javnodomensko delo i proverljivu Wikizvornik stranicu', () => {
     for (const story of fairyTales) {
       expect(story.source.author.length).toBeGreaterThan(2);
       expect(story.source.work.length).toBeGreaterThan(2);
       expect(story.source.url).toMatch(/^https:\/\//);
       expect(story.source.publicDomain).toBe(true);
-      expect(story.adaptation).toBe('originalna-srpska-adaptacija');
+      expect(story.fullContentAvailable).toBe(true);
     }
   });
 

@@ -1,4 +1,4 @@
-# Slovolov 2.6
+# Slovolov 2.7
 
 Slovolov je radosna edukativna PWA i mobilna aplikacija za decu uzrasta
 3–10 godina. Dete uči svih 30 srpskih slova na ćirilici i latinici, sluša
@@ -18,12 +18,12 @@ Sadržaj, slike i audio čuvaju se lokalno da bi aplikacija radila i bez mreže.
   njiše i tako redom za svih 30 slova;
 - posebna vektorska putanja i animirani vodič za pisanje svakog slova;
 - merenje tačnosti, ponovno crtanje, pohvala, zvezdice i proslava;
-- 37 bajki i priča sa 390 lokalno spakovanih MP3 segmenata koje čita topli
-  ženski glas `sr-RS-SophieNeural`;
-- puna, proverena adaptacija bajke „Ivica i Marica”; ostale priče su jasno
-  označene kao sažete dok se ne završe pune uredničke verzije;
-- audio radi offline posle instalacije/keširanja aplikacije, a sistemski
-  srpski glas ostaje bezbedan fallback;
+- 37 celih srpskih izdanja bajki i narodnih pripovedaka, sa 44.868 reči i
+  tačnim izvorom, autorom, revizijom i licencom Srpskog Wikizvornika;
+- 2.260 lokalno spakovanih MP3 segmenata koje čita topli ženski glas
+  `sr-RS-SophieNeural`;
+- Android paket sadrži celu offline biblioteku, dok roditelj u PWA verziji
+  bira koju celu bajku želi da sačuva bez interneta i vidi stvarni napredak;
 - bojanka za svako slovo sa bojama, tri veličine četkice, gumicom, undo
   funkcijom, dvostrukom potvrdom brisanja i lokalnim čuvanjem;
 - tri stvarne mini-igre: slovo i slika, pronađi izgovoreno slovo i baloni;
@@ -48,7 +48,7 @@ Produkcijski web build:
 npm run build
 ```
 
-Android debug APK se nalazi u `artifacts/Slovolov-2.6.0-debug.apk`, a javna
+Android debug APK se nalazi u `artifacts/Slovolov-2.7.0-debug.apk`, a javna
 PWA verzija u folderu `web-download`.
 
 ## Audio

@@ -7,6 +7,12 @@ import { readingStories, storyAges, type ReadingAge } from './data/stories';
 import { seededChoices } from './domain/choices';
 import { displayLetter, letters, transliterate, type Letter } from './domain/letters';
 import { narrateSentences, type NarrationSession } from './services/narration';
+import { loadFullStoryContent, type FullStoryContent } from './services/fullStoryLibrary';
+import {
+  downloadStoryForOffline,
+  isStoryAvailableOffline,
+  type StoryDownloadProgress
+} from './services/storyOffline';
 import { speak } from './services/speech';
 import { useProgressStore } from './store/progress';
 
@@ -587,16 +593,26 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [narrationSource, setNarrationSource] = useState<'recorded' | 'system' | 'unavailable' | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [message, setMessage] = useState('Izaberi rečenicu ili poslušaj celu priču.');
+  const [fullContent, setFullContent] = useState<FullStoryContent | null>(null);
+  const [contentState, setContentState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [contentError, setContentError] = useState('');
+  const [contentRetry, setContentRetry] = useState(0);
+  const [offlineState, setOfflineState] = useState<'idle' | 'checking' | 'downloading' | 'ready' | 'error'>('idle');
+  const [offlineProgress, setOfflineProgress] = useState<StoryDownloadProgress>({ completed: 0, total: 0 });
+  const [offlineError, setOfflineError] = useState('');
   const sessionRef = useRef<NarrationSession | null>(null);
-  const pageStarts = story.pages.map((_, pageIndex) => (
-    story.pages.slice(0, pageIndex).reduce((total, page) => total + page.length, 0)
+  const offlineControllerRef = useRef<AbortController | null>(null);
+  const storyPages = fullContent?.pages ?? story.pages;
+  const storySentences = storyPages.flat();
+  const pageStarts = storyPages.map((_, pageIndex) => (
+    storyPages.slice(0, pageIndex).reduce((total, page) => total + page.length, 0)
   ));
-  const currentPageIndex = Math.max(0, story.pages.findIndex((page, pageIndex) => {
+  const currentPageIndex = Math.max(0, storyPages.findIndex((page, pageIndex) => {
     const start = pageStarts[pageIndex];
     return activeSentence >= start && activeSentence < start + page.length;
   }));
-  const currentPage = story.pages[currentPageIndex];
-  const isLastPage = currentPageIndex === story.pages.length - 1;
+  const currentPage = storyPages[currentPageIndex] ?? storyPages[0];
+  const isLastPage = currentPageIndex === storyPages.length - 1;
 
   const openStory = (nextIndex: number, nextAge = age) => {
     sessionRef.current?.stop();
@@ -607,6 +623,13 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     setPlayback('idle');
     setShowText(false);
     setNarrationSource(null);
+    setFullContent(null);
+    setContentState('idle');
+    setContentError('');
+    offlineControllerRef.current?.abort();
+    setOfflineState('idle');
+    setOfflineProgress({ completed: 0, total: 0 });
+    setOfflineError('');
     setCelebrating(false);
     setMessage('Izaberi rečenicu ili poslušaj celu priču.');
   };
@@ -635,11 +658,23 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
       setMessage('Uključi zvuk u podešavanjima da bi slušao priču.');
       return;
     }
+    if (story.fullContentAvailable && contentState !== 'ready') {
+      setPlayback('idle');
+      setNarrationSource('unavailable');
+      setMessage(
+        contentState === 'error'
+          ? 'Cela bajka nije učitana. Pokušaj ponovo.'
+          : 'Sačekaj da se cela bajka učita.'
+      );
+      return;
+    }
     setPlayback('playing');
     setMessage('Priča se čita naglas. Aktivna rečenica je označena.');
-    sessionRef.current = narrateSentences(story.sentences, {
+    sessionRef.current = narrateSentences(storySentences, {
       enabled: sound,
-      audioKey: story.recordedAudio ? story.audioKey : undefined,
+      audioKey: fullContent
+        ? (fullContent.audio.available ? fullContent.audio.key : undefined)
+        : (story.recordedAudio ? story.audioKey : undefined),
       startIndex: activeSentence,
       onSentence: (index) => {
         setActiveSentence(index);
@@ -653,7 +688,82 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     });
   };
 
-  useEffect(() => () => sessionRef.current?.stop(), []);
+  useEffect(() => () => {
+    sessionRef.current?.stop();
+    offlineControllerRef.current?.abort();
+  }, []);
+
+  useEffect(() => {
+    sessionRef.current?.stop();
+    setPlayback('idle');
+    setNarrationSource(null);
+    setFullContent(null);
+    setContentError('');
+    if (!story.fullContentAvailable) {
+      setContentState('idle');
+      return undefined;
+    }
+    const controller = new AbortController();
+    setContentState('loading');
+    setMessage('Učitavam celu proverenu bajku…');
+    void loadFullStoryContent(story.plotKey, controller.signal)
+      .then((content) => {
+        if (controller.signal.aborted) return;
+        setFullContent(content);
+        setContentState('ready');
+        setActiveSentence(Math.min(profile.storyBookmarks[story.id] ?? 0, content.sentenceCount - 1));
+        setMessage(`Cela bajka je spremna: ${content.wordCount} reči, ${content.pages.length} strana.`);
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return;
+        setContentState('error');
+        setContentError(error instanceof Error ? error.message : 'Cela bajka nije učitana.');
+        setMessage('Cela bajka trenutno nije učitana. Proveri vezu ili pokušaj ponovo.');
+      });
+    return () => controller.abort();
+  }, [story.id, story.plotKey, story.fullContentAvailable, contentRetry]);
+
+  useEffect(() => {
+    if (!fullContent?.audio.available) {
+      setOfflineState('idle');
+      return undefined;
+    }
+    let active = true;
+    setOfflineState('checking');
+    void isStoryAvailableOffline(fullContent)
+      .then((available) => {
+        if (active) setOfflineState(available ? 'ready' : 'idle');
+      })
+      .catch(() => {
+        if (active) setOfflineState('idle');
+      });
+    return () => { active = false; };
+  }, [fullContent]);
+
+  const saveStoryOffline = async () => {
+    if (!fullContent || offlineState === 'downloading') return;
+    offlineControllerRef.current?.abort();
+    const controller = new AbortController();
+    offlineControllerRef.current = controller;
+    setOfflineState('downloading');
+    setOfflineError('');
+    try {
+      await downloadStoryForOffline(
+        fullContent,
+        (progress) => {
+          if (!controller.signal.aborted) setOfflineProgress(progress);
+        },
+        controller.signal
+      );
+      if (controller.signal.aborted) return;
+      setOfflineState('ready');
+      setMessage('Bajka i ceo audio su sačuvani za slušanje bez interneta.');
+    } catch (error: unknown) {
+      if (controller.signal.aborted) return;
+      setOfflineState('error');
+      setOfflineError(error instanceof Error ? error.message : 'Bajka nije sačuvana za offline rad.');
+    }
+  };
 
   return (
     <div className="single-screen fairy-screen">
@@ -670,7 +780,18 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
         </div>
         <div className="story-navigation">
           <button aria-label="Prethodna bajka" disabled={storyIndex === 0} onClick={() => openStory(storyIndex - 1)}>←</button>
-          <strong>Bajka {storyIndex + 1}/{stories.length}</strong>
+          <label className="story-picker">
+            <span>Bajka {storyIndex + 1}/{stories.length}</span>
+            <select
+              aria-label="Izaberi bajku"
+              value={storyIndex}
+              onChange={(event) => openStory(Number(event.target.value))}
+            >
+              {stories.map((item, index) => (
+                <option key={item.id} value={index}>{item.title}</option>
+              ))}
+            </select>
+          </label>
           <button aria-label="Sledeća bajka" disabled={storyIndex === stories.length - 1} onClick={() => openStory(storyIndex + 1)}>→</button>
         </div>
         <section
@@ -684,8 +805,19 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               <div><small>{story.category}</small><h2>{story.title}</h2></div>
             </div>
             <p className="storybook-source" aria-label={`Izvor bajke: ${story.source.author}`}>
-              Prema javnodomenskom delu: <strong>{story.source.author}</strong>
-              <span>Originalna srpska adaptacija</span>
+              Prema slobodnom izvoru: <strong>{fullContent?.source.author ?? story.source.author}</strong>
+              <span>
+                {fullContent
+                  ? `${fullContent.source.provider} · ${fullContent.source.license}`
+                  : story.fullContentAvailable
+                    ? 'Izvorno provereno srpsko izdanje se učitava'
+                    : 'Originalna srpska adaptacija'}
+              </span>
+              {fullContent && (
+                <a href={fullContent.source.url} target="_blank" rel="noreferrer">
+                  Otvori tačno izvorno izdanje
+                </a>
+              )}
             </p>
             <span className="storybook-sparkle sparkle-one" aria-hidden="true">✦</span>
             <span className="storybook-sparkle sparkle-two" aria-hidden="true">✧</span>
@@ -697,16 +829,16 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               onClick={() => openPage(currentPageIndex - 1)}
             >←</button>
             <div className="storybook-page-progress">
-              <strong>Strana {currentPageIndex + 1}/{story.pages.length}</strong>
+              <strong>Strana {currentPageIndex + 1}/{storyPages.length}</strong>
               <div
                 className="storybook-progress-track"
                 role="progressbar"
                 aria-label="Napredak kroz bajku"
                 aria-valuemin={1}
-                aria-valuemax={story.pages.length}
+                aria-valuemax={storyPages.length}
                 aria-valuenow={currentPageIndex + 1}
               >
-                <span style={{ width: `${((currentPageIndex + 1) / story.pages.length) * 100}%` }} />
+                <span style={{ width: `${((currentPageIndex + 1) / storyPages.length) * 100}%` }} />
               </div>
             </div>
             <button
@@ -717,7 +849,13 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           </div>
           <div className="story-mode-controls">
             <span className={`edition-badge ${story.edition}`}>
-              {story.edition === 'complete' ? 'Cela audio-bajka' : 'Sažeta verzija · cela priča je u pripremi'}
+              {fullContent
+                ? `Cela bajka · ${fullContent.wordCount} reči`
+                : contentState === 'loading'
+                  ? 'Učitavam celu bajku…'
+                  : story.fullContentAvailable
+                    ? 'Cela bajka · izvorno provereno izdanje'
+                    : 'Sažeta verzija · cela priča je u pripremi'}
             </span>
             <button
               className="read-along-toggle"
@@ -752,7 +890,14 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             <div className="audio-story-stage" role="region" aria-label="Audio-bajka">
               <span aria-hidden="true">{playback === 'playing' ? '🎙️' : '🎧'}</span>
               <strong>{playback === 'playing' ? 'Slušamo priču…' : 'Spremno za slušanje'}</strong>
-              <small>Poglavlje {currentPageIndex + 1} od {story.pages.length}</small>
+              <small>Poglavlje {currentPageIndex + 1} od {storyPages.length}</small>
+            </div>
+          )}
+          {contentState === 'error' && (
+            <div className="story-content-error" role="alert">
+              <strong>Cela bajka nije učitana.</strong>
+              <span>{contentError}</span>
+              <button onClick={() => setContentRetry((value) => value + 1)}>Pokušaj ponovo</button>
             </div>
           )}
           <div className="storybook-reader-tools">
@@ -767,12 +912,34 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               {narrationSource === 'system' && '🔊 Čita srpski glas ovog uređaja'}
               {narrationSource === 'unavailable' && '⚠️ Glas nije dostupan na ovom uređaju'}
               {narrationSource === null && (
-                story.recordedAudio
+                fullContent?.audio.available || (!fullContent && story.recordedAudio)
                   ? '🎙️ Snimljeni glas ima prednost; glas uređaja je rezerva'
                   : '🔊 Koristi najbolji srpski glas dostupan na uređaju'
               )}
             </p>
           </div>
+          {fullContent?.audio.available && (
+            <div className={`story-offline ${offlineState}`} aria-live="polite">
+              <button
+                className="secondary"
+                disabled={offlineState === 'checking' || offlineState === 'downloading' || offlineState === 'ready'}
+                onClick={() => void saveStoryOffline()}
+              >
+                {offlineState === 'checking' && 'Proveravam offline paket…'}
+                {offlineState === 'downloading' && `Preuzimam ${offlineProgress.completed}/${offlineProgress.total}…`}
+                {offlineState === 'ready' && '✓ Dostupno bez interneta'}
+                {(offlineState === 'idle' || offlineState === 'error') && '⬇ Preuzmi celu bajku za offline'}
+              </button>
+              {offlineState === 'downloading' && (
+                <progress
+                  aria-label="Preuzimanje cele audio-bajke"
+                  max={Math.max(offlineProgress.total, 1)}
+                  value={offlineProgress.completed}
+                />
+              )}
+              {offlineState === 'error' && <span role="alert">{offlineError}</span>}
+            </div>
+          )}
           <div className="narration-controls">
             <button className="primary" aria-label="Slušaj celu priču" onClick={start}>▶ Slušaj</button>
             <button

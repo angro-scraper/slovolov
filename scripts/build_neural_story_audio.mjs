@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fairyTales } from '../products/slovolov-web/src/data/fairyTales.ts';
@@ -8,13 +8,36 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const python = join(root, '.venv', 'Scripts', 'python.exe');
 const outputRoot = join(root, 'products', 'slovolov-web', 'public', 'audio', 'stories');
 const voice = process.env.SLOVOLOV_TTS_VOICE || 'sr-RS-SophieNeural';
-const concurrency = Math.max(1, Number(process.env.SLOVOLOV_TTS_CONCURRENCY || 3));
+const concurrency = Math.max(1, Number(process.env.SLOVOLOV_TTS_CONCURRENCY || 2));
+const maxAttempts = Math.max(3, Number(process.env.SLOVOLOV_TTS_ATTEMPTS || 8));
 const uniqueStories = [...new Map(fairyTales.map((story) => [story.audioKey, story])).values()];
+const fullStoryRoot = join(root, 'products', 'slovolov-web', 'public', 'content', 'stories');
+const fullStoryManifest = existsSync(join(fullStoryRoot, 'manifest.json'))
+  ? JSON.parse(readFileSync(join(fullStoryRoot, 'manifest.json'), 'utf8'))
+  : [];
+const fullStories = fullStoryManifest.map(({ id }) => {
+  const path = join(fullStoryRoot, `${id}.json`);
+  const content = JSON.parse(readFileSync(path, 'utf8'));
+  return {
+    ...content,
+    path,
+    audioKey: content.audio.key,
+    sentences: content.pages.flat()
+  };
+});
+const fullAudioKeys = new Set(fullStories.map(({ audioKey }) => audioKey));
+// Kada postoji izvorno proverena cela priča, nikada ne pravimo njene prve
+// segmente iz privremenog seed teksta. U suprotnom bi fajl sa istim imenom
+// bio preskočen kada stigne stvarna rečenica iz cele priče.
+const allStories = [
+  ...uniqueStories.filter(({ audioKey }) => !fullAudioKeys.has(audioKey)),
+  ...fullStories
+];
 
 if (!existsSync(python)) throw new Error(`Nedostaje projektni Python: ${python}`);
 mkdirSync(outputRoot, { recursive: true });
 
-const jobs = uniqueStories.flatMap((story) =>
+const jobs = allStories.flatMap((story) =>
   story.sentences.map((sentence, index) => ({
     story,
     sentence,
@@ -54,8 +77,13 @@ function runEdgeTts(job, attempt = 1) {
         return;
       }
       rmSync(outputPath, { force: true });
-      if (attempt < 3) {
-        await new Promise((done) => setTimeout(done, attempt * 1_500));
+      if (attempt < maxAttempts) {
+        const backoff = Math.min(30_000, attempt * 5_000);
+        process.stderr.write(
+          `TTS pokušaj ${attempt}/${maxAttempts} nije uspeo za ${job.base}; ` +
+          `ponavljanje za ${backoff / 1_000}s.\n`
+        );
+        await new Promise((done) => setTimeout(done, backoff));
         try {
           resolveJob(await runEdgeTts(job, attempt + 1));
         } catch (error) {
@@ -86,4 +114,10 @@ async function worker() {
 }
 
 await Promise.all(Array.from({ length: concurrency }, () => worker()));
+for (const story of fullStories) {
+  const content = JSON.parse(readFileSync(story.path, 'utf8'));
+  content.audio.available = true;
+  content.audio.sentenceCount = story.sentences.length;
+  writeFileSync(story.path, `${JSON.stringify(content, null, 2)}\n`, 'utf8');
+}
 process.stdout.write(`Završeno: ${jobs.length} segmenata, glas ${voice}.\n`);

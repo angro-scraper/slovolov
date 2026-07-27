@@ -19,16 +19,16 @@ export default defineConfig({
         icons: [{ src: '/icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,json,woff2,mp3}'],
+        globPatterns: ['**/*.{js,css,html,svg,json,woff2}'],
         navigateFallback: '/index.html',
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/stories/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-story-audio-v1',
+              cacheName: 'slovolov-story-audio-v2',
               expiration: {
-                maxEntries: 400,
+                maxEntries: 3_000,
                 maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: { statuses: [0, 200] },

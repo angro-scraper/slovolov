@@ -1,6 +1,9 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
+import { clearFullStoryCache } from './services/fullStoryLibrary';
 import { useProgressStore } from './store/progress';
 
 Object.defineProperty(window, 'speechSynthesis', {
@@ -15,6 +18,20 @@ globalThis.SpeechSynthesisUtterance = class {
   constructor(text: string) { this.text = text; }
 } as typeof SpeechSynthesisUtterance;
 
+const firstFullStory = JSON.parse(readFileSync(
+  resolve(process.cwd(), 'public', 'content', 'stories', 'princeza-na-zrnu-graska.json'),
+  'utf8'
+));
+
+function stubFirstFullStory() {
+  const request = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => firstFullStory
+  });
+  vi.stubGlobal('fetch', request);
+  return request;
+}
+
 describe('Slovolov glavni tok', () => {
   beforeEach(() => {
     useProgressStore.getState().reset();
@@ -23,7 +40,11 @@ describe('Slovolov glavni tok', () => {
       value: vi.fn(() => 'data:image/png;base64,crtez')
     });
   });
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    clearFullStoryCache();
+    vi.unstubAllGlobals();
+  });
 
   it('otvara školu slova i prikazuje ćirilične reči', () => {
     render(<App />);
@@ -121,36 +142,54 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: 'Slušaj celu priču' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Pauza' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Čitaj zajedno' }));
-    const sentence = screen.getAllByRole('button', { name: /Rečenica/i })[1];
+    const sentence = screen.getAllByRole('button', { name: /Rečenica/i })[0];
     fireEvent.click(sentence);
     const activeStory = screen.getByTestId('fairy-tale').getAttribute('data-story-id');
-    expect(useProgressStore.getState().profile.storyBookmarks[activeStory ?? '']).toBe(1);
+    expect(useProgressStore.getState().profile.storyBookmarks[activeStory ?? '']).toBe(0);
   });
 
-  it('prikazuje bajku kao pristupačnu fullscreen slikovnicu za decu', () => {
+  it('prikazuje bajku kao pristupačnu fullscreen slikovnicu za decu', async () => {
+    stubFirstFullStory();
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
 
     const reader = screen.getByTestId('storybook-reader');
     expect(reader).toHaveAttribute('data-reader-mode', 'immersive');
-    expect(screen.getByRole('img', { name: 'Ilustracija za Ивица и Марица' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Ilustracija za Принцеза на зрну грашка' })).toBeVisible();
+    await waitFor(() => expect(screen.getByText(`Cela bajka · ${firstFullStory.wordCount} reči`)).toBeVisible());
     expect(screen.getByRole('progressbar', { name: 'Napredak kroz bajku' })).toHaveAttribute('aria-valuenow', '1');
     expect(screen.queryByRole('article', { name: 'Tekst priče' })).not.toBeInTheDocument();
-    expect(screen.getByText('Cela audio-bajka')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Čitaj zajedno' }));
     expect(screen.getByRole('article', { name: 'Tekst priče' })).toBeVisible();
     expect(screen.getByText(/Snimljeni glas ima prednost/i)).toBeVisible();
+    await waitFor(() => expect(
+      screen.getByRole('button', { name: '⬇ Preuzmi celu bajku za offline' })
+    ).toBeVisible());
 
     fireEvent.click(screen.getByRole('button', { name: 'Uvećaj tekst' }));
     expect(screen.getByRole('article', { name: 'Tekst priče' })).toHaveClass('large-text');
   });
 
-  it('prikazuje autora i napomenu da je tekst originalna adaptacija klasika', () => {
+  it('prikazuje autora, izvor i licencu celog srpskog izdanja', async () => {
+    stubFirstFullStory();
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
 
-    expect(screen.getByLabelText('Izvor bajke: Braća Grim')).toBeVisible();
-    expect(screen.getByText(/Originalna srpska adaptacija/i)).toBeVisible();
+    expect(screen.getByLabelText('Izvor bajke: Ханс Кристијан Андерсен')).toBeVisible();
+    await waitFor(() => expect(screen.getByText(/Srpski Wikizvornik · CC BY-SA 4.0/i)).toBeVisible());
+    expect(screen.getByRole('link', { name: 'Otvori tačno izvorno izdanje' }))
+      .toHaveAttribute('href', firstFullStory.source.url);
+  });
+
+  it('celu bajku učitava tek kada dete otvori naslov koji je ima', async () => {
+    const request = stubFirstFullStory();
+    render(<App />);
+    expect(request).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+    await waitFor(() => expect(screen.getByText(`Cela bajka · ${firstFullStory.wordCount} reči`)).toBeVisible());
+    expect(request).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Čitaj zajedno' }));
+    expect(screen.getByText(firstFullStory.pages[0][0])).toBeVisible();
   });
 
   it('ne prikazuje lažno aktivno slušanje kada je zvuk isključen', () => {
@@ -166,15 +205,17 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: 'Pauza' })).toBeDisabled();
   });
 
-  it('pitanje se otključava na poslednjoj strani i dodeljuje zvezdicu samo jednom', () => {
+  it('pitanje se otključava na poslednjoj strani i dodeljuje zvezdicu samo jednom', async () => {
+    stubFirstFullStory();
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
-    for (let page = 1; page < 10; page += 1) {
+    await waitFor(() => expect(screen.getByText(`Cela bajka · ${firstFullStory.wordCount} reči`)).toBeVisible());
+    for (let page = 1; page < firstFullStory.pages.length; page += 1) {
       fireEvent.click(screen.getByRole('button', { name: 'Sledeća stranica' }));
     }
-    expect(screen.getByText('Како су Ивица и Марица први пут обележили пут?')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Белим каменчићима' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Белим каменчићима' }));
+    expect(screen.getByText('Коју си причу управо слушао?')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: firstFullStory.title }));
+    fireEvent.click(screen.getByRole('button', { name: firstFullStory.title }));
     expect(useProgressStore.getState().profile.stars).toBe(1);
     expect(screen.getByRole('status')).toHaveTextContent('Bravo');
   });
