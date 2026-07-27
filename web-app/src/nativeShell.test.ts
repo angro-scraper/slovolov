@@ -25,6 +25,17 @@ describe('Slovolov paket za prodavnice', () => {
     );
   });
 
+  it('mobilni omoti prikazuju istu javnu web aplikaciju 1 kroz 1', () => {
+    const capacitorConfig = read('capacitor.config.ts');
+    expect(capacitorConfig).toContain(
+      "url: 'https://slovolov-download.onrender.com'",
+    );
+    expect(capacitorConfig).toContain(
+      "allowNavigation: ['slovolov-download.onrender.com']",
+    );
+    expect(capacitorConfig).toContain('cleartext: false');
+  });
+
   it('ima javnu politiku privatnosti usklađenu sa ponašanjem aplikacije', () => {
     const privacy = read('public/privacy.html');
     expect(privacy).toContain('Politika privatnosti');
