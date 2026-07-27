@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Slovolov — učimo srpska slova',
         short_name: 'Slovolov',
-        description: 'Vesela offline škola srpskih slova za decu.',
+        description: 'Pametna offline škola srpskog jezika, čitanja, pisanja i matematike za decu.',
         theme_color: '#4f46e5',
         background_color: '#fffaf0',
         display: 'standalone',
@@ -26,7 +26,7 @@ export default defineConfig({
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/stories/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-story-audio-v2',
+              cacheName: 'slovolov-story-audio-v3',
               expiration: {
                 maxEntries: 3_000,
                 maxAgeSeconds: 60 * 60 * 24 * 365

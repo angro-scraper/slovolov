@@ -1,4 +1,4 @@
-# Slovolov 2.7
+# Slovolov 3.0
 
 Slovolov je radosna edukativna PWA i mobilna aplikacija za decu uzrasta
 3–10 godina. Dete uči svih 30 srpskih slova na ćirilici i latinici, sluša
@@ -31,6 +31,14 @@ Sadržaj, slike i audio čuvaju se lokalno da bi aplikacija radila i bez mreže.
 - sadržaj za uzraste 3–5, 6–8 i 8–10 godina;
 - roditeljski panel zaštićen matematičkim pitanjem, sa stvarnim napretkom,
   zvukom, izborom pisma, tamnom temom i dvostrukim resetom;
+- pametna dnevna lekcija koja bira novo ili slabije savladano slovo;
+- četiri vrste igara: spajanje, memory, prepoznavanje glasa i slaganje reči;
+- računanje do 10 i početno čitanje kroz glasove, rime, slogove i reči;
+- kreativni studio `Moja priča` sa lokalnim čuvanjem dečjih avantura;
+- opciona lokalna vežba izgovora, koju roditelj mora izričito da uključi;
+- pristupačnost: veliki tekst, visok kontrast, smanjene animacije i čitljiviji
+  font, uz roditeljska objašnjenja na srpskom, engleskom, nemačkom i
+  francuskom;
 - lokalno čuvanje napretka i responsive prikaz za telefon i tablet.
 
 ## Pokretanje
@@ -48,8 +56,8 @@ Produkcijski web build:
 npm run build
 ```
 
-Android debug APK se nalazi u `artifacts/Slovolov-2.7.0-debug.apk`, a javna
-PWA verzija u folderu `web-download`.
+Android 3.0 APK se preuzima iz GitHub izdanja, a javna PWA verzija je u
+folderu `web-download`.
 
 ## Audio
 

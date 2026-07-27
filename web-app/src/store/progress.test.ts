@@ -63,4 +63,41 @@ describe('lokalni napredak', () => {
     expect(useProgressStore.getState().renameProfile('local-child', '')).toBe(false);
     expect(useProgressStore.getState().profile.name).toBe('Мила');
   });
+
+  it('lokalno pamti tačnost, vreme učenja i postavke pristupačnosti', () => {
+    const store = useProgressStore.getState();
+
+    store.recordSkillAttempt('letter:А', false);
+    store.recordSkillAttempt('letter:А', true);
+    store.addLearningSeconds(95);
+    store.setAccessibility({
+      reducedMotion: true,
+      highContrast: true,
+      largeText: true,
+      dyslexiaFriendly: true
+    });
+
+    const state = useProgressStore.getState();
+    expect(state.profile.skillStats['letter:А']).toMatchObject({ attempts: 2, successes: 1 });
+    expect(state.profile.learningSeconds).toBe(95);
+    expect(state.accessibility).toEqual({
+      reducedMotion: true,
+      highContrast: true,
+      largeText: true,
+      dyslexiaFriendly: true
+    });
+  });
+
+  it('čuva kreativni rad bez mreže i nagrađuje završenu adaptivnu lekciju samo jednom', () => {
+    const store = useProgressStore.getState();
+
+    store.saveCreation('Мој змај лети изнад шуме.');
+    store.completeLearningPath('2026-07-27');
+    store.completeLearningPath('2026-07-27');
+
+    const profile = useProgressStore.getState().profile;
+    expect(profile.savedCreations).toContain('Мој змај лети изнад шуме.');
+    expect(profile.completedLearningPaths).toEqual(['2026-07-27']);
+    expect(profile.stars).toBe(3);
+  });
 });

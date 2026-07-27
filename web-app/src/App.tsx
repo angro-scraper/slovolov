@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
+import { VoicePractice } from './components/VoicePractice';
 import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
 import { seededChoices } from './domain/choices';
+import { nextLetterToPractice, summarizeLearning } from './domain/learning';
 import { displayLetter, letters, transliterate, type Letter } from './domain/letters';
 import { narrateSentences, type NarrationSession } from './services/narration';
 import { loadFullStoryContent, type FullStoryContent } from './services/fullStoryLibrary';
@@ -16,9 +18,10 @@ import {
 import { speak } from './services/speech';
 import { useProgressStore } from './store/progress';
 
-type Screen = 'home' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'progress' | 'settings';
+type Screen = 'home' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
 
 const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: string }> = [
+  { screen: 'adaptive', icon: '✨', title: 'Moja lekcija', subtitle: 'Pametno ponavljanje baš za mene' },
   { screen: 'daily', icon: '🌞', title: 'Dnevni izazov', subtitle: 'Tri kratka koraka i 3 zvezdice' },
   { screen: 'learn', icon: '🔤', title: 'Nauči slova', subtitle: 'Slušaj, gledaj i pamti' },
   { screen: 'write', icon: '✍️', title: 'Piši slova', subtitle: 'Crtaj prstom po putanji' },
@@ -28,6 +31,7 @@ const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: stri
   { screen: 'numbers', icon: '🔢', title: 'Brojevi 0–10', subtitle: 'Broj, količina i zvuk' },
   { screen: 'reading', icon: '📚', title: 'Čitanje', subtitle: 'Slogovi, reči i priče' },
   { screen: 'fairy-tales', icon: '🌙', title: 'Bajke i priče', subtitle: 'Slušaj, čitaj i osvajaj zvezdice' },
+  { screen: 'creative', icon: '🎭', title: 'Moja priča', subtitle: 'Izaberi junaka i smisli avanturu' },
   { screen: 'progress', icon: '⭐', title: 'Moj napredak', subtitle: 'Zvezdice, streak i nagrade' }
 ];
 
@@ -56,7 +60,16 @@ export function App() {
   const darkMode = useProgressStore((state) => state.darkMode);
   const script = useProgressStore((state) => state.script);
   const learnLetter = useProgressStore((state) => state.learnLetter);
+  const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
+  const addLearningSeconds = useProgressStore((state) => state.addLearningSeconds);
   const profile = useProgressStore((state) => state.profile);
+  const accessibility = useProgressStore((state) => state.accessibility);
+
+  useEffect(() => {
+    if (screen === 'home' || screen === 'settings' || screen === 'progress') return undefined;
+    const timer = window.setInterval(() => addLearningSeconds(60), 60_000);
+    return () => window.clearInterval(timer);
+  }, [addLearningSeconds, screen]);
 
   const visibleLetter = (letter: Letter, requestedCase: 'upper' | 'lower' = 'upper') => {
     if (script === 'cyrillic') return requestedCase === 'upper' ? letter.upper : letter.lower;
@@ -137,10 +150,12 @@ export function App() {
                     aria-label={`Odaberi sliku: ${word.word}`}
                     onClick={() => {
                       if (word.word !== selected.words[0].word) {
+                        recordSkillAttempt(`letter:${selected.upper}`, false);
                         setTraceMessage('Pokušaj ponovo. Pažljivo pogledaj sličice.');
                         void speak('Pokušaj ponovo.', sound);
                         return;
                       }
+                      recordSkillAttempt(`letter:${selected.upper}`, true);
                       learnLetter(selected.upper);
                       setCelebrate(true);
                       void speak('Bravo! Dobio si zvezdicu. Idemo na sledeće slovo!', sound);
@@ -186,6 +201,7 @@ export function App() {
             letter={visibleLetter(selected, letterCase)}
             difficulty={profile.difficulty}
             onAttempt={(success) => {
+              recordSkillAttempt(`writing:${selected.upper}:${letterCase}`, success);
               if (!success) setTraceMessage('Još malo! Prati celo slovo od vrha do dna i pokušaj ponovo.');
             }}
             onComplete={finishTrace}
@@ -222,6 +238,7 @@ export function App() {
       </div>
     );
 
+    if (screen === 'adaptive') return <AdaptiveLesson onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'daily') return <DailyChallenge onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'games') return <GameHub onBack={() => setScreen('home')} sound={sound} />;
 
@@ -229,11 +246,90 @@ export function App() {
     if (screen === 'numbers') return <Numbers onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'reading') return <Reading onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'fairy-tales') return <FairyTales onBack={() => setScreen('home')} sound={sound} />;
+    if (screen === 'creative') return <CreativeStudio onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'progress') return <Progress onBack={() => setScreen('home')} />;
     return <Settings onBack={() => setScreen('home')} />;
-  }, [celebrate, coloringMessage, letterCase, profile, screen, script, selected, sound, traceMessage]);
+  }, [celebrate, coloringMessage, letterCase, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
 
-  return <div className={darkMode ? 'app dark' : 'app'}>{body}</div>;
+  const appClasses = [
+    'app',
+    darkMode ? 'dark' : '',
+    accessibility.reducedMotion ? 'reduced-motion' : '',
+    accessibility.highContrast ? 'high-contrast' : '',
+    accessibility.largeText ? 'large-ui-text' : '',
+    accessibility.dyslexiaFriendly ? 'dyslexia-friendly' : ''
+  ].filter(Boolean).join(' ');
+
+  return <div className={appClasses}>{body}</div>;
+}
+
+function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+  const profile = useProgressStore((state) => state.profile);
+  const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
+  const completeLearningPath = useProgressStore((state) => state.completeLearningPath);
+  const recommendedUpper = nextLetterToPractice(
+    letters.map((letter) => letter.upper),
+    profile.learnedLetters,
+    profile.skillStats
+  );
+  const recommended = letters.find((letter) => letter.upper === recommendedUpper) ?? letters[0];
+  const [step, setStep] = useState(0);
+  const [message, setMessage] = useState('3 kratka koraka · oko 5 minuta');
+  const lessonId = `adaptive-${new Date().toISOString().slice(0, 10)}-${recommended.upper}`;
+  const lessonSyllable = 'АЕИОУ'.includes(recommended.upper) ? `М${recommended.upper}` : `${recommended.upper}А`;
+  const tasks = [
+    { title: `Poslušaj slovo ${recommended.upper}`, icon: '🔊' },
+    { title: `Pronađi ${recommended.words[0].word}`, icon: recommended.words[0].emoji },
+    { title: `Pročitaj slog ${lessonSyllable}`, icon: '📖' }
+  ];
+
+  const completeStep = (index: number) => {
+    if (index !== step) return;
+    recordSkillAttempt(`adaptive:${recommended.upper}:${index + 1}`, true);
+    if (index === 0) void speak(recommended.upper, sound);
+    if (index === 1) void speak(recommended.words[0].word, sound);
+    if (index === 2) void speak(lessonSyllable, sound);
+    const nextStep = step + 1;
+    setStep(nextStep);
+    if (nextStep === tasks.length) {
+      completeLearningPath(lessonId);
+      setMessage('Bravo! Pametna lekcija je završena. Osvojio si 3 zvezdice! ⭐');
+      void speak('Bravo! Završio si svoju lekciju!', sound);
+    } else {
+      setMessage(`Odlično! Još ${tasks.length - nextStep} ${tasks.length - nextStep === 1 ? 'korak' : 'koraka'}.`);
+    }
+  };
+
+  return (
+    <div className="single-screen">
+      <Header title="Moja pametna lekcija" onBack={onBack} />
+      <main className="adaptive-lesson">
+        <section className="adaptive-hero">
+          <span>{recommended.words[0].emoji}</span>
+          <div>
+            <small>PREPORUKA ZA DANAS</small>
+            <h2>Danas ponavljamo slovo {recommended.upper}</h2>
+            <p>{profile.skillStats[`letter:${recommended.upper}`] ? 'Ovo slovo vežbamo još malo.' : 'Ovo je tvoje sledeće novo slovo.'}</p>
+          </div>
+        </section>
+        <div className="adaptive-steps">
+          {tasks.map((task, index) => (
+            <button
+              key={task.title}
+              className={`${index < step ? 'done' : ''}${index === step ? ' active' : ''}`}
+              disabled={index > step}
+              onClick={() => completeStep(index)}
+            >
+              <span>{index < step ? '✓' : task.icon}</span>
+              <strong>{task.title}</strong>
+              <small>{index < step ? 'Završeno' : index === step ? 'Dodirni da počneš' : 'Sledeći korak'}</small>
+            </button>
+          ))}
+        </div>
+        <p className="adaptive-status" role="status">{message}</p>
+      </main>
+    </div>
+  );
 }
 
 function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean }) {
@@ -291,14 +387,18 @@ const memoryDeck: MemoryCard[] = [
 ];
 
 function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
-  const [mode, setMode] = useState<'match' | 'memory'>('match');
+  const [mode, setMode] = useState<'match' | 'memory' | 'listen' | 'word'>('match');
   const [gameIndex, setGameIndex] = useState(14);
   const [message, setMessage] = useState('Pronađi sliku za slovo.');
   const [revealed, setRevealed] = useState<number[]>([]);
   const [matched, setMatched] = useState<string[]>([]);
+  const [builtWord, setBuiltWord] = useState('');
   const learnLetter = useProgressStore((state) => state.learnLetter);
   const completeGame = useProgressStore((state) => state.completeGame);
+  const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const gameLetter = letters[gameIndex % letters.length];
+  const wordTarget = 'МАМА';
+  const shuffledWord = ['А', 'М', 'А', 'М'];
 
   const openMemoryCard = (index: number) => {
     if (revealed.includes(index) || matched.includes(memoryDeck[index].pair)) return;
@@ -331,8 +431,10 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
         <div className="game-tabs">
           <button className={mode === 'match' ? 'active' : ''} onClick={() => setMode('match')}>Slovo i slika</button>
           <button className={mode === 'memory' ? 'active' : ''} onClick={() => setMode('memory')}>Memory</button>
+          <button className={mode === 'listen' ? 'active' : ''} onClick={() => { setMode('listen'); void speak(gameLetter.upper, sound); }}>Pogodi glas</button>
+          <button className={mode === 'word' ? 'active' : ''} onClick={() => { setMode('word'); setBuiltWord(''); }}>Složi reč</button>
         </div>
-        {mode === 'match' ? (
+        {mode === 'match' && (
           <>
             <div className="game-letter">{gameLetter.upper}</div>
             <p role="status">{message}</p>
@@ -342,18 +444,23 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                 .map((word) => (
                   <button key={word.word} onClick={() => {
                     if (word === gameLetter.words[0]) {
+                      recordSkillAttempt(`letter:${gameLetter.upper}`, true);
                       learnLetter(gameLetter.upper);
                       setMessage('Bravo! Tačan odgovor! ⭐');
                       void speak('Bravo! Tačan odgovor!', sound);
                       setGameIndex((value) => value + 1);
-                    } else setMessage('Pokušaj ponovo.');
+                    } else {
+                      recordSkillAttempt(`letter:${gameLetter.upper}`, false);
+                      setMessage('Pokušaj ponovo.');
+                    }
                   }}>
                     <span>{word.emoji}</span><strong>{word.word}</strong>
                   </button>
                 ))}
             </div>
           </>
-        ) : (
+        )}
+        {mode === 'memory' && (
           <>
             <p role="status">{message}</p>
             <div className="memory-grid">
@@ -372,6 +479,59 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               })}
             </div>
           </>
+        )}
+        {mode === 'listen' && (
+          <section className="listen-game">
+            <button className="sound-orb" aria-label="Poslušaj glas ponovo" onClick={() => void speak(gameLetter.upper, sound)}>🔊</button>
+            <h2>Koje slovo čuješ?</h2>
+            <div className="quiz-choices">
+              {[gameLetter, letters[(gameIndex + 4) % letters.length], letters[(gameIndex + 9) % letters.length]]
+                .sort((first, second) => first.upper.localeCompare(second.upper))
+                .map((letter) => (
+                  <button key={letter.upper} onClick={() => {
+                    const correct = letter === gameLetter;
+                    recordSkillAttempt(`sound:${gameLetter.upper}`, correct);
+                    if (!correct) {
+                      setMessage('Poslušaj još jednom.');
+                      void speak(gameLetter.upper, sound);
+                      return;
+                    }
+                    completeGame(`sound-${gameLetter.upper}`);
+                    setMessage('Odlično čuješ glasove! ⭐');
+                    setGameIndex((value) => value + 1);
+                  }}>{letter.upper}</button>
+                ))}
+            </div>
+            <p role="status">{message}</p>
+          </section>
+        )}
+        {mode === 'word' && (
+          <section className="word-builder">
+            <span className="word-builder-art">👩</span>
+            <h2>Složi reč МАМА</h2>
+            <div className="built-word" aria-label="Složena reč">{builtWord || '_ _ _ _'}</div>
+            <div className="letter-tiles">
+              {shuffledWord.map((letter, index) => (
+                <button key={`${letter}-${index}`} onClick={() => {
+                  const next = `${builtWord}${letter}`;
+                  setBuiltWord(next);
+                  if (next.length === wordTarget.length) {
+                    const correct = next === wordTarget;
+                    recordSkillAttempt('word:МАМА', correct);
+                    if (correct) {
+                      completeGame('word-mama');
+                      setMessage('Bravo! Složio si reč МАМА! ⭐');
+                      void speak('Мама', sound);
+                    } else {
+                      setMessage('Skoro! Obriši i pokušaj redom М, А, М, А.');
+                    }
+                  }
+                }}>{letter}</button>
+              ))}
+            </div>
+            <button className="secondary" onClick={() => { setBuiltWord(''); setMessage('Složi slova pravim redom.'); }}>Obriši reč</button>
+            <p role="status">{message}</p>
+          </section>
         )}
       </main>
     </div>
@@ -401,11 +561,12 @@ function Quiz({ onBack }: { onBack: () => void }) {
 
 function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [selectedNumber, setSelectedNumber] = useState(numberLessons[1]);
-  const [mode, setMode] = useState<'learn' | 'write'>('learn');
+  const [mode, setMode] = useState<'learn' | 'write' | 'math'>('learn');
   const [message, setMessage] = useState('Dodirni broj, izbroj sličice i pronađi odgovor.');
   const learnNumber = useProgressStore((state) => state.learnNumber);
   const learnedNumbers = useProgressStore((state) => state.profile.learnedNumbers);
   const difficulty = useProgressStore((state) => state.profile.difficulty);
+  const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const amount = selectedNumber.value;
   const options = Array.from(new Set([
     amount,
@@ -420,6 +581,7 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
         <div className="number-mode">
           <button className={mode === 'learn' ? 'active' : ''} onClick={() => setMode('learn')}>Uči broj</button>
           <button className={mode === 'write' ? 'active' : ''} onClick={() => setMode('write')}>Piši broj</button>
+          <button className={mode === 'math' ? 'active' : ''} onClick={() => { setMode('math'); setMessage('Prebroj zvezdice i izaberi rezultat.'); }}>Računanje</button>
         </div>
         <div className="number-strip" aria-label="Izaberi broj">
           {numberLessons.map((number) => (
@@ -438,7 +600,7 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             </button>
           ))}
         </div>
-        {mode === 'learn' ? <section className="number-card" style={{ '--number-color': selectedNumber.color } as React.CSSProperties}>
+        {mode === 'learn' && <section className="number-card" style={{ '--number-color': selectedNumber.color } as React.CSSProperties}>
           <button className="big-number" onClick={() => void speak(selectedNumber.word, sound)}>
             <strong>{amount}</strong><small>{selectedNumber.word}</small>
           </button>
@@ -452,9 +614,11 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             {options.map((option) => (
               <button key={option} onClick={() => {
                 if (option !== amount) {
+                  recordSkillAttempt(`number:${amount}`, false);
                   setMessage('Pokušaj ponovo. Prebroj polako.');
                   return;
                 }
+                recordSkillAttempt(`number:${amount}`, true);
                 learnNumber(amount);
                 setMessage(`Bravo! Broj ${amount} vredi jednu zvezdicu! ⭐`);
                 void speak(`Bravo! Ovo je broj ${selectedNumber.word}.`, sound);
@@ -462,13 +626,15 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             ))}
           </div>
           <p role="status">{message}</p>
-        </section> : <section className="number-writing">
+        </section>}
+        {mode === 'write' && <section className="number-writing">
           <p role="status">{message}</p>
           <TracePad
             key={`number-${amount}`}
             letter={String(amount)}
             difficulty={difficulty}
             onAttempt={(success) => {
+              recordSkillAttempt(`number-writing:${amount}`, success);
               if (!success) setMessage('Prati ceo svetli broj i pokušaj ponovo.');
             }}
             onComplete={() => {
@@ -478,6 +644,26 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             }}
           />
         </section>}
+        {mode === 'math' && <section className="math-stage">
+          <div className="math-art" aria-label="Dve zvezdice i jedna zvezdica">⭐⭐ <b>+</b> ⭐</div>
+          <h2>Koliko je 2 + 1?</h2>
+          <div className="number-options">
+            {[2, 3, 4].map((answer) => (
+              <button key={answer} aria-label={String(answer)} onClick={() => {
+                const correct = answer === 3;
+                recordSkillAttempt('math:addition:2+1', correct);
+                if (!correct) {
+                  setMessage('Pokušaj ponovo. Prebroj sve zvezdice.');
+                  return;
+                }
+                learnNumber(3);
+                setMessage('Tačno! Dve i jedna su tri. ⭐');
+                void speak('Tačno! Dve i jedna su tri.', sound);
+              }}>{answer}</button>
+            ))}
+          </div>
+          <p role="status">{message}</p>
+        </section>}
       </main>
     </div>
   );
@@ -485,11 +671,13 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
 
 function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [active, setActive] = useState(0);
-  const [level, setLevel] = useState<'syllables' | 'words' | 'story'>('syllables');
+  const [level, setLevel] = useState<'phonics' | 'syllables' | 'words' | 'story'>('syllables');
   const [age, setAge] = useState<ReadingAge>('6–8');
   const [storyIndex, setStoryIndex] = useState(0);
   const [message, setMessage] = useState('Slušaj, pa pročitaj naglas.');
   const completeReading = useProgressStore((state) => state.completeReading);
+  const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
+  const microphoneEnabled = useProgressStore((state) => state.microphonePracticeEnabled);
   const storiesForAge = readingStories.filter((story) => story.age === age);
   const story = storiesForAge[storyIndex];
   const sentences = story.sentences;
@@ -503,10 +691,33 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
       <Header title="Čitam samostalno" onBack={onBack} />
       <main className="reading">
         <div className="reading-levels">
+          <button className={level === 'phonics' ? 'active' : ''} onClick={() => setLevel('phonics')}>Glasovi i rime</button>
           <button className={level === 'syllables' ? 'active' : ''} onClick={() => setLevel('syllables')}>Slogovi</button>
           <button className={level === 'words' ? 'active' : ''} onClick={() => setLevel('words')}>Reči</button>
           <button className={level === 'story' ? 'active' : ''} onClick={() => setLevel('story')}>Priča</button>
         </div>
+        {level === 'phonics' && (
+          <section className="reading-stage phonics-stage">
+            <div className="story-art">👂 🎵</div>
+            <h2>Koje se reči rimuju?</h2>
+            <strong className="rhyme-prompt">МАК</strong>
+            <div className="word-reading-grid">
+              {['РАК', 'САТ', 'МИШ'].map((word) => (
+                <button key={word} onClick={() => {
+                  const correct = word === 'РАК';
+                  recordSkillAttempt('phonics:rhyme:МАК', correct);
+                  if (!correct) {
+                    setMessage('Poslušaj završetak: МАК — РАК.');
+                    return;
+                  }
+                  setMessage('Tačno! МАК i РАК se rimuju. ⭐');
+                  void speak('Мак, рак.', sound);
+                }}>{word}</button>
+              ))}
+            </div>
+            <p role="status">{message}</p>
+          </section>
+        )}
         {level === 'syllables' && (
           <section className="reading-stage">
             <div className="story-art">🗣️ М + А</div>
@@ -529,6 +740,7 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               ))}
             </div>
             <p>Prvo pročitaj samostalno, zatim dodirni reč za proveru.</p>
+            <VoicePractice enabled={microphoneEnabled} phrase="МАМА" />
           </section>
         )}
         {level === 'story' && (
@@ -560,9 +772,11 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               {story.answers.map((answer) => (
                 <button key={answer} onClick={() => {
                   if (answer !== story.correct) {
+                    recordSkillAttempt(`reading:${story.id}`, false);
                     setMessage('Pokušaj ponovo. Pročitaj prvu rečenicu.');
                     return;
                   }
+                  recordSkillAttempt(`reading:${story.id}`, true);
                   completeReading(story.id);
                   setMessage('Bravo! Razumeo si priču i osvojio zvezdicu! ⭐');
                   void speak('Bravo! Razumeo si priču.', sound);
@@ -988,9 +1202,64 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   );
 }
 
+function CreativeStudio({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+  const heroes = [
+    { name: 'Змај', emoji: '🐉' },
+    { name: 'Лисица', emoji: '🦊' },
+    { name: 'Сова', emoji: '🦉' },
+    { name: 'Пчела', emoji: '🐝' }
+  ];
+  const places = ['чаробну шуму', 'звездани град', 'тајно острво', 'шарену школу'];
+  const missions = ['проналази златни кључ', 'помаже изгубљеном другару', 'учи нову песму', 'чува малу звезду'];
+  const [heroIndex, setHeroIndex] = useState(0);
+  const [placeIndex, setPlaceIndex] = useState(0);
+  const [missionIndex, setMissionIndex] = useState(0);
+  const [message, setMessage] = useState('Izaberi junaka, mesto i pustolovinu.');
+  const saveCreation = useProgressStore((state) => state.saveCreation);
+  const completeGame = useProgressStore((state) => state.completeGame);
+  const hero = heroes[heroIndex];
+  const sentence = `${hero.name} odlazi u ${places[placeIndex]} i ${missions[missionIndex]}.`;
+
+  return (
+    <div className="single-screen">
+      <Header title="Moja priča" onBack={onBack} />
+      <main className="creative-studio">
+        <section className="creative-preview">
+          <span>{hero.emoji}</span>
+          <h2>{sentence}</h2>
+          <button className="secondary" onClick={() => void speak(sentence, sound)}>🔊 Poslušaj moju priču</button>
+        </section>
+        <section className="creative-options">
+          <fieldset>
+            <legend>1. Junak</legend>
+            <div>{heroes.map((item, index) => <button key={item.name} className={index === heroIndex ? 'active' : ''} onClick={() => setHeroIndex(index)}>{item.emoji} {item.name}</button>)}</div>
+          </fieldset>
+          <fieldset>
+            <legend>2. Mesto</legend>
+            <div>{places.map((place, index) => <button key={place} className={index === placeIndex ? 'active' : ''} onClick={() => setPlaceIndex(index)}>{place}</button>)}</div>
+          </fieldset>
+          <fieldset>
+            <legend>3. Pustolovina</legend>
+            <div>{missions.map((mission, index) => <button key={mission} className={index === missionIndex ? 'active' : ''} onClick={() => setMissionIndex(index)}>{mission}</button>)}</div>
+          </fieldset>
+        </section>
+        <button className="primary" onClick={() => {
+          saveCreation(sentence);
+          completeGame('creative-first-story');
+          setMessage('Tvoja priča je sačuvana samo na ovom uređaju. ⭐');
+          void speak('Bravo! Tvoja priča je sačuvana.', sound);
+        }}>💾 Sačuvaj moju priču</button>
+        <p className="creative-status" role="status">{message}</p>
+      </main>
+    </div>
+  );
+}
+
 function Progress({ onBack }: { onBack: () => void }) {
   const profile = useProgressStore((state) => state.profile);
   const percent = Math.round(profile.learnedLetters.length / 30 * 100);
+  const summary = summarizeLearning(profile.skillStats);
+  const learningMinutes = Math.round(profile.learningSeconds / 60);
   return (
     <>
       <Header title="Moj napredak" onBack={onBack} />
@@ -998,6 +1267,23 @@ function Progress({ onBack }: { onBack: () => void }) {
         <div className="profile-avatar">{profile.avatar}</div><h2>{profile.name}</h2>
         <div className="progress-ring" style={{ '--progress': `${percent * 3.6}deg` } as React.CSSProperties}><span>{percent}%</span></div>
         <div className="stats"><article><b>{profile.learnedLetters.length}</b><small>Naučenih slova</small></article><article><b>{profile.learnedNumbers.length}</b><small>Naučenih brojeva</small></article><article><b>{profile.stars} ⭐</b><small>Zvezdica</small></article><article><b>{profile.streak} 🔥</b><small>Dnevni niz</small></article></div>
+        <section className="learning-insights">
+          <h3>Moj pregled učenja</h3>
+          <div>
+            <article><b>{summary.accuracy}%</b><small>Tačnost</small></article>
+            <article><b>{summary.practicedSkills}</b><small>Vežbane veštine</small></article>
+            <article><b>{learningMinutes}</b><small>Minuta učenja</small></article>
+          </div>
+          <p>{summary.needsPractice.length
+            ? `Sledeće ponavljamo: ${summary.needsPractice.slice(0, 3).map((skill) => skill.split(':').at(-1)).join(', ')}.`
+            : 'Odlično napreduješ! Nastavi sa sledećom pametnom lekcijom.'}</p>
+        </section>
+        {profile.savedCreations.length > 0 && (
+          <section className="saved-creations">
+            <h3>Moje priče</h3>
+            {profile.savedCreations.slice(-3).reverse().map((creation) => <p key={creation}>🎭 {creation}</p>)}
+          </section>
+        )}
         <h3>Medalje</h3><div className="medals">{['🥉', '🥈', '🥇'].map((medal, index) => <span key={medal} className={profile.medals.length > index ? '' : 'locked'}>{medal}</span>)}</div>
       </main>
     </>
@@ -1006,11 +1292,20 @@ function Progress({ onBack }: { onBack: () => void }) {
 
 function Settings({ onBack }: { onBack: () => void }) {
   const store = useProgressStore();
+  const [parentUnlocked, setParentUnlocked] = useState(false);
+  const [gateAnswer, setGateAnswer] = useState('');
+  const [gateError, setGateError] = useState('');
   const [addingProfile, setAddingProfile] = useState(false);
   const [newName, setNewName] = useState('');
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState('');
   const [nameError, setNameError] = useState('');
+  const parentHelp = {
+    sr: 'Dečji sadržaj ostaje na srpskom jeziku. Ovde roditelj podešava pristupačnost i nivo težine.',
+    en: 'Children’s lessons stay in Serbian. Parents can adjust accessibility and difficulty here.',
+    de: 'Kinderinhalte bleiben auf Serbisch. Eltern können hier Barrierefreiheit und Schwierigkeit einstellen.',
+    fr: 'Les leçons des enfants restent en serbe. Les parents règlent ici l’accessibilité et la difficulté.'
+  }[store.parentLanguage];
 
   const saveNewProfile = (event: React.FormEvent) => {
     event.preventDefault();
@@ -1035,6 +1330,33 @@ function Settings({ onBack }: { onBack: () => void }) {
     setEditingProfileId(null);
   };
 
+  if (!parentUnlocked) {
+    return (
+      <div className="single-screen">
+        <Header title="Roditeljski deo" onBack={onBack} />
+        <main className="parent-gate">
+          <span aria-hidden="true">🔐</span>
+          <h2>Provera za roditelje</h2>
+          <p>Ovaj deo menja profile, mikrofon i način učenja.</p>
+          <form onSubmit={(event) => {
+            event.preventDefault();
+            if (gateAnswer.trim() !== '7') {
+              setGateError('Odgovor nije tačan. Pokušajte ponovo.');
+              return;
+            }
+            setGateError('');
+            setParentUnlocked(true);
+          }}>
+            <label htmlFor="parent-gate-answer">Koliko je 4 + 3?</label>
+            <input id="parent-gate-answer" inputMode="numeric" value={gateAnswer} onChange={(event) => setGateAnswer(event.target.value)} />
+            <button className="primary" type="submit">Otvori roditeljski deo</button>
+          </form>
+          {gateError && <p className="form-error" role="alert">{gateError}</p>}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <>
       <Header title="Podešavanja za roditelje" onBack={onBack} />
@@ -1042,6 +1364,28 @@ function Settings({ onBack }: { onBack: () => void }) {
         <label><span>🔊 Zvuk</span><input type="checkbox" checked={store.soundEnabled} onChange={store.toggleSound} /></label>
         <label><span>🌙 Tamni režim</span><input type="checkbox" checked={store.darkMode} onChange={store.toggleTheme} /></label>
         <button className="setting-button" onClick={store.toggleScript}><span>🔤 Pismo</span><strong>{store.script === 'cyrillic' ? 'Ćirilica' : 'Latinica'}</strong></button>
+        <section className="accessibility-section">
+          <h2>Pristupačnost</h2>
+          <label><span>🔎 Veći tekst</span><input type="checkbox" checked={store.accessibility.largeText} onChange={(event) => store.setAccessibility({ ...store.accessibility, largeText: event.target.checked })} /></label>
+          <label><span>◐ Jači kontrast</span><input type="checkbox" checked={store.accessibility.highContrast} onChange={(event) => store.setAccessibility({ ...store.accessibility, highContrast: event.target.checked })} /></label>
+          <label><span>🧘 Manje animacija</span><input type="checkbox" checked={store.accessibility.reducedMotion} onChange={(event) => store.setAccessibility({ ...store.accessibility, reducedMotion: event.target.checked })} /></label>
+          <label><span>📖 Lakše čitljiv font</span><input type="checkbox" checked={store.accessibility.dyslexiaFriendly} onChange={(event) => store.setAccessibility({ ...store.accessibility, dyslexiaFriendly: event.target.checked })} /></label>
+        </section>
+        <section className="privacy-section">
+          <h2>Privatna vežba govora</h2>
+          <p>Mikrofon se koristi samo za lokalno snimanje i preslušavanje. Snimak se ne šalje niti trajno čuva.</p>
+          <label><span>🎙️ Dozvoli lokalnu vežbu glasa</span><input type="checkbox" checked={store.microphonePracticeEnabled} onChange={(event) => store.setMicrophonePracticeEnabled(event.target.checked)} /></label>
+        </section>
+        <section className="parent-language-section">
+          <h2>Jezik pomoći roditelju</h2>
+          <select aria-label="Jezik pomoći roditelju" value={store.parentLanguage} onChange={(event) => store.setParentLanguage(event.target.value as typeof store.parentLanguage)}>
+            <option value="sr">Srpski</option>
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+            <option value="fr">Français</option>
+          </select>
+          <p>{parentHelp}</p>
+        </section>
         <section className="difficulty-section">
           <h2>Težina zadataka</h2>
           <p>Prilagodite proveru pisanja i izazove uzrastu deteta.</p>

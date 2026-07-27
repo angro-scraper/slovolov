@@ -452,3 +452,110 @@ body {
   padding: 0.55rem 0.8rem;
   font-weight: 800;
 }
+
+.menu-adaptive .menu-icon { background: linear-gradient(135deg, #fff7c2, #e9d5ff); }
+.menu-creative .menu-icon { background: linear-gradient(135deg, #fce7f3, #ffedd5); }
+
+.adaptive-lesson, .creative-studio {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 8px;
+}
+.adaptive-hero {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #4338ca, #7c3aed 60%, #ec4899);
+  color: white;
+  box-shadow: 0 18px 40px rgba(79,70,229,.22);
+}
+.adaptive-hero > span { font-size: 4.5rem; text-align: center; filter: drop-shadow(0 8px 10px rgba(30,27,75,.28)); }
+.adaptive-hero small { color: #fde68a; font-weight: 900; letter-spacing: .1em; }
+.adaptive-hero h2 { margin: 4px 0; font: 900 clamp(1.25rem, 5vw, 1.9rem) 'Segoe UI Rounded'; }
+.adaptive-hero p { margin: 0; color: #ede9fe; font-weight: 800; }
+.adaptive-steps { display: grid; gap: 9px; }
+.adaptive-steps button {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  column-gap: 12px;
+  padding: 11px 15px;
+  border: 2px solid #e5e7f6;
+  border-radius: 22px;
+  background: var(--surface);
+  color: inherit;
+  text-align: left;
+}
+.adaptive-steps button > span { grid-row: 1 / 3; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 17px; background: #eef2ff; font-size: 1.55rem; }
+.adaptive-steps button strong { align-self: end; font-size: 1rem; }.adaptive-steps button small { align-self: start; color: #6b7280; font-weight: 800; }
+.adaptive-steps button.active { border-color: #6366f1; box-shadow: 0 8px 24px rgba(79,70,229,.12); }
+.adaptive-steps button.done { border-color: #86efac; background: #f0fdf4; }.adaptive-steps button.done > span { background: #dcfce7; color: #15803d; }
+.adaptive-steps button:disabled { opacity: .58; }
+.adaptive-status, .creative-status { min-height: 24px; margin: 0; color: var(--purple); font-weight: 900; text-align: center; }
+
+.game-tabs { grid-template-columns: repeat(4, 1fr); }
+.game-tabs button { padding: 4px; font-size: .72rem; }
+.listen-game, .word-builder, .math-stage { width: 100%; display: grid; justify-items: center; gap: 14px; }
+.sound-orb { width: 110px; height: 110px; border: 0; border-radius: 36px; background: linear-gradient(145deg, #6366f1, #8b5cf6); box-shadow: 0 9px 0 #4338ca; font-size: 3.6rem; }
+.word-builder-art { font-size: 5rem; }
+.built-word { min-width: 220px; min-height: 68px; display: grid; place-items: center; padding: 8px 16px; border-radius: 22px; background: #fff7d6; color: #4338ca; font: 900 2.25rem 'Segoe UI Rounded'; letter-spacing: .2em; }
+.letter-tiles { display: flex; gap: 10px; }
+.letter-tiles button { width: 64px; height: 64px; border: 0; border-radius: 20px; background: #eef2ff; color: var(--purple); font: 900 2rem 'Segoe UI Rounded'; box-shadow: 0 6px 0 #d7d5ff; }
+.number-mode { grid-template-columns: repeat(3, 1fr); }
+.math-stage { flex: 1; align-content: center; padding: 18px; border-radius: 28px; background: linear-gradient(145deg, #eff6ff, #f0fdf4); box-shadow: var(--shadow); }
+.math-art { font-size: clamp(2.5rem, 12vw, 5rem); }.math-art b { color: var(--purple); }
+.math-stage h2 { margin: 0; font: 900 1.6rem 'Segoe UI Rounded'; }.math-stage p { min-height: 24px; font-weight: 900; }
+
+.reading-levels { grid-template-columns: repeat(4, 1fr); }
+.reading-levels button { padding: 4px; font-size: .72rem; }
+.rhyme-prompt { color: var(--purple); font: 900 3.4rem 'Segoe UI Rounded'; }
+.voice-practice { width: 100%; display: grid; gap: 8px; padding: 10px; border: 1px solid #dfe4ff; border-radius: 18px; background: #f8faff; }
+.voice-practice > div { display: flex; align-items: center; gap: 8px; }.voice-practice > div > span { font-size: 1.7rem; }
+.voice-practice p { margin: 0; color: #566078; font-size: .78rem; font-weight: 800; }
+.voice-practice audio { width: 100%; height: 42px; }.voice-practice.locked { grid-template-columns: auto 1fr; align-items: center; }
+
+.creative-preview { display: grid; justify-items: center; gap: 8px; padding: 17px; border-radius: 28px; background: linear-gradient(145deg, #fff7d6, #f3e8ff); text-align: center; }
+.creative-preview > span { font-size: 5rem; animation: story-float 3s ease-in-out infinite; }
+.creative-preview h2 { margin: 0; font: 900 clamp(1.05rem, 4vw, 1.45rem) 'Segoe UI Rounded'; }
+.creative-options { min-height: 0; display: grid; gap: 8px; overflow-y: auto; }
+.creative-options fieldset { margin: 0; padding: 8px; border: 1px solid #e5e7f6; border-radius: 17px; }
+.creative-options legend { padding: 0 6px; color: var(--purple); font-weight: 900; }
+.creative-options fieldset > div { display: flex; gap: 6px; overflow-x: auto; }
+.creative-options fieldset button { flex: 0 0 auto; min-height: 38px; padding: 7px 10px; border: 0; border-radius: 12px; background: #eef2ff; color: var(--purple); font-size: .78rem; font-weight: 900; }
+.creative-options fieldset button.active { background: var(--purple); color: white; }
+
+.learning-insights, .saved-creations { margin: 14px 0; padding: 13px; border-radius: 22px; background: linear-gradient(145deg, #f8faff, #f0fdf4); text-align: left; }
+.learning-insights h3, .saved-creations h3 { margin: 0 0 9px; }
+.learning-insights > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.learning-insights article { padding: 10px 4px; border-radius: 15px; background: white; text-align: center; }.learning-insights b, .learning-insights small { display: block; }
+.learning-insights p, .saved-creations p { margin: 8px 0 0; color: #566078; font-size: .8rem; font-weight: 800; }
+
+.parent-gate { display: grid; place-content: center; justify-items: center; gap: 13px; text-align: center; }
+.parent-gate > span { font-size: 5rem; }.parent-gate h2, .parent-gate p { margin: 0; }
+.parent-gate form { width: min(100%, 340px); display: grid; gap: 10px; padding: 18px; border-radius: 23px; background: var(--surface); box-shadow: var(--shadow); }
+.parent-gate label { font-weight: 900; }.parent-gate input { height: 58px; border: 2px solid #dce2f0; border-radius: 16px; text-align: center; font: 900 1.5rem 'Segoe UI Rounded'; }
+.accessibility-section, .privacy-section, .parent-language-section { padding: 12px; border: 1px solid #e2e8f0; border-radius: 18px; background: var(--surface); }
+.accessibility-section h2, .privacy-section h2, .parent-language-section h2 { font-family: "Segoe UI", Arial, sans-serif; font-weight: 900; }
+.accessibility-section label, .privacy-section label { min-height: 46px; display: flex; align-items: center; justify-content: space-between; font-weight: 800; }
+.privacy-section p, .parent-language-section p { margin: 0 0 8px; color: #69738c; font-size: .78rem; font-weight: 700; }
+.parent-language-section select { width: 100%; min-height: 48px; border: 2px solid #dce2f0; border-radius: 14px; padding: 0 12px; background: var(--surface); color: inherit; font-weight: 900; }
+
+.app.large-ui-text { font-size: 112%; }
+.app.dyslexia-friendly { font-family: Verdana, Tahoma, sans-serif; letter-spacing: .025em; word-spacing: .06em; }
+.app.high-contrast { --ink: #080b14; --muted: #384152; --purple: #3527c7; }
+.app.high-contrast button:focus-visible { outline: 4px solid #111827; outline-offset: 3px; }
+.app.reduced-motion *, .app.reduced-motion *::before, .app.reduced-motion *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+
+@media (max-width: 540px) {
+  .adaptive-hero { grid-template-columns: 72px 1fr; padding: 14px; }
+  .adaptive-hero > span { font-size: 3.5rem; }
+  .game-tabs, .reading-levels { grid-template-columns: 1fr 1fr; }
+  .creative-preview > span { font-size: 3.8rem; }
+}

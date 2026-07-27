@@ -2,6 +2,22 @@
 
 Jedinstvena React + TypeScript aplikacija za web/PWA, Android i iOS omote.
 
+## Slovolov 3.0
+
+- `Moja lekcija` lokalno bira slovo koje detetu treba ponoviti ili sledeće
+  novo slovo, na osnovu stvarnih uspešnih i neuspešnih pokušaja;
+- napredak sada čuva tačnost po veštini i stvarno vreme aktivnog učenja;
+- čitanje obuhvata glasove i rime, slogove, reči, tri uzrasna nivoa i
+  lokalnu vežbu sopstvenog izgovora;
+- igre obuhvataju slovo–slika, Memory, prepoznavanje glasa i slaganje reči;
+- brojevi sadrže učenje količine, pisanje i početno sabiranje;
+- `Moja priča` omogućava detetu da sastavi, posluša i lokalno sačuva
+  sopstvenu kratku avanturu;
+- roditeljski deo je iza jednostavne računske provere i sadrži kontrole za
+  veći tekst, jači kontrast, manje animacija i lakše čitljiv font;
+- mikrofon je podrazumevano isključen; kada ga roditelj odobri, snimak glasa
+  ostaje privremeno samo na uređaju i nikada se ne šalje na mrežu.
+
 ## Dečji tokovi
 
 - svih 30 slova prikazuju veliko i malo slovo;

@@ -32,6 +32,11 @@ function stubFirstFullStory() {
   return request;
 }
 
+function unlockParentSettings() {
+  fireEvent.change(screen.getByLabelText('Koliko je 4 + 3?'), { target: { value: '7' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Otvori roditeljski deo' }));
+}
+
 describe('Slovolov glavni tok', () => {
   beforeEach(() => {
     useProgressStore.getState().reset();
@@ -109,6 +114,16 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByLabelText('Platno za pisanje slova 1')).toBeVisible();
   });
 
+  it('brojevi imaju stvarno računanje prilagođeno deci', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Računanje' }));
+
+    expect(screen.getByText('Koliko je 2 + 1?')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: '3' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Tačno');
+  });
+
   it('čitanje ima slogove, reči i priču sa nagradnim pitanjem', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Čitanje/i }));
@@ -116,9 +131,18 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: 'Slogovi' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Reči' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Priča' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Glasovi i rime' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Priča' }));
     expect(screen.getByText(/Priča 1\/20/)).toBeVisible();
     expect(screen.getByText(/Шта проналази/)).toBeVisible();
+  });
+
+  it('vežba izgovora ostaje zaključana dok roditelj ne dozvoli mikrofon', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Čitanje/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reči' }));
+
+    expect(screen.getByText(/roditelj može da uključi/i)).toBeVisible();
   });
 
   it('priče se biraju prema uzrastu deteta', () => {
@@ -195,6 +219,7 @@ describe('Slovolov glavni tok', () => {
   it('ne prikazuje lažno aktivno slušanje kada je zvuk isključen', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    unlockParentSettings();
     fireEvent.click(screen.getByRole('checkbox', { name: /Zvuk/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
@@ -236,9 +261,58 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getAllByText(/Korak/)).toHaveLength(3);
   });
 
+  it('otvara adaptivnu lekciju i prikazuje stvarno preporučeno slovo', () => {
+    useProgressStore.getState().recordSkillAttempt('letter:А', false);
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Moja lekcija/i }));
+
+    expect(screen.getByRole('heading', { name: 'Moja pametna lekcija' })).toBeVisible();
+    expect(screen.getByText(/Danas ponavljamo slovo А/i)).toBeVisible();
+    expect(screen.getByText(/3 kratka koraka/i)).toBeVisible();
+  });
+
+  it('igre sadrže slušni zadatak i slaganje reči', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Igre/i }));
+
+    expect(screen.getByRole('button', { name: 'Pogodi glas' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Složi reč' })).toBeVisible();
+  });
+
+  it('kreativna radionica pravi i lokalno čuva detetovu rečenicu', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja priča/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Sačuvaj moju priču/i }));
+
+    expect(useProgressStore.getState().profile.savedCreations).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('sačuvana');
+  });
+
+  it('roditeljske kontrole su iza jednostavne roditeljske provere', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+
+    expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
+    expect(screen.queryByRole('checkbox', { name: /Zvuk/i })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Koliko je 4 + 3?'), { target: { value: '7' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Otvori roditeljski deo' }));
+    expect(screen.getByRole('checkbox', { name: /Zvuk/i })).toBeVisible();
+  });
+
+  it('jezik pomoći roditelju stvarno menja prikaz objašnjenja', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    unlockParentSettings();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Jezik pomoći roditelju' }), { target: { value: 'de' } });
+
+    expect(screen.getByText(/Kinderinhalte bleiben auf Serbisch/i)).toBeVisible();
+  });
+
   it('roditelj bira i trajno čuva težinu zadataka', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    unlockParentSettings();
     fireEvent.click(screen.getByRole('button', { name: 'Izazovno' }));
     expect(useProgressStore.getState().profile.difficulty).toBe('challenge');
   });
@@ -257,6 +331,7 @@ describe('Slovolov glavni tok', () => {
   it('roditelj unosi ime novog profila i kasnije ga menja', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    unlockParentSettings();
     fireEvent.click(screen.getByRole('button', { name: /Dodaj profil/i }));
 
     fireEvent.change(screen.getByLabelText('Ime deteta'), { target: { value: 'Лука' } });
