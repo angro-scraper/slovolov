@@ -25,7 +25,7 @@ describe('audio pripovedanje', () => {
     });
   });
 
-  it('čita rečenice redom i prijavljuje aktivnu rečenicu', () => {
+  it('ne koristi podrazumevani glas uređaja kada srpski glas nije dostupan', () => {
     const active: number[] = [];
     const sources: string[] = [];
     const session = narrateSentences(['Прва.', 'Друга.'], {
@@ -35,12 +35,8 @@ describe('audio pripovedanje', () => {
     });
 
     expect(active).toEqual([0]);
-    expect(sources).toEqual(['system']);
-    expect(speak).toHaveBeenCalledTimes(1);
-    const first = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
-    first.onend?.call(first, {} as SpeechSynthesisEvent);
-    expect(active).toEqual([0, 1]);
-    expect(speak).toHaveBeenCalledTimes(2);
+    expect(sources).toEqual(['unavailable']);
+    expect(speak).not.toHaveBeenCalled();
 
     session.pause();
     session.resume();
@@ -56,6 +52,9 @@ describe('audio pripovedanje', () => {
   });
 
   it('koristi sporiji srpski ritam prilagođen dečjoj audio-bajci', () => {
+    getVoices.mockReturnValueOnce([
+      { name: 'Serbian', lang: 'sr-RS' } as SpeechSynthesisVoice
+    ]);
     narrateSentences(['Некада давно.'], { enabled: true });
 
     const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
@@ -73,6 +72,35 @@ describe('audio pripovedanje', () => {
 
     const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
     expect(utterance.voice).toBe(preferredVoice);
+  });
+
+  it('nikada ne bira ruski glas za srpsku ćirilicu', () => {
+    const sources: string[] = [];
+    getVoices.mockReturnValueOnce([
+      { name: 'Milena', lang: 'ru-RU' } as SpeechSynthesisVoice
+    ]);
+
+    narrateSentences(['Некада давно.'], {
+      enabled: true,
+      onSource: (source) => sources.push(source)
+    });
+
+    expect(sources).toEqual(['unavailable']);
+    expect(speak).not.toHaveBeenCalled();
+  });
+
+  it('koristi hrvatski glas kao razumljiv južnoslovenski fallback', () => {
+    const croatianVoice = { name: 'Lana', lang: 'hr-HR' } as SpeechSynthesisVoice;
+    getVoices.mockReturnValueOnce([
+      { name: 'Milena', lang: 'ru-RU' } as SpeechSynthesisVoice,
+      croatianVoice
+    ]);
+
+    narrateSentences(['Некада давно.'], { enabled: true });
+
+    const utterance = speak.mock.calls[0][0] as SpeechSynthesisUtterance;
+    expect(utterance.voice).toBe(croatianVoice);
+    expect(utterance.lang).toBe('hr-HR');
   });
 
   it('jasno prijavljuje da zvuk nije dostupan kada uređaj nema čitač', () => {

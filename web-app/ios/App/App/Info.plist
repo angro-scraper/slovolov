@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>en</string>
+	<string>sr</string>
 	<key>CFBundleDisplayName</key>
         <string>Slovolov</string>
 	<key>CFBundleExecutable</key>
@@ -22,6 +22,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Slovolov koristi mikrofon samo kada roditelj uključi lokalnu vežbu izgovora. Snimak ne napušta uređaj.</string>
 	<key>UILaunchStoryboardName</key>

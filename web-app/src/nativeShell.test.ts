@@ -15,6 +15,16 @@ describe('Slovolov paket za prodavnice', () => {
     expect(infoPlist).toContain('Snimak ne napušta uređaj');
   });
 
+  it('iOS paket proglašava srpski kao jezik aplikacije i tačan encryption status', () => {
+    const infoPlist = read('ios/App/App/Info.plist');
+    expect(infoPlist).toMatch(
+      /<key>CFBundleDevelopmentRegion<\/key>\s*<string>sr<\/string>/,
+    );
+    expect(infoPlist).toMatch(
+      /<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/,
+    );
+  });
+
   it('ima javnu politiku privatnosti usklađenu sa ponašanjem aplikacije', () => {
     const privacy = read('public/privacy.html');
     expect(privacy).toContain('Politika privatnosti');

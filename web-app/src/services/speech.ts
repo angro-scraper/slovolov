@@ -1,4 +1,21 @@
+import { prepareTextForVoice, selectSerbianVoice } from './serbianVoice';
+
 const audioCache = new Map<string, HTMLAudioElement>();
+
+export function speakTextWithSystemVoice(text: string): boolean {
+  if (!('speechSynthesis' in window) || !window.speechSynthesis) return false;
+  const voice = selectSerbianVoice(window.speechSynthesis.getVoices?.() ?? []);
+  if (!voice) return false;
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(prepareTextForVoice(text, voice));
+  utterance.voice = voice;
+  utterance.lang = voice.lang;
+  utterance.rate = 0.72;
+  utterance.pitch = 1.12;
+  window.speechSynthesis.speak(utterance);
+  return true;
+}
 
 export async function speak(text: string, enabled = true): Promise<void> {
   if (!enabled) return;
@@ -12,11 +29,5 @@ export async function speak(text: string, enabled = true): Promise<void> {
   } catch {
     // Lokalni snimak je poželjan; sistemski srpski glas je bezbedan offline fallback.
   }
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'sr-RS';
-  utterance.rate = 0.72;
-  utterance.pitch = 1.12;
-  window.speechSynthesis.speak(utterance);
+  speakTextWithSystemVoice(text);
 }
