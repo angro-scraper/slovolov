@@ -1,6 +1,6 @@
 {
   "name": "slovolov-web",
-  "version": "3.2.2",
+  "version": "3.2.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^7.4.4",
+    "@capacitor/screen-reader": "^7.0.4",
     "cordova-plugin-purchase": "^13.18.0",
     "idb": "^8.0.3",
     "react": "^19.2.0",

@@ -3,9 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
 import { installAudioIsolation } from './services/audioIsolation';
+import { monitorScreenReaderAudio } from './services/screenReaderAudio';
 import './styles.css';
 
 installAudioIsolation();
+void monitorScreenReaderAudio();
 
 let applyServiceWorkerUpdate: ((reloadPage?: boolean) => Promise<void>) | undefined;
 applyServiceWorkerUpdate = registerSW({

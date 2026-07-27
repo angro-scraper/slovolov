@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { installAudioIsolation } from './audioIsolation';
+import {
+  installAudioIsolation,
+  isAppAudioSuppressed,
+  setAppAudioSuppressed
+} from './audioIsolation';
 
 describe('globalna izolacija Slovolov zvuka', () => {
   const phoneSpeak = vi.fn();
@@ -64,5 +68,22 @@ describe('globalna izolacija Slovolov zvuka', () => {
 
     expect(originalPause).toHaveBeenCalled();
     expect(audio.currentTime).toBe(0);
+  });
+
+  it('utišava i zaustavlja naraciju dok je čitač ekrana aktivan', async () => {
+    cleanup = installAudioIsolation();
+    const audio = new Audio('/audio/quiz/04.mp3');
+    await audio.play();
+
+    setAppAudioSuppressed(true);
+
+    expect(isAppAudioSuppressed()).toBe(true);
+    expect(originalPause).toHaveBeenCalled();
+    await expect(audio.play()).rejects.toMatchObject({ name: 'NotAllowedError' });
+    expect(originalPlay).toHaveBeenCalledTimes(1);
+
+    setAppAudioSuppressed(false);
+    await audio.play();
+    expect(originalPlay).toHaveBeenCalledTimes(2);
   });
 });

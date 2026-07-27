@@ -1,5 +1,21 @@
 type Cleanup = () => void;
 
+let appAudioSuppressed = false;
+let stopInstalledAudio: (() => void) | null = null;
+
+/**
+ * VoiceOver i TalkBack ne smeju da budu programski ugašeni. Kada je neki od
+ * njih aktivan, Slovolov zato utišava samo svoj naratorski kanal.
+ */
+export function setAppAudioSuppressed(suppressed: boolean): void {
+  appAudioSuppressed = suppressed;
+  if (suppressed) stopInstalledAudio?.();
+}
+
+export function isAppAudioSuppressed(): boolean {
+  return appAudioSuppressed;
+}
+
 /**
  * Jedan zvučni kanal za celu aplikaciju.
  *
@@ -28,9 +44,16 @@ export function installAudioIsolation(): Cleanup {
       // Neki iOS media elementi ne dozvoljavaju seek pre učitavanja metadata.
     }
   };
+  stopInstalledAudio = stopActive;
 
   mediaPrototype.play = function isolatedPlay(...args: Parameters<HTMLMediaElement['play']>) {
     synthesis?.cancel();
+    if (appAudioSuppressed) {
+      stopActive();
+      return Promise.reject(
+        new DOMException('Naracija je utišana dok je čitač ekrana aktivan.', 'NotAllowedError')
+      );
+    }
     if (activeMedia && activeMedia !== this) stopActive();
     activeMedia = this;
     return originalPlay.apply(this, args);
@@ -56,6 +79,8 @@ export function installAudioIsolation(): Cleanup {
 
   return () => {
     stopActive();
+    if (stopInstalledAudio === stopActive) stopInstalledAudio = null;
+    appAudioSuppressed = false;
     mediaPrototype.play = originalPlay;
     mediaPrototype.pause = originalPause;
     if (synthesis) synthesis.speak = originalSpeak;
