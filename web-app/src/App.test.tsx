@@ -49,6 +49,7 @@ describe('Slovolov glavni tok', () => {
     cleanup();
     clearFullStoryCache();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
   it('otvara školu slova i prikazuje ćirilične reči', () => {
@@ -57,6 +58,19 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: 'А а' }));
     expect(screen.getByRole('button', { name: 'Odaberi sliku: Авион' })).toBeVisible();
     expect(screen.getByRole('button', { name: /Slušaj ponovo/i })).toBeVisible();
+  });
+
+  it('zaključani sadržaj ne može da se zaobiđe iz liste slova ili brojeva', () => {
+    vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ј ј zaključano' }));
+    expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
+    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Broj 6' }));
+    expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
   });
 
   it('tačna slika dodeljuje zvezdicu i automatski otvara sledeće slovo', () => {
@@ -309,6 +323,30 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByText(/Kinderinhalte bleiben auf Serbisch/i)).toBeVisible();
   });
 
+  it('kupovina je samo u roditeljskom delu i web ne prikazuje lažan uspeh', () => {
+    vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
+    render(<App />);
+    expect(screen.queryByText('4,99 €')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    unlockParentSettings();
+
+    expect(screen.getByRole('heading', { name: 'Slovolov Family' })).toBeVisible();
+    expect(screen.getByText(/jednokratno/i)).toBeVisible();
+    expect(screen.getByText(/Android\/iOS aplikaciji/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: /Vrati kupovinu/i })).toBeDisabled();
+  });
+
+  it('potvrđeno porodično pravo prikazuje trajno otključan sadržaj', () => {
+    useProgressStore.getState().grantFamilyAccess('store');
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    unlockParentSettings();
+
+    expect(screen.getByText('Otključano zauvek')).toBeVisible();
+    expect(screen.getByText(/dostupan svim profilima/i)).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Otključaj celu aplikaciju/i })).not.toBeInTheDocument();
+  });
+
   it('roditelj bira i trajno čuva težinu zadataka', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
@@ -329,6 +367,7 @@ describe('Slovolov glavni tok', () => {
   });
 
   it('roditelj unosi ime novog profila i kasnije ga menja', () => {
+    useProgressStore.getState().grantFamilyAccess('store');
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
     unlockParentSettings();

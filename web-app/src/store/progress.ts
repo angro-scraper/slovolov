@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isCommerceEnabled } from '../config/commerce';
 import { recordLearningAttempt, type LearningStats } from '../domain/learning';
 
 export type AccessibilitySettings = {
@@ -29,6 +30,12 @@ export type ChildProfile = {
   medals: string[];
 };
 
+export type FamilyAccess = {
+  isUnlocked: boolean;
+  source: 'free' | 'store';
+  verifiedAt?: string;
+};
+
 type ProgressState = {
   profiles: ChildProfile[];
   activeProfileId: string;
@@ -38,6 +45,7 @@ type ProgressState = {
   accessibility: AccessibilitySettings;
   microphonePracticeEnabled: boolean;
   parentLanguage: 'sr' | 'en' | 'de' | 'fr';
+  familyAccess: FamilyAccess;
   profile: ChildProfile;
   learnLetter: (letter: string) => void;
   learnNumber: (number: number) => void;
@@ -59,6 +67,8 @@ type ProgressState = {
   toggleSound: () => void;
   toggleTheme: () => void;
   toggleScript: () => void;
+  grantFamilyAccess: (source: 'store') => void;
+  resetLearningProgress: () => void;
   reset: () => void;
 };
 
@@ -97,7 +107,11 @@ const initial = {
     dyslexiaFriendly: false
   },
   microphonePracticeEnabled: false,
-  parentLanguage: 'sr' as const
+  parentLanguage: 'sr' as const,
+  familyAccess: {
+    isUnlocked: false,
+    source: 'free' as const
+  }
 };
 
 export const useProgressStore = create<ProgressState>()(
@@ -219,7 +233,11 @@ export const useProgressStore = create<ProgressState>()(
       setParentLanguage: (parentLanguage) => set({ parentLanguage }),
       addProfile: (name, avatar) => {
         const cleanName = name.trim().slice(0, 32);
-        if (!cleanName) return false;
+        if (!cleanName || (
+          isCommerceEnabled()
+          && get().profiles.length >= 1
+          && !get().familyAccess.isUnlocked
+        )) return false;
         set((state) => {
         const profile = { ...initialProfile, id: crypto.randomUUID(), name: cleanName, avatar };
         return { profiles: [...state.profiles, profile], activeProfileId: profile.id, profile };
@@ -247,11 +265,22 @@ export const useProgressStore = create<ProgressState>()(
       toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
       toggleTheme: () => set((state) => ({ darkMode: !state.darkMode })),
       toggleScript: () => set((state) => ({ script: state.script === 'cyrillic' ? 'latin' : 'cyrillic' })),
+      grantFamilyAccess: (source) => set({
+        familyAccess: {
+          isUnlocked: true,
+          source,
+          verifiedAt: new Date().toISOString()
+        }
+      }),
+      resetLearningProgress: () => set((state) => ({
+        ...initial,
+        familyAccess: state.familyAccess
+      })),
       reset: () => set(initial)
     }),
     {
       name: 'slovolov-progress-v2',
-      version: 6,
+      version: 7,
       migrate: (persisted) => {
         const state = persisted as Partial<ProgressState>;
         const profiles = (state.profiles ?? [initialProfile]).map((profile) => ({
@@ -280,7 +309,8 @@ export const useProgressStore = create<ProgressState>()(
           script: state.script ?? 'cyrillic',
           accessibility: state.accessibility ?? initial.accessibility,
           microphonePracticeEnabled: state.microphonePracticeEnabled ?? false,
-          parentLanguage: state.parentLanguage ?? 'sr'
+          parentLanguage: state.parentLanguage ?? 'sr',
+          familyAccess: state.familyAccess ?? initial.familyAccess
         };
       },
       partialize: ({
@@ -292,7 +322,8 @@ export const useProgressStore = create<ProgressState>()(
         script,
         accessibility,
         microphonePracticeEnabled,
-        parentLanguage
+        parentLanguage,
+        familyAccess
       }) => ({
         profiles,
         activeProfileId,
@@ -302,7 +333,8 @@ export const useProgressStore = create<ProgressState>()(
         script,
         accessibility,
         microphonePracticeEnabled,
-        parentLanguage
+        parentLanguage,
+        familyAccess
       })
     }
   )

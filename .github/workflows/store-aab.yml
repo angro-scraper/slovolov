@@ -1,0 +1,53 @@
+name: Potpisani Google Play AAB
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-store:
+    runs-on: ubuntu-latest
+    env:
+      VITE_COMMERCE_ENABLED: "true"
+      SLOVOLOV_UPLOAD_KEYSTORE: ${{ runner.temp }}/slovolov-upload.jks
+      SLOVOLOV_KEYSTORE_PASSWORD: ${{ secrets.SLOVOLOV_KEYSTORE_PASSWORD }}
+      SLOVOLOV_UPLOAD_KEY_ALIAS: ${{ secrets.SLOVOLOV_UPLOAD_KEY_ALIAS }}
+      SLOVOLOV_UPLOAD_KEY_PASSWORD: ${{ secrets.SLOVOLOV_UPLOAD_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Proveri potrebne tajne
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SLOVOLOV_UPLOAD_KEYSTORE_BASE64 }}
+        shell: bash
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$SLOVOLOV_KEYSTORE_PASSWORD"
+          test -n "$SLOVOLOV_UPLOAD_KEY_ALIAS"
+          test -n "$SLOVOLOV_UPLOAD_KEY_PASSWORD"
+      - name: Pripremi upload ključ
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SLOVOLOV_UPLOAD_KEYSTORE_BASE64 }}
+        shell: bash
+        run: printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$SLOVOLOV_UPLOAD_KEYSTORE"
+      - run: npm ci
+      - run: npm test -- --run
+      - run: npm run cap:sync
+      - run: chmod +x android/gradlew
+      - name: Napravi potpisani AAB
+        run: ./gradlew bundleRelease
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Slovolov-Google-Play-AAB
+          path: android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error

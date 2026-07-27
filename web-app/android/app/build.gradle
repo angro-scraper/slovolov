@@ -1,5 +1,16 @@
 apply plugin: 'com.android.application'
 
+def releaseStoreFilePath = System.getenv("SLOVOLOV_UPLOAD_KEYSTORE")
+def releaseStorePassword = System.getenv("SLOVOLOV_KEYSTORE_PASSWORD")
+def releaseKeyAlias = System.getenv("SLOVOLOV_UPLOAD_KEY_ALIAS")
+def releaseKeyPassword = System.getenv("SLOVOLOV_UPLOAD_KEY_PASSWORD")
+def releaseSigningReady = [
+    releaseStoreFilePath,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+].every { value -> value != null && !value.trim().isEmpty() }
+
 android {
     namespace "rs.slovolov.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +18,8 @@ android {
         applicationId "rs.slovolov.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 12
-        versionName "3.0.0"
+        versionCode 13
+        versionName "3.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +27,23 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (releaseSigningReady) {
+                storeFile file(releaseStoreFilePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (releaseSigningReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

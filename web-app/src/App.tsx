@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
 import { VoicePractice } from './components/VoicePractice';
+import { isCommerceEnabled } from './config/commerce';
 import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
 import { seededChoices } from './domain/choices';
+import { canAccessLetter, canAccessNumber, canAccessStory } from './domain/access';
 import { nextLetterToPractice, summarizeLearning } from './domain/learning';
 import { displayLetter, letters, transliterate, type Letter } from './domain/letters';
 import { narrateSentences, type NarrationSession } from './services/narration';
@@ -16,6 +18,12 @@ import {
   type StoryDownloadProgress
 } from './services/storyOffline';
 import { speak } from './services/speech';
+import {
+  createDefaultPurchaseGateway,
+  createPurchaseManager,
+  isNativePurchasePlatform,
+  type PurchaseOffer
+} from './services/purchases';
 import { useProgressStore } from './store/progress';
 
 type Screen = 'home' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
@@ -64,6 +72,8 @@ export function App() {
   const addLearningSeconds = useProgressStore((state) => state.addLearningSeconds);
   const profile = useProgressStore((state) => state.profile);
   const accessibility = useProgressStore((state) => state.accessibility);
+  const purchasedFamily = useProgressStore((state) => state.familyAccess.isUnlocked);
+  const familyUnlocked = !isCommerceEnabled() || purchasedFamily;
 
   useEffect(() => {
     if (screen === 'home' || screen === 'settings' || screen === 'progress') return undefined;
@@ -116,19 +126,22 @@ export function App() {
       <>
         <Header title="Azbuka" onBack={() => setScreen('home')} />
         <main className="letter-grid" aria-label="Srpska azbuka">
-          {letters.map((letter) => (
+          {letters.map((letter, index) => {
+            const accessible = canAccessLetter(index, familyUnlocked);
+            return (
             <button
               key={letter.upper}
-              className="letter-button"
+              className={`letter-button ${accessible ? '' : 'content-locked'}`}
               style={{ '--letter-color': letter.color } as React.CSSProperties}
-              onClick={() => openLesson(letter)}
-              aria-label={`${visibleLetter(letter)} ${visibleLetter(letter, 'lower')}`}
+              onClick={() => accessible ? openLesson(letter) : setScreen('settings')}
+              aria-label={`${visibleLetter(letter)} ${visibleLetter(letter, 'lower')}${accessible ? '' : ' zaključano'}`}
             >
               <strong>{visibleLetter(letter)}</strong>
               <small>{visibleLetter(letter, 'lower')}</small>
               {profile.learnedLetters.includes(letter.upper) && <span>★</span>}
+              {!accessible && <span aria-hidden="true">🔒</span>}
             </button>
-          ))}
+          )})}
         </main>
       </>
     );
@@ -160,8 +173,12 @@ export function App() {
                       setCelebrate(true);
                       void speak('Bravo! Dobio si zvezdicu. Idemo na sledeće slovo!', sound);
                       const nextIndex = (letters.indexOf(selected) + 1) % letters.length;
-                      setTraceMessage(`Bravo! Naučio si ${visibleLetter(selected)}. Sledeće slovo je ${visibleLetter(letters[nextIndex])}.`);
-                      setSelected(letters[nextIndex]);
+                      if (canAccessLetter(nextIndex, familyUnlocked)) {
+                        setTraceMessage(`Bravo! Naučio si ${visibleLetter(selected)}. Sledeće slovo je ${visibleLetter(letters[nextIndex])}.`);
+                        setSelected(letters[nextIndex]);
+                      } else {
+                        setTraceMessage(`Bravo! Završio si svih ${letters.indexOf(selected) + 1} besplatnih slova.`);
+                      }
                       window.setTimeout(() => setCelebrate(false), 1400);
                     }}
                   >
@@ -189,9 +206,14 @@ export function App() {
             <button className={letterCase === 'lower' ? 'active' : ''} onClick={() => { setLetterCase('lower'); setTraceMessage('Prati celo svetlo slovo prstom.'); }}>Malo slovo</button>
           </div>
           <div className="practice-letters">
-            {letters.map((letter) => (
-              <button key={letter.upper} className={letter === selected ? 'active' : ''} onClick={() => setSelected(letter)}>
+            {letters.map((letter, index) => (
+              <button
+                key={letter.upper}
+                className={`${letter === selected ? 'active' : ''} ${canAccessLetter(index, familyUnlocked) ? '' : 'content-locked'}`}
+                onClick={() => canAccessLetter(index, familyUnlocked) ? setSelected(letter) : setScreen('settings')}
+              >
                 {displayLetter(letter, script)}
+                {!canAccessLetter(index, familyUnlocked) && <small aria-hidden="true">🔒</small>}
               </button>
             ))}
           </div>
@@ -216,9 +238,21 @@ export function App() {
         <Header title={`Bojanka ${displayLetter(selected, script)}`} onBack={() => setScreen('home')} />
         <main className="coloring">
           <div className="practice-letters">
-            {letters.map((letter) => (
-              <button key={letter.upper} className={letter === selected ? 'active' : ''} onClick={() => { setSelected(letter); setColoringMessage(''); }}>
+            {letters.map((letter, index) => (
+              <button
+                key={letter.upper}
+                className={`${letter === selected ? 'active' : ''} ${canAccessLetter(index, familyUnlocked) ? '' : 'content-locked'}`}
+                onClick={() => {
+                  if (!canAccessLetter(index, familyUnlocked)) {
+                    setScreen('settings');
+                    return;
+                  }
+                  setSelected(letter);
+                  setColoringMessage('');
+                }}
+              >
                 {displayLetter(letter, script)}
+                {!canAccessLetter(index, familyUnlocked) && <small aria-hidden="true">🔒</small>}
               </button>
             ))}
           </div>
@@ -228,9 +262,14 @@ export function App() {
             illustration={selected.words[0].emoji}
             onSaved={() => {
               const saved = selected;
-              const next = letters[(letters.indexOf(saved) + 1) % letters.length];
-              setColoringMessage(`Crtež za ${displayLetter(saved, script)} je sačuvan. Sledeće slovo je ${displayLetter(next, script)}.`);
-              setSelected(next);
+              const nextIndex = (letters.indexOf(saved) + 1) % letters.length;
+              const next = letters[nextIndex];
+              if (canAccessLetter(nextIndex, familyUnlocked)) {
+                setColoringMessage(`Crtež za ${displayLetter(saved, script)} je sačuvan. Sledeće slovo je ${displayLetter(next, script)}.`);
+                setSelected(next);
+              } else {
+                setColoringMessage(`Crtež za ${displayLetter(saved, script)} je sačuvan. Završio si besplatni deo bojanke.`);
+              }
             }}
           />
           <p className="coloring-feedback" role="status">{coloringMessage}</p>
@@ -243,13 +282,13 @@ export function App() {
     if (screen === 'games') return <GameHub onBack={() => setScreen('home')} sound={sound} />;
 
     if (screen === 'quiz') return <Quiz onBack={() => setScreen('home')} />;
-    if (screen === 'numbers') return <Numbers onBack={() => setScreen('home')} sound={sound} />;
+    if (screen === 'numbers') return <Numbers onBack={() => setScreen('home')} onFamily={() => setScreen('settings')} sound={sound} />;
     if (screen === 'reading') return <Reading onBack={() => setScreen('home')} sound={sound} />;
-    if (screen === 'fairy-tales') return <FairyTales onBack={() => setScreen('home')} sound={sound} />;
+    if (screen === 'fairy-tales') return <FairyTales onBack={() => setScreen('home')} onFamily={() => setScreen('settings')} sound={sound} />;
     if (screen === 'creative') return <CreativeStudio onBack={() => setScreen('home')} sound={sound} />;
     if (screen === 'progress') return <Progress onBack={() => setScreen('home')} />;
     return <Settings onBack={() => setScreen('home')} />;
-  }, [celebrate, coloringMessage, letterCase, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
+  }, [celebrate, coloringMessage, familyUnlocked, letterCase, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
 
   const appClasses = [
     'app',
@@ -265,10 +304,11 @@ export function App() {
 
 function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const profile = useProgressStore((state) => state.profile);
+  const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const completeLearningPath = useProgressStore((state) => state.completeLearningPath);
   const recommendedUpper = nextLetterToPractice(
-    letters.map((letter) => letter.upper),
+    letters.filter((_, index) => canAccessLetter(index, familyUnlocked)).map((letter) => letter.upper),
     profile.learnedLetters,
     profile.skillStats
   );
@@ -559,7 +599,7 @@ function Quiz({ onBack }: { onBack: () => void }) {
   );
 }
 
-function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+function Numbers({ onBack, onFamily, sound }: { onBack: () => void; onFamily: () => void; sound: boolean }) {
   const [selectedNumber, setSelectedNumber] = useState(numberLessons[1]);
   const [mode, setMode] = useState<'learn' | 'write' | 'math'>('learn');
   const [message, setMessage] = useState('Dodirni broj, izbroj sličice i pronađi odgovor.');
@@ -567,6 +607,7 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const learnedNumbers = useProgressStore((state) => state.profile.learnedNumbers);
   const difficulty = useProgressStore((state) => state.profile.difficulty);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
+  const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
   const amount = selectedNumber.value;
   const options = Array.from(new Set([
     amount,
@@ -587,15 +628,20 @@ function Numbers({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           {numberLessons.map((number) => (
             <button
               key={number.value}
-              className={number.value === amount ? 'active' : ''}
+              className={`${number.value === amount ? 'active' : ''} ${canAccessNumber(number.value, familyUnlocked) ? '' : 'content-locked'}`}
               aria-label={`Broj ${number.value}`}
               onClick={() => {
+                if (!canAccessNumber(number.value, familyUnlocked)) {
+                  onFamily();
+                  return;
+                }
                 setSelectedNumber(number);
                 setMessage('Izbroj sličice i pronađi pravi broj.');
                 void speak(number.word, sound);
               }}
             >
               {number.value}
+              {!canAccessNumber(number.value, familyUnlocked) && <small aria-hidden="true">🔒</small>}
               {learnedNumbers.includes(number.value) && <small>★</small>}
             </button>
           ))}
@@ -792,12 +838,13 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   );
 }
 
-function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily: () => void; sound: boolean }) {
   const [age, setAge] = useState<FairyTaleAge>('4–6');
   const [storyIndex, setStoryIndex] = useState(0);
   const stories = fairyTales.filter((story) => story.age === age);
   const story = stories[storyIndex];
   const profile = useProgressStore((state) => state.profile);
+  const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
   const completeReading = useProgressStore((state) => state.completeReading);
   const setStoryBookmark = useProgressStore((state) => state.setStoryBookmark);
   const [activeSentence, setActiveSentence] = useState(profile.storyBookmarks[story.id] ?? 0);
@@ -832,6 +879,10 @@ function FairyTales({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     sessionRef.current?.stop();
     const nextStories = fairyTales.filter((item) => item.age === nextAge);
     const nextStory = nextStories[nextIndex];
+    if (!canAccessStory(nextIndex, familyUnlocked)) {
+      onFamily();
+      return;
+    }
     setStoryIndex(nextIndex);
     setActiveSentence(profile.storyBookmarks[nextStory.id] ?? 0);
     setPlayback('idle');
@@ -1292,6 +1343,7 @@ function Progress({ onBack }: { onBack: () => void }) {
 
 function Settings({ onBack }: { onBack: () => void }) {
   const store = useProgressStore();
+  const commerceEnabled = isCommerceEnabled();
   const [parentUnlocked, setParentUnlocked] = useState(false);
   const [gateAnswer, setGateAnswer] = useState('');
   const [gateError, setGateError] = useState('');
@@ -1300,12 +1352,77 @@ function Settings({ onBack }: { onBack: () => void }) {
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editedName, setEditedName] = useState('');
   const [nameError, setNameError] = useState('');
+  const [purchaseOffer, setPurchaseOffer] = useState<PurchaseOffer>({
+    available: false,
+    owned: store.familyAccess.isUnlocked
+  });
+  const [purchaseBusy, setPurchaseBusy] = useState(false);
+  const [purchaseMessage, setPurchaseMessage] = useState('');
+  const purchaseManager = useMemo(
+    () => createPurchaseManager(createDefaultPurchaseGateway(), store.grantFamilyAccess),
+    [store.grantFamilyAccess]
+  );
   const parentHelp = {
     sr: 'Dečji sadržaj ostaje na srpskom jeziku. Ovde roditelj podešava pristupačnost i nivo težine.',
     en: 'Children’s lessons stay in Serbian. Parents can adjust accessibility and difficulty here.',
     de: 'Kinderinhalte bleiben auf Serbisch. Eltern können hier Barrierefreiheit und Schwierigkeit einstellen.',
     fr: 'Les leçons des enfants restent en serbe. Les parents règlent ici l’accessibilité et la difficulté.'
   }[store.parentLanguage];
+
+  useEffect(() => {
+    if (!parentUnlocked || !commerceEnabled) return undefined;
+    let active = true;
+    setPurchaseBusy(true);
+    purchaseManager.initialize()
+      .then((offer) => {
+        if (!active) return;
+        setPurchaseOffer(offer);
+        if (offer.reason) setPurchaseMessage(offer.reason);
+      })
+      .catch((error: unknown) => {
+        if (active) setPurchaseMessage(error instanceof Error ? error.message : 'Prodavnica trenutno nije dostupna.');
+      })
+      .finally(() => {
+        if (active) setPurchaseBusy(false);
+      });
+    return () => { active = false; };
+  }, [commerceEnabled, parentUnlocked, purchaseManager]);
+
+  const buyFamily = async () => {
+    setPurchaseBusy(true);
+    setPurchaseMessage('Otvaram bezbednu kupovinu u prodavnici…');
+    try {
+      const result = await purchaseManager.purchase();
+      if (result.state === 'verified') {
+        setPurchaseMessage('Slovolov Family je uspešno otključan na ovom uređaju.');
+      } else if (result.state === 'pending') {
+        setPurchaseMessage('Kupovina čeka potvrdu prodavnice. Sadržaj još nije otključan.');
+      } else if (result.state === 'cancelled') {
+        setPurchaseMessage('Kupovina je otkazana. Ništa nije naplaćeno.');
+      } else {
+        setPurchaseMessage(result.message ?? 'Kupovina trenutno nije dostupna.');
+      }
+    } catch (error) {
+      setPurchaseMessage(error instanceof Error ? error.message : 'Kupovina nije uspela.');
+    } finally {
+      setPurchaseBusy(false);
+    }
+  };
+
+  const restoreFamily = async () => {
+    setPurchaseBusy(true);
+    setPurchaseMessage('Proveravam raniju kupovinu…');
+    try {
+      const result = await purchaseManager.restore();
+      setPurchaseMessage(result.owned
+        ? 'Kupovina je pronađena i Slovolov Family je vraćen.'
+        : result.message ?? 'Kupovina nije pronađena na ovom nalogu.');
+    } catch (error) {
+      setPurchaseMessage(error instanceof Error ? error.message : 'Vraćanje kupovine nije uspelo.');
+    } finally {
+      setPurchaseBusy(false);
+    }
+  };
 
   const saveNewProfile = (event: React.FormEvent) => {
     event.preventDefault();
@@ -1361,6 +1478,42 @@ function Settings({ onBack }: { onBack: () => void }) {
     <>
       <Header title="Podešavanja za roditelje" onBack={onBack} />
       <main className="settings">
+        <section className={`family-section ${store.familyAccess.isUnlocked || !commerceEnabled ? 'unlocked' : ''}`}>
+          <div className="family-heading">
+            <span aria-hidden="true">{store.familyAccess.isUnlocked || !commerceEnabled ? '✨' : '👨‍👩‍👧‍👦'}</span>
+            <div>
+              <h2>Slovolov Family</h2>
+              <p>
+                {store.familyAccess.isUnlocked
+                  ? 'Otključano zauvek'
+                  : !commerceEnabled
+                    ? 'Sadržaj je dostupan tokom pripreme prodavnice'
+                    : `${purchaseOffer.price ?? '4,99 €'} · jednokratno`}
+              </p>
+            </div>
+          </div>
+          <ul>
+            <li>Svih 30 slova i brojevi 0–10</li>
+            <li>Sve kompletne bajke i buduća proširenja sadržaja</li>
+            <li>Više dečjih profila na istom uređaju</li>
+          </ul>
+          {commerceEnabled && !store.familyAccess.isUnlocked && (
+            <div className="family-actions">
+              <button className="primary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void buyFamily()}>
+                {purchaseBusy ? 'Proveravam…' : 'Otključaj celu aplikaciju'}
+              </button>
+              <button className="secondary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void restoreFamily()}>
+                Vrati kupovinu
+              </button>
+            </div>
+          )}
+          {(store.familyAccess.isUnlocked || !commerceEnabled) && <strong className="family-owned">✓ Porodični sadržaj je dostupan svim profilima.</strong>}
+          {commerceEnabled && !isNativePurchasePlatform() && (
+            <p className="purchase-message">Kupovina je dostupna u instaliranoj Android/iOS aplikaciji.</p>
+          )}
+          {purchaseMessage && <p className="purchase-message" role="status">{purchaseMessage}</p>}
+          <small>Bez pretplate, reklama i automatskog obnavljanja.</small>
+        </section>
         <label><span>🔊 Zvuk</span><input type="checkbox" checked={store.soundEnabled} onChange={store.toggleSound} /></label>
         <label><span>🌙 Tamni režim</span><input type="checkbox" checked={store.darkMode} onChange={store.toggleTheme} /></label>
         <button className="setting-button" onClick={store.toggleScript}><span>🔤 Pismo</span><strong>{store.script === 'cyrillic' ? 'Ćirilica' : 'Latinica'}</strong></button>
@@ -1442,7 +1595,7 @@ function Settings({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </section>
-        {!addingProfile && (
+        {!addingProfile && (!commerceEnabled || store.familyAccess.isUnlocked) && (
           <button
             className="secondary"
             onClick={() => {
@@ -1453,6 +1606,9 @@ function Settings({ onBack }: { onBack: () => void }) {
           >
             + Dodaj profil
           </button>
+        )}
+        {commerceEnabled && !store.familyAccess.isUnlocked && (
+          <p className="parent-note">Slovolov Family omogućava više profila dece na istom uređaju.</p>
         )}
         {addingProfile && (
           <form className="profile-form new-profile-form" onSubmit={saveNewProfile}>
@@ -1472,7 +1628,10 @@ function Settings({ onBack }: { onBack: () => void }) {
           </form>
         )}
         {nameError && <p className="form-error" role="alert">{nameError}</p>}
-        <p className="parent-note">Aplikacija nema reklame, naloge ni praćenje. Napredak ostaje samo na uređaju.</p>
+        <p className="parent-note">
+          Aplikacija nema reklame, naloge ni praćenje. Napredak ostaje samo na uređaju.
+          {' '}<a href="/privacy.html" target="_blank" rel="noreferrer">Politika privatnosti</a>
+        </p>
       </main>
     </>
   );

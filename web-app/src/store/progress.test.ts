@@ -1,8 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useProgressStore } from './progress';
 
 describe('lokalni napredak', () => {
   beforeEach(() => useProgressStore.getState().reset());
+  afterEach(() => vi.unstubAllEnvs());
 
   it('dodeljuje jednu zvezdicu samo jednom po slovu', () => {
     useProgressStore.getState().learnLetter('А');
@@ -43,12 +44,14 @@ describe('lokalni napredak', () => {
   });
 
   it('podržava više lokalnih profila', () => {
+    useProgressStore.getState().grantFamilyAccess('store');
     useProgressStore.getState().addProfile('Лука', '🐉');
     expect(useProgressStore.getState().profiles).toHaveLength(2);
     expect(useProgressStore.getState().profile.name).toBe('Лука');
   });
 
   it('čuva uneto ime i omogućava kasniju promenu imena', () => {
+    useProgressStore.getState().grantFamilyAccess('store');
     expect(useProgressStore.getState().addProfile('  Лука  ', '🐉')).toBe(true);
     const profileId = useProgressStore.getState().profile.id;
 
@@ -62,6 +65,13 @@ describe('lokalni napredak', () => {
     expect(useProgressStore.getState().profiles).toHaveLength(1);
     expect(useProgressStore.getState().renameProfile('local-child', '')).toBe(false);
     expect(useProgressStore.getState().profile.name).toBe('Мила');
+  });
+
+  it('ograničava drugi profil samo u store izdanju bez porodičnog prava', () => {
+    vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
+    expect(useProgressStore.getState().addProfile('Лука', '🐉')).toBe(false);
+    useProgressStore.getState().grantFamilyAccess('store');
+    expect(useProgressStore.getState().addProfile('Лука', '🐉')).toBe(true);
   });
 
   it('lokalno pamti tačnost, vreme učenja i postavke pristupačnosti', () => {
@@ -99,5 +109,17 @@ describe('lokalni napredak', () => {
     expect(profile.savedCreations).toContain('Мој змај лети изнад шуме.');
     expect(profile.completedLearningPaths).toEqual(['2026-07-27']);
     expect(profile.stars).toBe(3);
+  });
+
+  it('porodično otključavanje je globalno za sve profile i reset napretka ga ne briše', () => {
+    expect(useProgressStore.getState().familyAccess.isUnlocked).toBe(false);
+    useProgressStore.getState().grantFamilyAccess('store');
+    useProgressStore.getState().addProfile('Лука', '🐉');
+    expect(useProgressStore.getState().familyAccess).toMatchObject({
+      isUnlocked: true,
+      source: 'store'
+    });
+    useProgressStore.getState().resetLearningProgress();
+    expect(useProgressStore.getState().familyAccess.isUnlocked).toBe(true);
   });
 });

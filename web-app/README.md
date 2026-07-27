@@ -2,7 +2,7 @@
 
 Jedinstvena React + TypeScript aplikacija za web/PWA, Android i iOS omote.
 
-## Slovolov 3.0
+## Slovolov 3.1
 
 - `Moja lekcija` lokalno bira slovo koje detetu treba ponoviti ili sledeće
   novo slovo, na osnovu stvarnih uspešnih i neuspešnih pokušaja;
@@ -17,6 +17,19 @@ Jedinstvena React + TypeScript aplikacija za web/PWA, Android i iOS omote.
   veći tekst, jači kontrast, manje animacija i lakše čitljiv font;
 - mikrofon je podrazumevano isključen; kada ga roditelj odobri, snimak glasa
   ostaje privremeno samo na uređaju i nikada se ne šalje na mrežu.
+
+## Slovolov Family
+
+- osnovni paket je trajno besplatan: prvih 10 slova, brojevi 0–5, prvih 5
+  celih bajki, osnovne igre i jedan profil;
+- `Slovolov Family` je jednokratno otključavanje bez pretplate i reklama;
+- kupovina je iza roditeljske provere i koristi stabilan non-consumable ID
+  `slovolov_family_unlock`;
+- otkazana ili `pending` kupovina ne otključava sadržaj;
+- web/PWA ne glumi prodavnicu; kupovina i restore postoje samo u instaliranom
+  Android/iOS omotu;
+- kompletno podešavanje i sandbox procedura su u
+  `docs/SLOVOLOV_FAMILY.md`.
 
 ## Dečji tokovi
 
