@@ -41,7 +41,7 @@ const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: stri
   { screen: 'reading', icon: '📚', title: 'Čitanje', subtitle: 'Slogovi, reči i priče' },
   { screen: 'fairy-tales', icon: '🌙', title: 'Bajke i priče', subtitle: 'Slušaj, čitaj i osvajaj zvezdice' },
   { screen: 'creative', icon: '🎭', title: 'Moja priča', subtitle: 'Izaberi junaka i smisli avanturu' },
-  { screen: 'progress', icon: '⭐', title: 'Moj napredak', subtitle: 'Zvezdice, streak i nagrade' }
+  { screen: 'progress', icon: '⭐', title: 'Moj napredak', subtitle: 'Zvezdice, dnevni niz i nagrade' }
 ];
 
 function Back({ onClick }: { onClick: () => void }) {
@@ -1251,7 +1251,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
               disabled={playback !== 'paused'}
               onClick={() => { sessionRef.current?.resume(); setPlayback('playing'); setMessage('Nastavljamo priču.'); }}
             >▶ Nastavi</button>
-            <button className="secondary" aria-label="Zaustavi slušanje" disabled={playback === 'idle'} onClick={stop}>■ Stop</button>
+            <button className="secondary" aria-label="Zaustavi slušanje" disabled={playback === 'idle'} onClick={stop}>■ Zaustavi</button>
           </div>
           {isLastPage && <div className="fairy-question">
             <p>{story.question}</p>
@@ -1426,7 +1426,7 @@ function Settings({ onBack }: { onBack: () => void }) {
     try {
       const result = await purchaseManager.purchase();
       if (result.state === 'verified') {
-        setPurchaseMessage('Slovolov Family je uspešno otključan na ovom uređaju.');
+        setPurchaseMessage('Slovolov Porodica je uspešno otključan na ovom uređaju.');
       } else if (result.state === 'pending') {
         setPurchaseMessage('Kupovina čeka potvrdu prodavnice. Sadržaj još nije otključan.');
       } else if (result.state === 'cancelled') {
@@ -1447,7 +1447,7 @@ function Settings({ onBack }: { onBack: () => void }) {
     try {
       const result = await purchaseManager.restore();
       setPurchaseMessage(result.owned
-        ? 'Kupovina je pronađena i Slovolov Family je vraćen.'
+        ? 'Kupovina je pronađena i Slovolov Porodica je vraćen.'
         : result.message ?? 'Kupovina nije pronađena na ovom nalogu.');
     } catch (error) {
       setPurchaseMessage(error instanceof Error ? error.message : 'Vraćanje kupovine nije uspelo.');
@@ -1514,7 +1514,7 @@ function Settings({ onBack }: { onBack: () => void }) {
           <div className="family-heading">
             <span aria-hidden="true">{store.familyAccess.isUnlocked || !commerceEnabled ? '✨' : '👨‍👩‍👧‍👦'}</span>
             <div>
-              <h2>Slovolov Family</h2>
+              <h2>Slovolov Porodica</h2>
               <p>
                 {store.familyAccess.isUnlocked
                   ? 'Otključano zauvek'
@@ -1565,9 +1565,9 @@ function Settings({ onBack }: { onBack: () => void }) {
           <h2>Jezik pomoći roditelju</h2>
           <select aria-label="Jezik pomoći roditelju" value={store.parentLanguage} onChange={(event) => store.setParentLanguage(event.target.value as typeof store.parentLanguage)}>
             <option value="sr">Srpski</option>
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
-            <option value="fr">Français</option>
+            <option value="en">Engleski</option>
+            <option value="de">Nemački</option>
+            <option value="fr">Francuski</option>
           </select>
           <p>{parentHelp}</p>
         </section>
@@ -1640,7 +1640,7 @@ function Settings({ onBack }: { onBack: () => void }) {
           </button>
         )}
         {commerceEnabled && !store.familyAccess.isUnlocked && (
-          <p className="parent-note">Slovolov Family omogućava više profila dece na istom uređaju.</p>
+          <p className="parent-note">Slovolov Porodica omogućava više profila dece na istom uređaju.</p>
         )}
         {addingProfile && (
           <form className="profile-form new-profile-form" onSubmit={saveNewProfile}>

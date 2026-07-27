@@ -75,6 +75,10 @@ describe('Slovolov glavni tok', () => {
       screen.getByRole('heading', { name: 'Подешавања за родитеље' })
     ).toBeVisible());
     expect(screen.getByRole('button', { name: /Писмо.*Ћирилица/i })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Словолов Породица' })).toBeVisible();
+    expect(screen.getByRole('option', { name: 'Енглески' })).toBeVisible();
+    expect(screen.getByRole('option', { name: 'Немачки' })).toBeVisible();
+    expect(screen.getByRole('option', { name: 'Француски' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Назад' }));
     expect(screen.getByRole('button', { name: /Научи слова/i })).toBeVisible();
     expect(screen.queryByText('Nauči slova')).not.toBeInTheDocument();
@@ -361,7 +365,7 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
     unlockParentSettings();
 
-    expect(screen.getByRole('heading', { name: 'Slovolov Family' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Slovolov Porodica' })).toBeVisible();
     expect(screen.getByText(/jednokratno/i)).toBeVisible();
     expect(screen.getByText(/Android\/iOS aplikaciji/i)).toBeVisible();
     expect(screen.getByRole('button', { name: /Vrati kupovinu/i })).toBeDisabled();
