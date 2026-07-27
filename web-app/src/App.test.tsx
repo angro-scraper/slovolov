@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { clearFullStoryCache } from './services/fullStoryLibrary';
+import { convertInterfaceText } from './services/interfaceScript';
 import { useProgressStore } from './store/progress';
 
 Object.defineProperty(window, 'speechSynthesis', {
@@ -40,6 +41,9 @@ function unlockParentSettings() {
 describe('Slovolov glavni tok', () => {
   beforeEach(() => {
     useProgressStore.getState().reset();
+    if (useProgressStore.getState().script !== 'latin') {
+      useProgressStore.getState().toggleScript();
+    }
     Object.defineProperty(HTMLCanvasElement.prototype, 'toDataURL', {
       configurable: true,
       value: vi.fn(() => 'data:image/png;base64,crtez')
@@ -52,19 +56,35 @@ describe('Slovolov glavni tok', () => {
     vi.unstubAllEnvs();
   });
 
-  it('otvara školu slova i prikazuje ćirilične reči', () => {
+  it('otvara školu slova i prikazuje reči u izabranom pismu', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'А а' }));
-    expect(screen.getByRole('button', { name: 'Odaberi sliku: Авион' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'A a' }));
+    expect(screen.getByRole('button', { name: 'Odaberi sliku: Avion' })).toBeVisible();
     expect(screen.getByRole('button', { name: /Slušaj ponovo/i })).toBeVisible();
+  });
+
+  it('prebacuje kompletan meni, naslove i oznake između latinice i ćirilice', async () => {
+    render(<App />);
+    expect(screen.getByRole('button', { name: /Nauči slova/i })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
+    unlockParentSettings();
+    fireEvent.click(screen.getByRole('button', { name: /Pismo.*Latinica/i }));
+
+    await waitFor(() => expect(
+      screen.getByRole('heading', { name: 'Подешавања за родитеље' })
+    ).toBeVisible());
+    expect(screen.getByRole('button', { name: /Писмо.*Ћирилица/i })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Назад' }));
+    expect(screen.getByRole('button', { name: /Научи слова/i })).toBeVisible();
+    expect(screen.queryByText('Nauči slova')).not.toBeInTheDocument();
   });
 
   it('zaključani sadržaj ne može da se zaobiđe iz liste slova ili brojeva', () => {
     vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Ј ј zaključano' }));
+    fireEvent.click(screen.getByRole('button', { name: 'J j zaključano' }));
     expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
@@ -76,24 +96,24 @@ describe('Slovolov glavni tok', () => {
   it('tačna slika dodeljuje zvezdicu i automatski otvara sledeće slovo', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'А а' }));
+    fireEvent.click(screen.getByRole('button', { name: 'A a' }));
 
-    expect(screen.getByText('Pronađi sliku za reč Авион')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: 'Odaberi sliku: Авион' }));
+    expect(screen.getByText('Pronađi sliku za reč Avion')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Odaberi sliku: Avion' }));
 
     expect(useProgressStore.getState().profile.stars).toBe(1);
-    expect(screen.getByRole('heading', { name: 'Slovo Б б' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Slovo B b' })).toBeVisible();
   });
 
   it('lekcija prikazuje samo jedan izmešan skup od tri različite slike', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'А а' }));
+    fireEvent.click(screen.getByRole('button', { name: 'A a' }));
 
     const choices = screen.getAllByRole('button', { name: /Odaberi sliku:/i });
     expect(choices).toHaveLength(3);
     expect(new Set(choices.map((choice) => choice.getAttribute('aria-label'))).size).toBe(3);
-    expect(choices[0]).not.toHaveAccessibleName('Odaberi sliku: Авион');
+    expect(choices[0]).not.toHaveAccessibleName('Odaberi sliku: Avion');
   });
 
   it('ekran pisanja ima platno, pomoćne linije i ne zahteva skrolovanje komandi', () => {
@@ -108,8 +128,8 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: /Piši slova/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Malo slovo' }));
 
-    expect(screen.getByLabelText('Platno za pisanje slova а')).toBeVisible();
-    expect(screen.getByTestId('guide-letter')).toHaveTextContent('а');
+    expect(screen.getByLabelText('Platno za pisanje slova a')).toBeVisible();
+    expect(screen.getByTestId('guide-letter')).toHaveTextContent('a');
   });
 
   it('otvara brojeve od nule do deset', () => {
@@ -134,8 +154,8 @@ describe('Slovolov glavni tok', () => {
 
     expect(screen.getByText('Koje je početno slovo?')).toBeVisible();
     expect(screen.getByRole('img', { name: 'Slika za kviz pitanje' })).toBeVisible();
-    expect(screen.queryByText('Авион')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'А' })).toBeVisible();
+    expect(screen.queryByText('Avion')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'A' })).toBeVisible();
   });
 
   it('brojevi imaju stvarno računanje prilagođeno deci', () => {
@@ -148,7 +168,7 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Tačno');
   });
 
-  it('čitanje ima slogove, reči i priču sa nagradnim pitanjem', () => {
+  it('čitanje ima slogove, reči i priču sa nagradnim pitanjem', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Čitanje/i }));
 
@@ -158,7 +178,7 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: 'Glasovi i rime' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Priča' }));
     expect(screen.getByText(/Priča 1\/20/)).toBeVisible();
-    expect(screen.getByText(/Шта проналази/)).toBeVisible();
+    await waitFor(() => expect(screen.getByText(/Šta pronalazi/)).toBeVisible());
   });
 
   it('vežba izgovora ostaje zaključana dok roditelj ne dozvoli mikrofon', () => {
@@ -186,7 +206,7 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('heading', { name: 'Bajke i priče' })).toBeVisible();
     expect(screen.getByText('Bajka 1/37')).toBeVisible();
     expect(screen.getByText(/Strana 1\//)).toBeVisible();
-    expect(screen.queryByText('Како су Ивица и Марица први пут обележили пут?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Kako su Ivica i Marica prvi put obeležili put?')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Slušaj celu priču' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Pauza' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Čitaj zajedno' }));
@@ -203,7 +223,7 @@ describe('Slovolov glavni tok', () => {
 
     const reader = screen.getByTestId('storybook-reader');
     expect(reader).toHaveAttribute('data-reader-mode', 'immersive');
-    expect(screen.getByRole('img', { name: 'Ilustracija za Принцеза на зрну грашка' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Ilustracija za Princeza na zrnu graška' })).toBeVisible();
     await waitFor(() => expect(screen.getByText(`Cela bajka · ${firstFullStory.wordCount} reči`)).toBeVisible());
     expect(screen.getByRole('progressbar', { name: 'Napredak kroz bajku' })).toHaveAttribute('aria-valuenow', '1');
     expect(screen.queryByRole('article', { name: 'Tekst priče' })).not.toBeInTheDocument();
@@ -223,7 +243,7 @@ describe('Slovolov glavni tok', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
 
-    expect(screen.getByLabelText('Izvor bajke: Ханс Кристијан Андерсен')).toBeVisible();
+    expect(screen.getByLabelText('Izvor bajke: Hans Kristijan Andersen')).toBeVisible();
     await waitFor(() => expect(screen.getByText(/Srpski Wikizvornik · CC BY-SA 4.0/i)).toBeVisible());
     expect(screen.getByRole('link', { name: 'Otvori tačno izvorno izdanje' }))
       .toHaveAttribute('href', firstFullStory.source.url);
@@ -262,9 +282,10 @@ describe('Slovolov glavni tok', () => {
     for (let page = 1; page < firstFullStory.pages.length; page += 1) {
       fireEvent.click(screen.getByRole('button', { name: 'Sledeća stranica' }));
     }
-    expect(screen.getByText('Коју си причу управо слушао?')).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: firstFullStory.title }));
-    fireEvent.click(screen.getByRole('button', { name: firstFullStory.title }));
+    await waitFor(() => expect(screen.getByText('Koju si priču upravo slušao?')).toBeVisible());
+    const answer = convertInterfaceText(firstFullStory.title, 'latin');
+    fireEvent.click(screen.getByRole('button', { name: answer }));
+    fireEvent.click(screen.getByRole('button', { name: answer }));
     expect(useProgressStore.getState().profile.stars).toBe(1);
     expect(screen.getByRole('status')).toHaveTextContent('Bravo');
   });
@@ -292,7 +313,7 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: /Moja lekcija/i }));
 
     expect(screen.getByRole('heading', { name: 'Moja pametna lekcija' })).toBeVisible();
-    expect(screen.getByText(/Danas ponavljamo slovo А/i)).toBeVisible();
+    expect(screen.getByText(/Danas ponavljamo slovo A/i)).toBeVisible();
     expect(screen.getByText(/3 kratka koraka/i)).toBeVisible();
   });
 
@@ -372,11 +393,11 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: /Gumica/i })).toBeVisible();
     expect(screen.getByRole('button', { name: /Sačuvaj crtež/i })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /Sačuvaj crtež/i }));
-    expect(screen.getByText(/Crtež za А je sačuvan/)).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Bojanka Б' })).toBeVisible();
+    expect(screen.getByText(/Crtež za A je sačuvan/)).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Bojanka B' })).toBeVisible();
   });
 
-  it('roditelj unosi ime novog profila i kasnije ga menja', () => {
+  it('roditelj unosi ime novog profila i kasnije ga menja', async () => {
     useProgressStore.getState().grantFamilyAccess('store');
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
@@ -385,12 +406,12 @@ describe('Slovolov glavni tok', () => {
 
     fireEvent.change(screen.getByLabelText('Ime deteta'), { target: { value: 'Лука' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sačuvaj profil' }));
-    expect(screen.getByText('Лука')).toBeVisible();
+    await waitFor(() => expect(screen.getByText('Luka')).toBeVisible());
 
-    fireEvent.click(screen.getByRole('button', { name: 'Promeni ime za Лука' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Promeni ime za Luka' }));
     fireEvent.change(screen.getByLabelText('Novo ime deteta'), { target: { value: 'Лазар' } });
     fireEvent.click(screen.getByRole('button', { name: 'Sačuvaj ime' }));
-    expect(screen.getByText('Лазар')).toBeVisible();
-    expect(screen.queryByText('Лука')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Lazar')).toBeVisible());
+    expect(screen.queryByText('Luka')).not.toBeInTheDocument();
   });
 });

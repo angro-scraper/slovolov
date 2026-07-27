@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
 import { VoicePractice } from './components/VoicePractice';
@@ -18,6 +18,7 @@ import {
   type StoryDownloadProgress
 } from './services/storyOffline';
 import { speak } from './services/speech';
+import { applyInterfaceScript } from './services/interfaceScript';
 import {
   createDefaultPurchaseGateway,
   createPurchaseManager,
@@ -58,6 +59,7 @@ function Header({ title, onBack }: { title: string; onBack?: () => void }) {
 }
 
 export function App() {
+  const appRef = useRef<HTMLDivElement>(null);
   const [screen, setScreen] = useState<Screen>('home');
   const [selected, setSelected] = useState<Letter>(letters[0]);
   const [celebrate, setCelebrate] = useState(false);
@@ -74,6 +76,33 @@ export function App() {
   const accessibility = useProgressStore((state) => state.accessibility);
   const purchasedFamily = useProgressStore((state) => state.familyAccess.isUnlocked);
   const familyUnlocked = !isCommerceEnabled() || purchasedFamily;
+
+  useLayoutEffect(() => {
+    const root = appRef.current;
+    if (!root) return undefined;
+
+    const apply = () => applyInterfaceScript(root, script);
+    apply();
+    const observer = new MutationObserver(() => {
+      observer.disconnect();
+      apply();
+      observer.observe(root, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['aria-label', 'placeholder', 'title']
+      });
+    });
+    observer.observe(root, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['aria-label', 'placeholder', 'title']
+    });
+    return () => observer.disconnect();
+  }, [script, screen]);
 
   useEffect(() => {
     if (screen === 'home' || screen === 'settings' || screen === 'progress') return undefined;
@@ -299,7 +328,7 @@ export function App() {
     accessibility.dyslexiaFriendly ? 'dyslexia-friendly' : ''
   ].filter(Boolean).join(' ');
 
-  return <div className={appClasses}>{body}</div>;
+  return <div ref={appRef} className={appClasses} data-script={script}>{body}</div>;
 }
 
 function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean }) {

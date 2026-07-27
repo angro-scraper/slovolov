@@ -15,6 +15,18 @@ LETTERS_PATH = ROOT / "src" / "data" / "letters.json"
 OUTPUT_DIR = ROOT / "public" / "audio" / "letters"
 VOICE = "sr-RS-SophieNeural"
 
+# Suglasnik bez samoglasnika nije prirodan govorni slog, a TTS izolovani znak
+# često čita kao strano ime slova (npr. Ј kao englesko "džej"). Zato dete
+# dobija čist početni glas u kratkom srpskom slogu, uz poznatu primer-reč.
+PHONETIC_STARTS = {
+    "А": "а", "Б": "ба", "В": "ву", "Г": "го", "Д": "дрво",
+    "Ђ": "ђа", "Е": "е", "Ж": "жи", "З": "зе", "И": "и",
+    "Ј": "ја", "К": "ки", "Л": "ла", "Љ": "љу", "М": "ме",
+    "Н": "но", "Њ": "њу", "О": "о", "П": "па", "Р": "ри",
+    "С": "со", "Т": "ти", "Ћ": "ћи", "У": "у", "Ф": "фо",
+    "Х": "хлеб", "Ц": "цвет", "Ч": "ча", "Џ": "џи", "Ш": "ше",
+}
+
 
 async def save(text: str, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -28,14 +40,21 @@ async def main() -> None:
     for index, letter in enumerate(letters, start=1):
         prefix = f"{index:02d}"
         example = letter["words"][0]["word"]
-        # Puna srpska rečenica sprečava da TTS protumači znak kao englesko
-        # slovo. Snimci se pakuju u aplikaciju i ne zavise od jezika telefona.
+        phonetic = PHONETIC_STARTS[letter["upper"]]
+        # Izolovani znak se namerno nikada ne šalje TTS-u: zvuk se uči kroz
+        # početak srpske reči, pa rezultat ne zavisi od jezika telefona.
         await save(
-            f"Ovo je slovo {letter['upper']}. Glas {letter['lower']}, kao u reči {example}.",
+            (
+                f"Poslušaj pažljivo početak reči {example}. "
+                f"{phonetic}. {phonetic}. {example}. To je glas koji učimo."
+            ),
             OUTPUT_DIR / f"{prefix}-sound.mp3",
         )
         await save(
-            f"{letter['upper']} kao {example}. Poslušaj: {example}.",
+            (
+                f"{example}. Počinje glasom kao u ovom kratkom početku: "
+                f"{phonetic}. Poslušaj ponovo: {example}."
+            ),
             OUTPUT_DIR / f"{prefix}-example.mp3",
         )
         print(f"{prefix} {letter['upper']} — {example}")
