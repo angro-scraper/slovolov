@@ -128,6 +128,16 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByLabelText('Platno za pisanje slova 1')).toBeVisible();
   });
 
+  it('kviz traži početno slovo samo na osnovu slike', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Kviz/i }));
+
+    expect(screen.getByText('Koje je početno slovo?')).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Slika za kviz pitanje' })).toBeVisible();
+    expect(screen.queryByText('Авион')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'А' })).toBeVisible();
+  });
+
   it('brojevi imaju stvarno računanje prilagođeno deci', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));

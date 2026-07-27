@@ -588,7 +588,10 @@ function Quiz({ onBack }: { onBack: () => void }) {
       <Header title={`Kviz ${question + 1}/10`} onBack={onBack} />
       <main className="quiz">
         {question < 10 ? <>
-          <p>Koje slovo počinje reč?</p><div className="quiz-emoji">{target.words[0].emoji}</div><h2>{target.words[0].word}</h2>
+          <p>Koje je početno slovo?</p>
+          <div className="quiz-emoji" role="img" aria-label="Slika za kviz pitanje">
+            {target.words[0].emoji}
+          </div>
           <div className="quiz-choices">{choices.map((letter) => <button key={letter.upper} onClick={() => {
             if (letter === target) setScore((value) => value + 1);
             setQuestion((value) => value + 1);
