@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VITE_COMMERCE_ENABLED: "true"
-      SLOVOLOV_UPLOAD_KEYSTORE: ${{ runner.temp }}/slovolov-upload.jks
+      SLOVOLOV_UPLOAD_KEYSTORE: ${{ github.workspace }}/slovolov-upload.jks
       SLOVOLOV_KEYSTORE_PASSWORD: ${{ secrets.SLOVOLOV_KEYSTORE_PASSWORD }}
       SLOVOLOV_UPLOAD_KEY_ALIAS: ${{ secrets.SLOVOLOV_UPLOAD_KEY_ALIAS }}
       SLOVOLOV_UPLOAD_KEY_PASSWORD: ${{ secrets.SLOVOLOV_UPLOAD_KEY_PASSWORD }}
