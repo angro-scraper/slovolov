@@ -7,8 +7,8 @@ workflows:
       app_store_connect: "Sacuvaj Hranu App Store Connect"
     environment:
       ios_signing:
-        certificates:
-          - sacuvaj_hranu_app_store
+        distribution_type: app_store
+        bundle_identifier: rs.slovolov.app
       vars:
         BUNDLE_ID: "rs.slovolov.app"
         APP_STORE_APPLE_ID: "6795110827"
@@ -50,14 +50,8 @@ workflows:
             LATEST_BUILD_NUMBER=0
           fi
           agvtool new-version -all "$((LATEST_BUILD_NUMBER + 1))"
-      - name: Prepare App Store signing
-        script: |
-          keychain initialize
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --create
-          keychain add-certificates
-          xcode-project use-profiles
+      - name: Apply App Store signing
+        script: xcode-project use-profiles
       - name: Build signed IPA
         script: |
           cd "$CM_BUILD_DIR/web-app/ios/App"
