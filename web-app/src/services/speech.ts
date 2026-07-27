@@ -1,49 +1,51 @@
-import { prepareTextForVoice, selectSerbianVoice } from './serbianVoice';
 import { resolveLetterAudio } from './letterAudio';
 
-const audioCache = new Map<string, HTMLAudioElement>();
+let activeAudio: HTMLAudioElement | null = null;
+
+function stopOtherVoices(): void {
+  window.speechSynthesis?.cancel();
+  if (!activeAudio) return;
+  activeAudio.pause();
+  activeAudio.currentTime = 0;
+  activeAudio = null;
+}
+
+export function stopAppSpeech(): void {
+  stopOtherVoices();
+}
 
 async function playSource(
-  text: string,
   localSource: string,
   enabled: boolean
 ): Promise<boolean> {
   if (!enabled) return false;
+  stopOtherVoices();
+  const audio = new Audio(localSource);
+  activeAudio = audio;
+  audio.currentTime = 0;
+  audio.onended = () => {
+    if (activeAudio === audio) activeAudio = null;
+  };
   try {
-    const audio = audioCache.get(localSource) ?? new Audio(localSource);
-    audioCache.set(localSource, audio);
     await audio.play();
     return true;
   } catch {
-    return speakTextWithSystemVoice(text);
+    if (activeAudio === audio) activeAudio = null;
+    return false;
   }
 }
 
-export function speakTextWithSystemVoice(text: string): boolean {
-  if (!('speechSynthesis' in window) || !window.speechSynthesis) return false;
-  const voice = selectSerbianVoice(window.speechSynthesis.getVoices?.() ?? []);
-  if (!voice) return false;
-
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(prepareTextForVoice(text, voice));
-  utterance.voice = voice;
-  utterance.lang = voice.lang;
-  utterance.rate = 0.72;
-  utterance.pitch = 1.12;
-  window.speechSynthesis.speak(utterance);
-  return true;
-}
-
 export async function speak(text: string, enabled = true): Promise<void> {
-  if (!enabled) return;
+  if (!enabled) {
+    stopOtherVoices();
+    return;
+  }
   const letterAudio = resolveLetterAudio(text);
   const key = text.toLocaleLowerCase('sr').replace(/\s+/g, '-');
   const localSource = letterAudio?.source ?? `/audio/${encodeURIComponent(key)}.mp3`;
-  if (await playSource(text, localSource, enabled)) return;
-  // Samostalna slova se nikada ne šalju sistemskom TTS-u: iOS može da ih
-  // protumači kao engleske nazive slova (npr. J kao "džul").
-  if (letterAudio) return;
-  speakTextWithSystemVoice(text);
+  // Aplikacija nikada ne prelazi na glas telefona. Android/iOS sistemski TTS
+  // ume da izgovori srpska slova drugim jezikom i da se preklopi sa snimkom.
+  await playSource(localSource, enabled);
 }
 
 export async function speakRecordedPrompt(
@@ -51,5 +53,10 @@ export async function speakRecordedPrompt(
   localSource: string,
   enabled = true
 ): Promise<void> {
-  await playSource(text, localSource, enabled);
+  void text;
+  if (!enabled) {
+    stopOtherVoices();
+    return;
+  }
+  await playSource(localSource, enabled);
 }

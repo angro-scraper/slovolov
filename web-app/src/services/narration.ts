@@ -1,5 +1,3 @@
-import { prepareTextForVoice, selectSerbianVoice } from './serbianVoice';
-
 export type NarrationSession = {
   pause: () => void;
   resume: () => void;
@@ -19,7 +17,7 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
   let index = Math.max(0, Math.min(options.startIndex ?? 0, sentences.length - 1));
   let stopped = !options.enabled || sentences.length === 0;
   let currentAudio: HTMLAudioElement | null = null;
-  let currentUtterance: SpeechSynthesisUtterance | null = null;
+  window.speechSynthesis?.cancel();
 
   const playCurrent = () => {
     if (stopped || index >= sentences.length) {
@@ -27,38 +25,14 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       return;
     }
     options.onSentence?.(index);
-    let fallbackStarted = false;
-    const fallbackToSystemVoice = () => {
-      if (fallbackStarted || stopped) return;
-      fallbackStarted = true;
-      if (!window.speechSynthesis || typeof window.speechSynthesis.speak !== 'function') {
-        stopped = true;
-        options.onSource?.('unavailable');
-        return;
-      }
-      const voice = selectSerbianVoice(window.speechSynthesis.getVoices?.() ?? []);
-      if (!voice) {
-        stopped = true;
-        options.onSource?.('unavailable');
-        return;
-      }
-      options.onSource?.('system');
-      const utterance = new SpeechSynthesisUtterance(prepareTextForVoice(sentences[index], voice));
-      currentUtterance = utterance;
-      utterance.lang = voice.lang;
-      utterance.voice = voice;
-      utterance.rate = 0.72;
-      utterance.pitch = 1.08;
-      utterance.onend = () => {
-        if (stopped) return;
-        index += 1;
-        playCurrent();
-      };
-      window.speechSynthesis.speak(utterance);
+    const markUnavailable = () => {
+      if (stopped) return;
+      stopped = true;
+      options.onSource?.('unavailable');
     };
 
     if (!options.audioKey) {
-      fallbackToSystemVoice();
+      markUnavailable();
       return;
     }
     const audio = new Audio(`/audio/stories/${options.audioKey}-${index + 1}.mp3`);
@@ -68,26 +42,26 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       index += 1;
       playCurrent();
     };
-    audio.onerror = fallbackToSystemVoice;
+    audio.onerror = markUnavailable;
     void audio.play()
       .then(() => options.onSource?.('recorded'))
-      .catch(fallbackToSystemVoice);
+      .catch(markUnavailable);
   };
 
   const session: NarrationSession = {
     pause: () => {
       currentAudio?.pause();
-      window.speechSynthesis?.pause();
     },
     resume: () => {
-      if (currentAudio && !currentAudio.ended) void currentAudio.play().catch(() => window.speechSynthesis?.resume());
-      else window.speechSynthesis?.resume();
+      if (currentAudio && !currentAudio.ended) void currentAudio.play().catch(() => {
+        stopped = true;
+        options.onSource?.('unavailable');
+      });
     },
     stop: () => {
       stopped = true;
       currentAudio?.pause();
       if (currentAudio) currentAudio.currentTime = 0;
-      currentUtterance = null;
       window.speechSynthesis?.cancel();
     }
   };
