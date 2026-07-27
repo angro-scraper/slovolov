@@ -90,14 +90,14 @@ export function App() {
   const openLesson = (letter: Letter) => {
     setSelected(letter);
     setScreen('lesson');
-    void speak(`${letter.upper}. ${letter.upper} kao ${letter.words[0].word}`, sound);
+    void speak(`${letter.upper} kao ${letter.words[0].word}`, sound);
   };
 
   const finishTrace = () => {
     learnLetter(selected.upper);
     setCelebrate(true);
     setTraceMessage(`Bravo! Naučio si slovo ${visibleLetter(selected, letterCase)}!`);
-    void speak(`Bravo! Naučio si slovo ${selected.upper}!`, sound);
+    void speak('Bravo! Naučio si novo slovo!', sound);
     window.setTimeout(() => setCelebrate(false), 1800);
   };
 
@@ -1120,7 +1120,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
                   ? 'Učitavam celu bajku…'
                   : story.fullContentAvailable
                     ? 'Cela bajka · izvorno provereno izdanje'
-                    : 'Sažeta verzija · cela priča je u pripremi'}
+                    : 'Dečje izdanje · uzrasno prilagođena priča'}
             </span>
             <button
               className="read-along-toggle"
