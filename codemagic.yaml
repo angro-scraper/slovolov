@@ -7,8 +7,8 @@ workflows:
       app_store_connect: "Sacuvaj Hranu App Store Connect"
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: rs.slovolov.app
+        certificates:
+          - sacuvaj_hranu_app_store
       vars:
         BUNDLE_ID: "rs.slovolov.app"
         APP_STORE_APPLE_ID: "6795110827"
