@@ -38,7 +38,7 @@ const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: stri
   { screen: 'coloring', icon: '🎨', title: 'Bojanka', subtitle: 'Oboji, sačuvaj i pokaži' },
   { screen: 'games', icon: '🎮', title: 'Igre', subtitle: 'Spoji, pogodi i složi' },
   { screen: 'quiz', icon: '🏆', title: 'Kviz', subtitle: 'Osvoji novu medalju' },
-  { screen: 'numbers', icon: '🔢', title: 'Brojevi 0–10', subtitle: 'Broj, količina i zvuk' },
+  { screen: 'numbers', icon: '🔢', title: 'Brojevi 0–100', subtitle: 'Prebroj, poslušaj i osvoji zvezdicu' },
   { screen: 'reading', icon: '📚', title: 'Čitanje', subtitle: 'Slogovi, reči i priče' },
   { screen: 'fairy-tales', icon: '🌙', title: 'Bajke i priče', subtitle: 'Slušaj, čitaj i osvajaj zvezdice' },
   { screen: 'creative', icon: '🎭', title: 'Moja priča', subtitle: 'Izaberi junaka i smisli avanturu' },
@@ -530,6 +530,7 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                     } else {
                       recordSkillAttempt(`letter:${gameLetter.upper}`, false);
                       setMessage('Pokušaj ponovo.');
+                      void speak('Pokušaj ponovo.', sound);
                     }
                   }}>
                     <span>{word.emoji}</span><strong>{word.word}</strong>
@@ -576,6 +577,7 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                     }
                     completeGame(`sound-${gameLetter.upper}`);
                     setMessage('Odlično čuješ glasove! ⭐');
+                    void speak('Bravo! Tačan odgovor!', sound);
                     setGameIndex((value) => value + 1);
                   }}>{letter.upper}</button>
                 ))}
@@ -621,6 +623,8 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [question, setQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [message, setMessage] = useState('Poslušaj naziv slike i izaberi početno slovo.');
+  const [advancing, setAdvancing] = useState(false);
+  const nextQuestionTimer = useRef<number | null>(null);
   const target = round[Math.min(question, round.length - 1)];
   const targetLetter = letters[target.letterIndex];
   const prompt = `Na slici je ${target.word}. Koje je prvo slovo?`;
@@ -631,10 +635,14 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   ], question + target.letterIndex);
 
   useEffect(() => {
-    if (question < round.length) {
+    if (question < round.length && !advancing) {
       void speakRecordedPrompt(prompt, target.audioSource, sound);
     }
-  }, [prompt, question, round.length, sound, target.audioSource]);
+  }, [advancing, prompt, question, round.length, sound, target.audioSource]);
+
+  useEffect(() => () => {
+    if (nextQuestionTimer.current !== null) window.clearTimeout(nextQuestionTimer.current);
+  }, []);
 
   return (
     <div className="single-screen">
@@ -652,7 +660,7 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           >
             🔊 Poslušaj ponovo
           </button>
-          <div className="quiz-choices">{choices.map((letter) => <button key={letter.upper} onClick={() => {
+          <div className="quiz-choices">{choices.map((letter) => <button key={letter.upper} disabled={advancing} onClick={() => {
             if (letter !== targetLetter) {
               setMessage('Pokušaj ponovo. Poslušaj naziv slike još jednom.');
               void speakRecordedPrompt(prompt, target.audioSource, sound);
@@ -660,7 +668,13 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             }
             setScore((value) => value + 1);
             setMessage('Bravo! Tačan odgovor.');
-            setQuestion((value) => value + 1);
+            setAdvancing(true);
+            void speak('Bravo! Tačan odgovor!', sound);
+            nextQuestionTimer.current = window.setTimeout(() => {
+              setQuestion((value) => value + 1);
+              setMessage('Poslušaj naziv slike i izaberi početno slovo.');
+              setAdvancing(false);
+            }, 4_400);
           }}>{letter.upper}</button>)}</div>
           <p role="status">{message}</p>
         </> : <div className="result"><span>{score >= 9 ? '🥇' : score >= 7 ? '🥈' : '🥉'}</span><h2>{score}/{round.length} tačnih!</h2><button className="primary" onClick={onBack}>Na početak</button></div>}
@@ -672,29 +686,45 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
 function Numbers({ onBack, onFamily, sound }: { onBack: () => void; onFamily: () => void; sound: boolean }) {
   const [selectedNumber, setSelectedNumber] = useState(numberLessons[1]);
   const [mode, setMode] = useState<'learn' | 'write' | 'math'>('learn');
-  const [message, setMessage] = useState('Dodirni broj, izbroj sličice i pronađi odgovor.');
+  const [message, setMessage] = useState('Poslušaj pitanje, prebroj sličice i izaberi odgovor.');
+  const [advancing, setAdvancing] = useState(false);
+  const nextNumberTimer = useRef<number | null>(null);
   const learnNumber = useProgressStore((state) => state.learnNumber);
   const learnedNumbers = useProgressStore((state) => state.profile.learnedNumbers);
   const difficulty = useProgressStore((state) => state.profile.difficulty);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
-  const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
+  const purchasedFamily = useProgressStore((state) => state.familyAccess.isUnlocked);
+  const familyUnlocked = purchasedFamily || !isCommerceEnabled();
   const amount = selectedNumber.value;
-  const options = Array.from(new Set([
-    amount,
-    Math.max(0, amount - 1),
-    Math.min(10, amount + 1)
-  ])).sort((first, second) => first - second);
+  const options = amount === 0
+    ? [0, 1, 2]
+    : amount === 100
+      ? [98, 99, 100]
+      : [amount - 1, amount, amount + 1];
+
+  useEffect(() => () => {
+    if (nextNumberTimer.current !== null) window.clearTimeout(nextNumberTimer.current);
+  }, []);
+
+  useEffect(() => {
+    if (mode !== 'learn' || advancing) return;
+    void speakRecordedPrompt(
+      'Koliko sličica vidiš?',
+      '/audio/feedback/number-question.mp3',
+      sound
+    );
+  }, [advancing, amount, mode, sound]);
 
   return (
     <div className="single-screen">
-      <Header title="Brojevi 0–10" onBack={onBack} />
+      <Header title="Brojevi 0–100" onBack={onBack} />
       <main className="numbers-screen">
         <div className="number-mode">
           <button className={mode === 'learn' ? 'active' : ''} onClick={() => setMode('learn')}>Uči broj</button>
           <button className={mode === 'write' ? 'active' : ''} onClick={() => setMode('write')}>Piši broj</button>
           <button className={mode === 'math' ? 'active' : ''} onClick={() => { setMode('math'); setMessage('Prebroj zvezdice i izaberi rezultat.'); }}>Računanje</button>
         </div>
-        <div className="number-strip" aria-label="Izaberi broj">
+        {mode !== 'learn' && <div className="number-strip" aria-label="Izaberi broj">
           {numberLessons.map((number) => (
             <button
               key={number.value}
@@ -715,30 +745,47 @@ function Numbers({ onBack, onFamily, sound }: { onBack: () => void; onFamily: ()
               {learnedNumbers.includes(number.value) && <small>★</small>}
             </button>
           ))}
-        </div>
+        </div>}
         {mode === 'learn' && <section className="number-card" style={{ '--number-color': selectedNumber.color } as React.CSSProperties}>
-          <button className="big-number" onClick={() => void speak(selectedNumber.word, sound)}>
-            <strong>{amount}</strong><small>{selectedNumber.word}</small>
-          </button>
-          <div className="counting-row" aria-label={`${amount} sličica`}>
+          <div
+            className={`counting-row ${amount <= 10 ? 'counting-low' : amount <= 40 ? 'counting-medium' : 'counting-high'}`}
+            aria-label={`${amount} sličica`}
+          >
             {amount === 0 ? <span className="empty-set">Nema nijedne</span> : Array.from({ length: amount }, (_, index) => (
-              <span key={index}>{selectedNumber.emoji}</span>
+              <span data-testid="counting-picture" key={index}>{selectedNumber.emoji}</span>
             ))}
           </div>
-          <h2>Koliko ima {selectedNumber.countLabel}?</h2>
+          <h2>Koliko sličica vidiš?</h2>
           <div className="number-options">
             {options.map((option) => (
-              <button key={option} onClick={() => {
+              <button
+                key={option}
+                aria-label={`Odgovor ${option}`}
+                disabled={advancing}
+                onClick={() => {
                 if (option !== amount) {
                   recordSkillAttempt(`number:${amount}`, false);
                   setMessage('Pokušaj ponovo. Prebroj polako.');
+                  void speak('Pokušaj ponovo.', sound);
                   return;
                 }
                 recordSkillAttempt(`number:${amount}`, true);
                 learnNumber(amount);
-                setMessage(`Bravo! Broj ${amount} vredi jednu zvezdicu! ⭐`);
-                void speak(`Bravo! Ovo je broj ${selectedNumber.word}.`, sound);
-              }}>{option}</button>
+                setAdvancing(true);
+                setMessage('Bravo! Dobio si zvezdicu. Idemo na sledeći broj! ⭐');
+                void speakRecordedPrompt(
+                  'Bravo! Sledeći broj!',
+                  '/audio/feedback/bravo-next-number.mp3',
+                  sound
+                );
+                nextNumberTimer.current = window.setTimeout(() => {
+                  const nextValue = amount >= 100 ? 0 : amount + 1;
+                  setSelectedNumber(numberLessons[nextValue]);
+                  setMessage('Poslušaj pitanje, prebroj sličice i izaberi odgovor.');
+                  setAdvancing(false);
+                }, 4_400);
+              }}
+              >{option}</button>
             ))}
           </div>
           <p role="status">{message}</p>
@@ -756,7 +803,7 @@ function Numbers({ onBack, onFamily, sound }: { onBack: () => void; onFamily: ()
             onComplete={() => {
               learnNumber(amount);
               setMessage(`Bravo! Lepo si napisao broj ${amount}! ⭐`);
-              void speak(`Bravo! Naučio si da napišeš broj ${selectedNumber.word}.`, sound);
+              void speak('Bravo! Lepo si napisao broj!', sound);
             }}
           />
         </section>}
@@ -1562,7 +1609,7 @@ function Settings({ onBack }: { onBack: () => void }) {
             </div>
           </div>
           <ul>
-            <li>Svih 30 slova i brojevi 0–10</li>
+            <li>Svih 30 slova i brojevi 0–100</li>
             <li>Sve kompletne bajke i buduća proširenja sadržaja</li>
             <li>Više dečjih profila na istom uređaju</li>
           </ul>

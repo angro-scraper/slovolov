@@ -59,7 +59,7 @@ export default defineConfig(({ mode }) => {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/letters/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-letter-audio-v4',
+              cacheName: 'slovolov-letter-audio-v5',
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 365
@@ -79,6 +79,18 @@ export default defineConfig(({ mode }) => {
               },
               cacheableResponse: { statuses: [0, 200] },
               rangeRequests: true
+            }
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/audio/numbers/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovolov-number-audio-v1',
+              expiration: {
+                maxEntries: 110,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: { statuses: [0, 200] }
             }
           },
           {

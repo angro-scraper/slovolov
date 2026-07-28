@@ -57,7 +57,7 @@ describe('offline audio-bajka', () => {
 
     expect(caches.open).toHaveBeenCalledWith(STORY_AUDIO_CACHE);
     expect(request).toHaveBeenCalledTimes(2);
-    expect(request.mock.calls[0][0]).toContain('?v=sr-sophie-lesson-v3-20260728');
+    expect(request.mock.calls[0][0]).toContain('?v=sr-sophie-lesson-v4-20260728');
     expect(cache.put).toHaveBeenCalledTimes(2);
     expect(progress).toHaveBeenLastCalledWith({ completed: 2, total: 2 });
     await expect(isStoryAvailableOffline(story)).resolves.toBe(true);

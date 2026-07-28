@@ -1,5 +1,7 @@
 import { resolveLetterAudio } from './letterAudio';
 import { resolveFeedbackAudio } from './feedbackAudio';
+import { resolveNumberAudio } from './numberAudio';
+import { resolveWordAudio } from './wordAudio';
 import { versionAudioUrl } from './audioAssets';
 import { stopAllAppAudio } from './audioIsolation';
 import {
@@ -57,9 +59,13 @@ export async function speak(text: string, enabled = true): Promise<void> {
   }
   const letterAudio = resolveLetterAudio(text);
   const feedbackAudio = resolveFeedbackAudio(text);
+  const numberAudio = resolveNumberAudio(text);
+  const wordAudio = resolveWordAudio(text);
   const key = text.toLocaleLowerCase('sr').replace(/\s+/g, '-');
   const localSource = letterAudio?.source
     ?? feedbackAudio
+    ?? numberAudio
+    ?? wordAudio
     ?? versionAudioUrl(`/audio/${encodeURIComponent(key)}.mp3`);
   // Aplikacija nikada ne prelazi na glas telefona. Android/iOS sistemski TTS
   // ume da izgovori srpska slova drugim jezikom i da se preklopi sa snimkom.

@@ -204,11 +204,15 @@ body {
 .number-strip button { flex: 0 0 47px; height: 47px; border: 0; border-radius: 15px; background: #eef2ff; color: var(--purple); font-weight: 900; position: relative; }
 .number-strip button.active { background: var(--purple); color: white; transform: scale(1.06); }
 .number-strip small { position: absolute; right: 3px; top: 2px; color: #facc15; }
-.number-card { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 13px; border-radius: 28px; background: color-mix(in srgb, var(--number-color) 10%, white); box-shadow: var(--shadow); text-align: center; }
+.number-card { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 13px; border-radius: 28px; background: color-mix(in srgb, var(--number-color) 10%, white); box-shadow: var(--shadow); text-align: center; overflow: hidden; }
 .big-number { display: flex; align-items: center; gap: 14px; border: 0; background: transparent; color: var(--number-color); }
 .big-number strong { font: 900 clamp(4rem, 18vw, 7rem)/.8 'Segoe UI Rounded'; }
 .big-number small { font-size: 1.15rem; font-weight: 900; }
-.counting-row { min-height: 62px; display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 3px; font-size: clamp(1.6rem, 7vw, 2.5rem); }
+.counting-row { width: min(100%, 430px); flex: 1; min-height: 110px; display: grid; justify-content: center; align-content: center; overflow: hidden; }
+.counting-row.counting-low { grid-template-columns: repeat(5, minmax(42px, 62px)); gap: 8px; font-size: clamp(2.8rem, 12vw, 4.4rem); }
+.counting-row.counting-medium { grid-template-columns: repeat(8, minmax(28px, 40px)); gap: 4px; font-size: clamp(1.9rem, 7vw, 2.7rem); }
+.counting-row.counting-high { grid-template-columns: repeat(10, minmax(21px, 32px)); gap: 1px; font-size: clamp(1.3rem, 4.6vw, 2rem); }
+.counting-row span { line-height: 1; }
 .empty-set { color: #69738c; font-size: 1rem; font-weight: 900; }
 .number-card h2 { margin: 0; font: 900 1.2rem 'Segoe UI Rounded'; }
 .number-options { display: flex; gap: 13px; }

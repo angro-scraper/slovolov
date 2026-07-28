@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('srpski izgovor slova', () => {
-  it('generator koristi jedan srpski glas i sporiju lekciju sa ponavljanjem slova', () => {
+  it('generator jasno i sporije izgovara slovo bez instrukcije „Ponovi”', () => {
     const generator = readFileSync(
       resolve(process.cwd(), 'scripts', 'generate-letter-audio.py'),
       'utf8'
@@ -11,9 +11,9 @@ describe('srpski izgovor slova', () => {
 
     expect(generator).toContain('VOICE = "sr-RS-SophieNeural"');
     expect(generator).toContain("Ово је слово {letter['upper']}");
-    expect(generator).toContain("Понови: {letter['upper']}");
     expect(generator).toContain("{letter['upper']} као {example}");
-    expect(generator).toContain('rate="-18%"');
+    expect(generator).not.toContain('Понови:');
+    expect(generator).toContain('LETTER_RATE = "-28%"');
     expect(generator).not.toContain('PHONETIC_STARTS');
   });
 
@@ -31,7 +31,24 @@ describe('srpski izgovor slova', () => {
   });
 
   it('ključne povratne poruke imaju lokalne audio-snimke', () => {
-    for (const name of ['bravo-next-letter', 'bravo-new-letter', 'try-again']) {
+    for (const name of [
+      'bravo-next-letter',
+      'bravo-new-letter',
+      'bravo-next-number',
+      'bravo-correct',
+      'bravo-pair',
+      'bravo-lesson',
+      'bravo-three-stars',
+      'bravo-story',
+      'bravo-story-star',
+      'bravo-story-saved',
+      'bravo-number-written',
+      'math-correct',
+      'number-question',
+      'word-mama',
+      'rhyme-mak-rak',
+      'try-again'
+    ]) {
       expect(readFileSync(resolve(
         process.cwd(),
         'public',

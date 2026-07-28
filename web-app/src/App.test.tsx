@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { quizQuestions } from './data/quizQuestions';
+import { LATIN_ALPHABET } from './domain/letters';
 import { clearFullStoryCache } from './services/fullStoryLibrary';
 import { convertInterfaceText } from './services/interfaceScript';
 import { useProgressStore } from './store/progress';
@@ -116,6 +117,7 @@ describe('Slovolov glavni tok', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
     fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Piši broj' }));
     fireEvent.click(screen.getByRole('button', { name: 'Broj 6' }));
     expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
   });
@@ -159,20 +161,40 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByTestId('guide-letter')).toHaveTextContent('a');
   });
 
-  it('otvara brojeve od nule do deset', () => {
+  it('otvara brojeve od nule do sto i u učenju ne otkriva broj pre odgovora', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–100/i }));
 
-    expect(screen.getByRole('button', { name: 'Broj 0' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Broj 10' })).toBeVisible();
-    expect(screen.getByText('Koliko ima jabuka?')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Brojevi 0–100' })).toBeVisible();
+    expect(screen.queryByText('1', { selector: '.big-number strong' })).not.toBeInTheDocument();
+    expect(screen.getByText('Koliko sličica vidiš?')).toBeVisible();
+    expect(screen.getAllByTestId('counting-picture')).toHaveLength(1);
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    expect((play.mock.instances.at(-1) as HTMLAudioElement).src)
+      .toContain('/audio/feedback/number-question.mp3');
   });
 
   it('brojeve može da vežba pisanjem na istom ekranu', () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–100/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Piši broj' }));
+    expect(screen.getByRole('button', { name: 'Broj 100' })).toBeVisible();
     expect(screen.getByLabelText('Platno za pisanje slova 1')).toBeVisible();
+  });
+
+  it('tačan broj dodeljuje zvezdicu i automatski prelazi na sledeći broj', async () => {
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–100/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Odgovor 1' }));
+
+    expect(useProgressStore.getState().profile.learnedNumbers).toContain(1);
+    expect(useProgressStore.getState().profile.stars).toBe(1);
+    await waitFor(() => expect(screen.getAllByTestId('counting-picture')).toHaveLength(2), {
+      timeout: 5_500
+    });
+    expect(screen.getByText('Koliko sličica vidiš?')).toBeVisible();
   });
 
   it('kviz izgovara naziv slike, ne otkriva reč i nudi početna slova', async () => {
@@ -196,9 +218,35 @@ describe('Slovolov glavni tok', () => {
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
   });
 
+  it('kviz i igra koriste lokalni srpski zvuk za tačan odgovor', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Igre/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Medved/i }));
+
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    expect((play.mock.instances.at(-1) as HTMLAudioElement).src)
+      .toContain('/audio/feedback/bravo-correct.mp3');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
+    play.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: /Kviz/i }));
+    const image = screen.getByRole('img', { name: 'Slika za kviz pitanje' });
+    const current = quizQuestions.find((question) => question.emoji === image.textContent)!;
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    play.mockClear();
+    fireEvent.click(screen.getByRole('button', {
+      name: LATIN_ALPHABET[current.letterIndex]
+    }));
+
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    expect((play.mock.instances.at(-1) as HTMLAudioElement).src)
+      .toContain('/audio/feedback/bravo-correct.mp3');
+  });
+
   it('brojevi imaju stvarno računanje prilagođeno deci', () => {
     render(<App />);
-    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–100/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Računanje' }));
 
     expect(screen.getByText('Koliko je 2 + 1?')).toBeVisible();
