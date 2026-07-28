@@ -18,7 +18,7 @@ describe('native screen reader audio kontrola', () => {
     await cleanup();
   });
 
-  it('automatski utišava aplikaciju kada se uključi VoiceOver ili TalkBack', async () => {
+  it('ne utišava snimke aplikacije kada je VoiceOver ili TalkBack aktivan', async () => {
     let stateListener: ((state: { value: boolean }) => void) | undefined;
     const remove = vi.fn().mockResolvedValue(undefined);
     const bridge = {
@@ -33,11 +33,11 @@ describe('native screen reader audio kontrola', () => {
 
     const cleanup = await monitorScreenReaderAudio(bridge, true);
 
-    expect(isAppAudioSuppressed()).toBe(true);
+    expect(isAppAudioSuppressed()).toBe(false);
     stateListener?.({ value: false });
     expect(isAppAudioSuppressed()).toBe(false);
     stateListener?.({ value: true });
-    expect(isAppAudioSuppressed()).toBe(true);
+    expect(isAppAudioSuppressed()).toBe(false);
 
     await cleanup();
     expect(remove).toHaveBeenCalledOnce();

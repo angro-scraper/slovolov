@@ -22,6 +22,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(SlovolovAudioSessionPlugin.class);
         super.onCreate(savedInstanceState);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

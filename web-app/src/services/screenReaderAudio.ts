@@ -13,8 +13,10 @@ type ScreenReaderBridge = {
 
 /**
  * Na Androidu i iOS-u prati stvarno stanje TalkBack/VoiceOver servisa.
- * Web nema pouzdan API za ovu proveru, pa tamo ostaje globalna izolacija
- * jednog lokalnog audio kanala.
+ * Snimljeni glas aplikacije ne sme da bude ugašen kada je servis aktivan:
+ * Android može da prijavi uključenu accessibility uslugu i kada TalkBack
+ * trenutno ne govori, što je ranije ostavljalo celu aplikaciju bez zvuka.
+ * Native audio sesija prekida drugi govorni kanal pri samoj reprodukciji.
  */
 export async function monitorScreenReaderAudio(
   bridge: ScreenReaderBridge = ScreenReader,
@@ -26,10 +28,11 @@ export async function monitorScreenReaderAudio(
   }
 
   try {
-    const initialState = await bridge.isEnabled();
-    setAppAudioSuppressed(initialState.value);
-    const listener = await bridge.addListener('stateChange', ({ value }) => {
-      setAppAudioSuppressed(value);
+    await bridge.isEnabled();
+    setAppAudioSuppressed(false);
+    const listener = await bridge.addListener('stateChange', () => {
+      window.speechSynthesis?.cancel();
+      setAppAudioSuppressed(false);
     });
 
     return async () => {

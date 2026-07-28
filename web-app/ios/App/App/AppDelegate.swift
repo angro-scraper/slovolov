@@ -71,3 +71,51 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
 }
+
+@objc(SlovolovAudioSessionPlugin)
+class SlovolovAudioSessionPlugin: CAPPlugin, CAPBridgedPlugin {
+    let identifier = "SlovolovAudioSessionPlugin"
+    let jsName = "SlovolovAudioSession"
+    let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "activate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "release", returnType: CAPPluginReturnPromise)
+    ]
+
+    @objc func activate(_ call: CAPPluginCall) {
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            try session.setActive(true)
+            call.resolve(["granted": true])
+        } catch {
+            call.reject(
+                "Slovolov audio sesija nije aktivirana",
+                nil,
+                error
+            )
+        }
+    }
+
+    @objc func release(_ call: CAPPluginCall) {
+        do {
+            try AVAudioSession.sharedInstance().setActive(
+                false,
+                options: .notifyOthersOnDeactivation
+            )
+            call.resolve()
+        } catch {
+            call.reject(
+                "Slovolov audio sesija nije oslobođena",
+                nil,
+                error
+            )
+        }
+    }
+}
+
+@objc(SlovolovViewController)
+class SlovolovViewController: CAPBridgeViewController {
+    override func capacitorDidLoad() {
+        bridge?.registerPluginType(SlovolovAudioSessionPlugin.self)
+    }
+}

@@ -1,4 +1,8 @@
 import { resolveLetterAudio } from './letterAudio';
+import {
+  activateNativeAudioSession,
+  releaseNativeAudioSession
+} from './nativeAudioSession';
 
 let activeAudio: HTMLAudioElement | null = null;
 
@@ -8,6 +12,7 @@ function stopOtherVoices(): void {
   activeAudio.pause();
   activeAudio.currentTime = 0;
   activeAudio = null;
+  void releaseNativeAudioSession();
 }
 
 export function stopAppSpeech(): void {
@@ -25,9 +30,16 @@ async function playSource(
   audio.currentTime = 0;
   audio.onended = () => {
     if (activeAudio === audio) activeAudio = null;
+    void releaseNativeAudioSession();
   };
   try {
+    // Ne čekamo native most pre play(): iOS zahteva da HTML audio počne u
+    // istom korisničkom gestu. Posle starta ponovo potvrđujemo .spokenAudio
+    // jer WKWebView ume da promeni AVAudioSession kategoriju.
+    const nativeActivation = activateNativeAudioSession();
     await audio.play();
+    await nativeActivation;
+    await activateNativeAudioSession();
     return true;
   } catch {
     if (activeAudio === audio) activeAudio = null;

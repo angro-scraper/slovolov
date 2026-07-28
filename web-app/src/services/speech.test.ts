@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { speak, speakRecordedPrompt, stopAppSpeech } from './speech';
+import * as nativeAudioSession from './nativeAudioSession';
 
 describe('isključivo lokalni govor aplikacije', () => {
   const synthSpeak = vi.fn();
@@ -10,6 +11,10 @@ describe('isključivo lokalni govor aplikacije', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(nativeAudioSession, 'activateNativeAudioSession')
+      .mockResolvedValue(true);
+    vi.spyOn(nativeAudioSession, 'releaseNativeAudioSession')
+      .mockResolvedValue();
     created.length = 0;
     play.mockResolvedValue(undefined);
     Object.defineProperty(window, 'speechSynthesis', {
@@ -66,5 +71,12 @@ describe('isključivo lokalni govor aplikacije', () => {
 
     expect(created.at(-1)?.src).toContain('/audio/letters/');
     expect(synthSpeak).not.toHaveBeenCalled();
+  });
+
+  it('ponovo potvrđuje native audio sesiju nakon što WebView pokrene snimak', async () => {
+    await speakRecordedPrompt('Pitanje', '/audio/quiz/01.mp3');
+
+    expect(play).toHaveBeenCalledOnce();
+    expect(nativeAudioSession.activateNativeAudioSession).toHaveBeenCalledTimes(2);
   });
 });
