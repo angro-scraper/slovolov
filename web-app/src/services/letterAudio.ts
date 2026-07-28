@@ -31,7 +31,7 @@ export function resolveLetterAudio(text: string): LetterAudioMatch | undefined {
       index: exact.index,
       kind: 'sound',
       source: versionAudioUrl(
-        `/audio/letters/${String(exact.index + 1).padStart(2, '0')}-sound.mp3`
+        `/audio/letters/${String(exact.index + 1).padStart(2, '0')}-lesson.mp3`
       )
     };
   }
@@ -51,7 +51,7 @@ export function resolveLetterAudio(text: string): LetterAudioMatch | undefined {
     index: example.index,
     kind: 'example',
     source: versionAudioUrl(
-      `/audio/letters/${String(example.index + 1).padStart(2, '0')}-example.mp3`
+      `/audio/letters/${String(example.index + 1).padStart(2, '0')}-lesson.mp3`
     )
   };
 }

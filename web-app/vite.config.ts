@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/letters/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-letter-audio-v2',
+              cacheName: 'slovolov-letter-audio-v3',
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 365

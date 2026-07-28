@@ -42,7 +42,7 @@ describe('isključivo lokalni govor aplikacije', () => {
       '/audio/quiz/01.mp3'
     );
 
-    expect(created.at(-1)?.src).toBe('/audio/quiz/01.mp3?v=sr-sophie-20260728');
+    expect(created.at(-1)?.src).toBe('/audio/quiz/01.mp3?v=sr-sophie-lesson-v2-20260728');
     expect(play).toHaveBeenCalledOnce();
     expect(cancel).toHaveBeenCalled();
     expect(synthSpeak).not.toHaveBeenCalled();
@@ -62,7 +62,7 @@ describe('isključivo lokalni govor aplikacije', () => {
 
     expect(pause).toHaveBeenCalledOnce();
     expect(created[0].currentTime).toBe(0);
-    expect(created[1].src).toBe('/audio/quiz/02.mp3?v=sr-sophie-20260728');
+    expect(created[1].src).toBe('/audio/quiz/02.mp3?v=sr-sophie-lesson-v2-20260728');
     expect(synthSpeak).not.toHaveBeenCalled();
   });
 

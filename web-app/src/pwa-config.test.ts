@@ -14,19 +14,17 @@ describe('PWA audio knjige', () => {
     expect(config).toContain('rangeRequests: true');
   });
 
-  it('kešira svih 60 srpskih snimaka slova i primera', () => {
+  it('kešira tačno jedan srpski snimak za svaku od 30 lekcija', () => {
     const config = readFileSync(resolve(process.cwd(), 'vite.config.ts'), 'utf8');
     expect(config).toContain("url.pathname.startsWith('/audio/letters/')");
-    expect(config).toContain("cacheName: 'slovolov-letter-audio-v2'");
+    expect(config).toContain("cacheName: 'slovolov-letter-audio-v3'");
     expect(config).toContain("cacheName: 'slovolov-quiz-audio-v2'");
 
     for (let index = 1; index <= 30; index += 1) {
-      for (const kind of ['sound', 'example']) {
-        const filename = `${String(index).padStart(2, '0')}-${kind}.mp3`;
-        const audioPath = resolve(process.cwd(), 'public', 'audio', 'letters', filename);
-        expect(existsSync(audioPath), audioPath).toBe(true);
-        expect(statSync(audioPath).size, audioPath).toBeGreaterThan(10_000);
-      }
+      const filename = `${String(index).padStart(2, '0')}-lesson.mp3`;
+      const audioPath = resolve(process.cwd(), 'public', 'audio', 'letters', filename);
+      expect(existsSync(audioPath), audioPath).toBe(true);
+      expect(statSync(audioPath).size, audioPath).toBeGreaterThan(10_000);
     }
   });
 
