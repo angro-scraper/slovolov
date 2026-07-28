@@ -31,7 +31,12 @@ export default defineConfig(({ mode }) => {
     excludeSourceStoryAssets(storeSafeContent),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icons/slovolov-icon-192.png', 'icons/slovolov-icon-512.png'],
+      includeAssets: [
+        'icons/favicon-32.png',
+        'icons/apple-touch-icon.png',
+        'icons/slovolov-icon-192.png',
+        'icons/slovolov-icon-512.png'
+      ],
       manifest: {
         name: 'Slovolov — učimo srpska slova',
         short_name: 'Slovolov',
