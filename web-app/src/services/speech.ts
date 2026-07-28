@@ -1,4 +1,5 @@
 import { resolveLetterAudio } from './letterAudio';
+import { resolveFeedbackAudio } from './feedbackAudio';
 import { versionAudioUrl } from './audioAssets';
 import { stopAllAppAudio } from './audioIsolation';
 import {
@@ -55,8 +56,10 @@ export async function speak(text: string, enabled = true): Promise<void> {
     return;
   }
   const letterAudio = resolveLetterAudio(text);
+  const feedbackAudio = resolveFeedbackAudio(text);
   const key = text.toLocaleLowerCase('sr').replace(/\s+/g, '-');
   const localSource = letterAudio?.source
+    ?? feedbackAudio
     ?? versionAudioUrl(`/audio/${encodeURIComponent(key)}.mp3`);
   // Aplikacija nikada ne prelazi na glas telefona. Android/iOS sistemski TTS
   // ume da izgovori srpska slova drugim jezikom i da se preklopi sa snimkom.

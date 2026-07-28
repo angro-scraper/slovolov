@@ -13,11 +13,12 @@ import edge_tts
 ROOT = Path(__file__).resolve().parents[1]
 LETTERS_PATH = ROOT / "src" / "data" / "letters.json"
 OUTPUT_DIR = ROOT / "public" / "audio" / "letters"
+FEEDBACK_DIR = ROOT / "public" / "audio" / "feedback"
 VOICE = "sr-RS-SophieNeural"
 
 async def save(text: str, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    communicate = edge_tts.Communicate(text=text, voice=VOICE, rate="-12%")
+    communicate = edge_tts.Communicate(text=text, voice=VOICE, rate="-18%")
     await communicate.save(str(target))
 
 
@@ -27,14 +28,30 @@ async def main() -> None:
     for index, letter in enumerate(letters, start=1):
         prefix = f"{index:02d}"
         example = letter["words"][0]["word"]
-        # Jedan kratak snimak po lekciji: isti glas i ista rečenica za veliko
+        # Jedan sporiji snimak po lekciji: isti glas i ista rečenica za veliko
         # slovo, dugme „Slušaj ponovo” i primer. Time nema preklapanja dva
         # različita objašnjenja niti veštačkih slogova poput „ba”, „vu” i „go”.
         await save(
-            f"Ово је слово {letter['upper']}. {letter['upper']} као {example}.",
+            (
+                f"Ово је слово {letter['upper']}. "
+                f"Понови: {letter['upper']}. "
+                f"{letter['upper']} као {example}."
+            ),
             OUTPUT_DIR / f"{prefix}-lesson.mp3",
         )
         print(f"{prefix} {letter['upper']} — {example}")
+
+    feedback = {
+        "bravo-next-letter.mp3":
+            "Браво! Добио си звездицу. Идемо на следеће слово!",
+        "bravo-new-letter.mp3":
+            "Браво! Научио си ново слово!",
+        "try-again.mp3":
+            "Покушај поново."
+    }
+    for filename, text in feedback.items():
+        await save(text, FEEDBACK_DIR / filename)
+        print(f"feedback — {filename}")
 
 
 if __name__ == "__main__":

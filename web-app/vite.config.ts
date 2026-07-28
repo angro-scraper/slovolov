@@ -35,7 +35,8 @@ export default defineConfig(({ mode }) => {
         'icons/favicon-32.png',
         'icons/apple-touch-icon.png',
         'icons/slovolov-icon-192.png',
-        'icons/slovolov-icon-512.png'
+        'icons/slovolov-icon-512.png',
+        'audio/feedback/*.mp3'
       ],
       manifest: {
         name: 'Slovolov — učimo srpska slova',
@@ -58,7 +59,7 @@ export default defineConfig(({ mode }) => {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/letters/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-letter-audio-v3',
+              cacheName: 'slovolov-letter-audio-v4',
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 365

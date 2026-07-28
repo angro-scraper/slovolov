@@ -42,7 +42,7 @@ describe('isključivo lokalni govor aplikacije', () => {
       '/audio/quiz/01.mp3'
     );
 
-    expect(created.at(-1)?.src).toBe('/audio/quiz/01.mp3?v=sr-sophie-lesson-v2-20260728');
+    expect(created.at(-1)?.src).toBe('/audio/quiz/01.mp3?v=sr-sophie-lesson-v3-20260728');
     expect(play).toHaveBeenCalledOnce();
     expect(cancel).toHaveBeenCalled();
     expect(synthSpeak).not.toHaveBeenCalled();
@@ -62,14 +62,28 @@ describe('isključivo lokalni govor aplikacije', () => {
 
     expect(pause).toHaveBeenCalledOnce();
     expect(created[0].currentTime).toBe(0);
-    expect(created[1].src).toBe('/audio/quiz/02.mp3?v=sr-sophie-lesson-v2-20260728');
+    expect(created[1].src).toBe('/audio/quiz/02.mp3?v=sr-sophie-lesson-v3-20260728');
     expect(synthSpeak).not.toHaveBeenCalled();
   });
 
   it('izgovor slova koristi lokalni paket i nikada glas telefona', async () => {
     await speak('Ј');
 
-    expect(created.at(-1)?.src).toContain('/audio/letters/');
+    expect(created.at(-1)?.src).toContain('/audio/letters/11-lesson.mp3');
+    expect(synthSpeak).not.toHaveBeenCalled();
+  });
+
+  it('poruka za zvezdicu i sledeće slovo koristi snimljeni srpski glas', async () => {
+    await speak('Bravo! Dobio si zvezdicu. Idemo na sledeće slovo!');
+
+    expect(created.at(-1)?.src).toContain('/audio/feedback/bravo-next-letter.mp3');
+    expect(synthSpeak).not.toHaveBeenCalled();
+  });
+
+  it('poruka posle uspešnog pisanja koristi lokalni Bravo snimak', async () => {
+    await speak('Bravo! Naučio si novo slovo!');
+
+    expect(created.at(-1)?.src).toContain('/audio/feedback/bravo-new-letter.mp3');
     expect(synthSpeak).not.toHaveBeenCalled();
   });
 

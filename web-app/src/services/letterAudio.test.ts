@@ -9,7 +9,7 @@ describe('lokalni srpski izgovor slova', () => {
     ['Nj', '/audio/letters/17-lesson.mp3'],
     ['Џ', '/audio/letters/29-lesson.mp3']
   ])('vezuje %s za tačan lokalni snimak', (text, source) => {
-    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=sr-sophie-lesson-v2-20260728`);
+    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=sr-sophie-lesson-v3-20260728`);
   });
 
   it.each([
@@ -17,7 +17,7 @@ describe('lokalni srpski izgovor slova', () => {
     ['Љ, као Љубичица.', '/audio/letters/14-lesson.mp3'],
     ['Dž kao džip', '/audio/letters/29-lesson.mp3']
   ])('vezuje primer %s za snimljenu srpsku frazu', (text, source) => {
-    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=sr-sophie-lesson-v2-20260728`);
+    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=sr-sophie-lesson-v3-20260728`);
   });
 
   it('ne presreće običnu rečenicu', () => {
