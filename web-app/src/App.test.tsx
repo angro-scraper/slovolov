@@ -74,6 +74,19 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: /Slušaj ponovo/i })).toBeVisible();
   });
 
+  it('napuštanje lekcije odmah zaustavlja prethodni glas', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause');
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'A a' }));
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
+
+    expect(pause).toHaveBeenCalled();
+  });
+
   it('prebacuje kompletan meni, naslove i oznake između latinice i ćirilice', async () => {
     render(<App />);
     expect(screen.getByRole('button', { name: /Nauči slova/i })).toBeVisible();
@@ -241,6 +254,14 @@ describe('Slovolov glavni tok', () => {
     expect(useProgressStore.getState().profile.storyBookmarks[activeStory ?? '']).toBe(0);
   });
 
+  it('audio knjiga nikada ne obećava glas telefona kao rezervu', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+
+    expect(screen.queryByText(/glas uređaja/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/snimljeni srpski narator/i)).toBeVisible();
+  });
+
   it('prikazuje bajku kao pristupačnu fullscreen slikovnicu za decu', async () => {
     stubFirstFullStory();
     render(<App />);
@@ -254,7 +275,7 @@ describe('Slovolov glavni tok', () => {
     expect(screen.queryByRole('article', { name: 'Tekst priče' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Čitaj zajedno' }));
     expect(screen.getByRole('article', { name: 'Tekst priče' })).toBeVisible();
-    expect(screen.getByText(/Snimljeni glas ima prednost/i)).toBeVisible();
+    expect(screen.getByText(/Snimljeni srpski narator/i)).toBeVisible();
     await waitFor(() => expect(
       screen.getByRole('button', { name: '⬇ Preuzmi celu bajku za offline' })
     ).toBeVisible());

@@ -26,7 +26,11 @@ describe('proširena baza slikovnog kviza', () => {
 
   it('svako pitanje ima stvarni lokalni audio snimak', () => {
     for (const question of quizQuestions) {
-      const audioPath = resolve(process.cwd(), 'public', question.audioSource.replace(/^\//, ''));
+      const audioPath = resolve(
+        process.cwd(),
+        'public',
+        question.audioSource.split('?')[0].replace(/^\//, '')
+      );
       expect(statSync(audioPath).size, question.audioSource).toBeGreaterThan(5_000);
     }
   });

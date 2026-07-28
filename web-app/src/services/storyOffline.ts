@@ -1,6 +1,7 @@
 import type { FullStoryContent } from './fullStoryLibrary';
+import { versionAudioUrl } from './audioAssets';
 
-export const STORY_AUDIO_CACHE = 'slovolov-story-audio-v2';
+export const STORY_AUDIO_CACHE = 'slovolov-story-audio-v4';
 
 export type StoryDownloadProgress = {
   completed: number;
@@ -22,7 +23,7 @@ export async function downloadStoryForOffline(
   const cache = await caches.open(STORY_AUDIO_CACHE);
   onProgress({ completed: 0, total: story.audio.sentenceCount });
   for (let index = 1; index <= story.audio.sentenceCount; index += 1) {
-    const url = `/audio/stories/${story.audio.key}-${index}.mp3`;
+    const url = versionAudioUrl(`/audio/stories/${story.audio.key}-${index}.mp3`);
     if (!(await cache.match(url))) {
       const response = await fetch(url, { signal });
       if (!response.ok) {
@@ -38,7 +39,8 @@ export async function isStoryAvailableOffline(story: FullStoryContent): Promise<
   if (!story.audio.available || !('caches' in globalThis)) return false;
   const cache = await caches.open(STORY_AUDIO_CACHE);
   for (let index = 1; index <= story.audio.sentenceCount; index += 1) {
-    if (!(await cache.match(`/audio/stories/${story.audio.key}-${index}.mp3`))) return false;
+    const url = versionAudioUrl(`/audio/stories/${story.audio.key}-${index}.mp3`);
+    if (!(await cache.match(url))) return false;
   }
   return true;
 }

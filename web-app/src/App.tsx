@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
 import { VoicePractice } from './components/VoicePractice';
@@ -17,7 +17,7 @@ import {
   isStoryAvailableOffline,
   type StoryDownloadProgress
 } from './services/storyOffline';
-import { speak, speakRecordedPrompt } from './services/speech';
+import { speak, speakRecordedPrompt, stopAppSpeech } from './services/speech';
 import { createQuizRound } from './data/quizQuestions';
 import { applyInterfaceScript } from './services/interfaceScript';
 import {
@@ -81,6 +81,10 @@ export function App() {
   const accessibility = useProgressStore((state) => state.accessibility);
   const purchasedFamily = useProgressStore((state) => state.familyAccess.isUnlocked);
   const familyUnlocked = !isCommerceEnabled() || purchasedFamily;
+  const navigate = useCallback((nextScreen: Screen) => {
+    stopAppSpeech();
+    setScreen(nextScreen);
+  }, []);
 
   useLayoutEffect(() => {
     const root = appRef.current;
@@ -123,7 +127,7 @@ export function App() {
 
   const openLesson = (letter: Letter) => {
     setSelected(letter);
-    setScreen('lesson');
+    navigate('lesson');
     void speak(`${letter.upper} kao ${letter.words[0].word}`, sound);
   };
 
@@ -145,20 +149,20 @@ export function App() {
         </section>
         <main className="menu-grid">
           {menus.map((item) => (
-            <button key={item.screen} className={`menu-card menu-${item.screen}`} onClick={() => setScreen(item.screen)}>
+            <button key={item.screen} className={`menu-card menu-${item.screen}`} onClick={() => navigate(item.screen)}>
               <span className="menu-icon">{item.icon}</span>
               <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
               <b>›</b>
             </button>
           ))}
         </main>
-        <button className="settings-fab" onClick={() => setScreen('settings')} aria-label="Podešavanja">⚙️</button>
+        <button className="settings-fab" onClick={() => navigate('settings')} aria-label="Podešavanja">⚙️</button>
       </>
     );
 
     if (screen === 'learn') return (
       <>
-        <Header title="Azbuka" onBack={() => setScreen('home')} />
+        <Header title="Azbuka" onBack={() => navigate('home')} />
         <main className="letter-grid" aria-label="Srpska azbuka">
           {letters.map((letter, index) => {
             const accessible = canAccessLetter(index, familyUnlocked);
@@ -167,7 +171,7 @@ export function App() {
               key={letter.upper}
               className={`letter-button ${accessible ? '' : 'content-locked'}`}
               style={{ '--letter-color': letter.color } as React.CSSProperties}
-              onClick={() => accessible ? openLesson(letter) : setScreen('settings')}
+              onClick={() => accessible ? openLesson(letter) : navigate('settings')}
               aria-label={`${visibleLetter(letter)} ${visibleLetter(letter, 'lower')}${accessible ? '' : ' zaključano'}`}
             >
               <strong>{visibleLetter(letter)}</strong>
@@ -182,7 +186,7 @@ export function App() {
 
     if (screen === 'lesson') return (
       <div className="single-screen">
-        <Header title={`Slovo ${visibleLetter(selected)} ${visibleLetter(selected, 'lower')}`} onBack={() => setScreen('learn')} />
+        <Header title={`Slovo ${visibleLetter(selected)} ${visibleLetter(selected, 'lower')}`} onBack={() => navigate('learn')} />
         <main className="lesson">
           <button className="giant-letter" onClick={() => void speak(selected.upper, sound)}>
             {displayLetter(selected, script)} <small>{script === 'cyrillic' ? selected.lower : displayLetter(selected, script).toLowerCase()}</small>
@@ -225,7 +229,7 @@ export function App() {
           </section>
           <div className="lesson-actions">
             <button className="primary" onClick={() => void speak(`${selected.upper} kao ${selected.words[0].word}`, sound)}>🔊 Slušaj ponovo</button>
-            <button className="secondary" onClick={() => setScreen('write')}>✍️ Piši slovo</button>
+            <button className="secondary" onClick={() => navigate('write')}>✍️ Piši slovo</button>
           </div>
         </main>
       </div>
@@ -233,7 +237,7 @@ export function App() {
 
     if (screen === 'write') return (
       <div className="single-screen" data-testid="practice-screen">
-        <Header title={`Pišemo ${displayLetter(selected, script)}`} onBack={() => setScreen('home')} />
+        <Header title={`Pišemo ${displayLetter(selected, script)}`} onBack={() => navigate('home')} />
         <main className="practice">
           <div className="case-switch" aria-label="Izbor veličine slova">
             <button className={letterCase === 'upper' ? 'active' : ''} onClick={() => { setLetterCase('upper'); setTraceMessage('Prati celo svetlo slovo prstom.'); }}>Veliko slovo</button>
@@ -244,7 +248,7 @@ export function App() {
               <button
                 key={letter.upper}
                 className={`${letter === selected ? 'active' : ''} ${canAccessLetter(index, familyUnlocked) ? '' : 'content-locked'}`}
-                onClick={() => canAccessLetter(index, familyUnlocked) ? setSelected(letter) : setScreen('settings')}
+                onClick={() => canAccessLetter(index, familyUnlocked) ? setSelected(letter) : navigate('settings')}
               >
                 {displayLetter(letter, script)}
                 {!canAccessLetter(index, familyUnlocked) && <small aria-hidden="true">🔒</small>}
@@ -269,7 +273,7 @@ export function App() {
 
     if (screen === 'coloring') return (
       <div className="single-screen">
-        <Header title={`Bojanka ${displayLetter(selected, script)}`} onBack={() => setScreen('home')} />
+        <Header title={`Bojanka ${displayLetter(selected, script)}`} onBack={() => navigate('home')} />
         <main className="coloring">
           <div className="practice-letters">
             {letters.map((letter, index) => (
@@ -278,7 +282,7 @@ export function App() {
                 className={`${letter === selected ? 'active' : ''} ${canAccessLetter(index, familyUnlocked) ? '' : 'content-locked'}`}
                 onClick={() => {
                   if (!canAccessLetter(index, familyUnlocked)) {
-                    setScreen('settings');
+                    navigate('settings');
                     return;
                   }
                   setSelected(letter);
@@ -311,18 +315,18 @@ export function App() {
       </div>
     );
 
-    if (screen === 'adaptive') return <AdaptiveLesson onBack={() => setScreen('home')} sound={sound} />;
-    if (screen === 'daily') return <DailyChallenge onBack={() => setScreen('home')} sound={sound} />;
-    if (screen === 'games') return <GameHub onBack={() => setScreen('home')} sound={sound} />;
+    if (screen === 'adaptive') return <AdaptiveLesson onBack={() => navigate('home')} sound={sound} />;
+    if (screen === 'daily') return <DailyChallenge onBack={() => navigate('home')} sound={sound} />;
+    if (screen === 'games') return <GameHub onBack={() => navigate('home')} sound={sound} />;
 
-    if (screen === 'quiz') return <Quiz onBack={() => setScreen('home')} sound={sound} />;
-    if (screen === 'numbers') return <Numbers onBack={() => setScreen('home')} onFamily={() => setScreen('settings')} sound={sound} />;
-    if (screen === 'reading') return <Reading onBack={() => setScreen('home')} sound={sound} />;
-    if (screen === 'fairy-tales') return <FairyTales onBack={() => setScreen('home')} onFamily={() => setScreen('settings')} sound={sound} />;
-    if (screen === 'creative') return <CreativeStudio onBack={() => setScreen('home')} sound={sound} />;
-    if (screen === 'progress') return <Progress onBack={() => setScreen('home')} />;
-    return <Settings onBack={() => setScreen('home')} />;
-  }, [celebrate, coloringMessage, familyUnlocked, letterCase, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
+    if (screen === 'quiz') return <Quiz onBack={() => navigate('home')} sound={sound} />;
+    if (screen === 'numbers') return <Numbers onBack={() => navigate('home')} onFamily={() => navigate('settings')} sound={sound} />;
+    if (screen === 'reading') return <Reading onBack={() => navigate('home')} sound={sound} />;
+    if (screen === 'fairy-tales') return <FairyTales onBack={() => navigate('home')} onFamily={() => navigate('settings')} sound={sound} />;
+    if (screen === 'creative') return <CreativeStudio onBack={() => navigate('home')} sound={sound} />;
+    if (screen === 'progress') return <Progress onBack={() => navigate('home')} />;
+    return <Settings onBack={() => navigate('home')} />;
+  }, [celebrate, coloringMessage, familyUnlocked, letterCase, navigate, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
 
   const appClasses = [
     'app',
@@ -917,7 +921,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
   const [playback, setPlayback] = useState<'idle' | 'playing' | 'paused'>('idle');
   const [largeText, setLargeText] = useState(false);
   const [showText, setShowText] = useState(false);
-  const [narrationSource, setNarrationSource] = useState<'recorded' | 'system' | 'unavailable' | null>(null);
+  const [narrationSource, setNarrationSource] = useState<'recorded' | 'unavailable' | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [message, setMessage] = useState('Izaberi rečenicu ili poslušaj celu priču.');
   const [fullContent, setFullContent] = useState<FullStoryContent | null>(null);
@@ -1239,13 +1243,12 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
               onClick={() => setLargeText((value) => !value)}
             >Aa {largeText ? 'Normalno' : 'Veće'}</button>
             <p className={`narrator-source ${narrationSource ?? 'ready'}`}>
-              {narrationSource === 'recorded' && '🎙️ Čita topli ženski Sophie narator'}
-              {narrationSource === 'system' && '🔊 Čita srpski glas ovog uređaja'}
+              {narrationSource === 'recorded' && '🎙️ Čita provereni snimljeni srpski narator'}
               {narrationSource === 'unavailable' && '⚠️ Glas nije dostupan na ovom uređaju'}
               {narrationSource === null && (
                 fullContent?.audio.available || (!fullContent && story.recordedAudio)
-                  ? '🎙️ Snimljeni glas ima prednost; glas uređaja je rezerva'
-                  : '🔊 Koristi najbolji srpski glas dostupan na uređaju'
+                  ? '🎙️ Snimljeni srpski narator je spreman'
+                  : '⚠️ Ova priča još nema provereni srpski snimak'
               )}
             </p>
           </div>

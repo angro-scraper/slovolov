@@ -16,6 +16,11 @@ export function isAppAudioSuppressed(): boolean {
   return appAudioSuppressed;
 }
 
+export function stopAllAppAudio(): void {
+  window.speechSynthesis?.cancel();
+  stopInstalledAudio?.();
+}
+
 /**
  * Jedan zvučni kanal za celu aplikaciju.
  *

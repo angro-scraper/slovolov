@@ -1,4 +1,5 @@
 import { letters } from '../domain/letters';
+import { versionAudioUrl } from '../services/audioAssets';
 
 export type QuizQuestion = {
   id: string;
@@ -16,7 +17,7 @@ export const quizQuestions: QuizQuestion[] = letters.flatMap((letter, letterInde
       letterIndex,
       word: entry.word,
       emoji: entry.emoji,
-      audioSource: `/audio/quiz/${number}.mp3`
+      audioSource: versionAudioUrl(`/audio/quiz/${number}.mp3`)
     };
   })
 );

@@ -1,4 +1,5 @@
 import { LATIN_ALPHABET, letters } from '../domain/letters';
+import { versionAudioUrl } from './audioAssets';
 
 export type LetterAudioKind = 'sound' | 'example';
 
@@ -29,7 +30,9 @@ export function resolveLetterAudio(text: string): LetterAudioMatch | undefined {
     return {
       index: exact.index,
       kind: 'sound',
-      source: `/audio/letters/${String(exact.index + 1).padStart(2, '0')}-sound.mp3`
+      source: versionAudioUrl(
+        `/audio/letters/${String(exact.index + 1).padStart(2, '0')}-sound.mp3`
+      )
     };
   }
 
@@ -47,6 +50,8 @@ export function resolveLetterAudio(text: string): LetterAudioMatch | undefined {
   return {
     index: example.index,
     kind: 'example',
-    source: `/audio/letters/${String(example.index + 1).padStart(2, '0')}-example.mp3`
+    source: versionAudioUrl(
+      `/audio/letters/${String(example.index + 1).padStart(2, '0')}-example.mp3`
+    )
   };
 }

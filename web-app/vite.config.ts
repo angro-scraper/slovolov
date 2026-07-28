@@ -58,7 +58,7 @@ export default defineConfig(({ mode }) => {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/letters/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-letter-audio-v1',
+              cacheName: 'slovolov-letter-audio-v2',
               expiration: {
                 maxEntries: 60,
                 maxAgeSeconds: 60 * 60 * 24 * 365
@@ -71,7 +71,7 @@ export default defineConfig(({ mode }) => {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/quiz/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-quiz-audio-v1',
+              cacheName: 'slovolov-quiz-audio-v2',
               expiration: {
                 maxEntries: 90,
                 maxAgeSeconds: 60 * 60 * 24 * 365
@@ -84,7 +84,7 @@ export default defineConfig(({ mode }) => {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/stories/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-story-audio-v3',
+              cacheName: 'slovolov-story-audio-v4',
               expiration: {
                 maxEntries: 3_000,
                 maxAgeSeconds: 60 * 60 * 24 * 365

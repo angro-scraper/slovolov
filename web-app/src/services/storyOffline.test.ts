@@ -47,7 +47,9 @@ describe('offline audio-bajka', () => {
   });
 
   it('preuzima svaki nedostajući segment i javlja stvarni napredak', async () => {
-    const request = vi.fn(async () => new Response('audio', { status: 200 }));
+    const request = vi.fn<(url: string) => Promise<Response>>(
+      async () => new Response('audio', { status: 200 })
+    );
     vi.stubGlobal('fetch', request);
     const progress = vi.fn();
 
@@ -55,6 +57,7 @@ describe('offline audio-bajka', () => {
 
     expect(caches.open).toHaveBeenCalledWith(STORY_AUDIO_CACHE);
     expect(request).toHaveBeenCalledTimes(2);
+    expect(request.mock.calls[0][0]).toContain('?v=sr-sophie-20260728');
     expect(cache.put).toHaveBeenCalledTimes(2);
     expect(progress).toHaveBeenLastCalledWith({ completed: 2, total: 2 });
     await expect(isStoryAvailableOffline(story)).resolves.toBe(true);
