@@ -60,6 +60,25 @@ describe('audio pripovedanje', () => {
     expect(speak).not.toHaveBeenCalled();
   });
 
+  it('može da spoji proverene naratorske segmente bez TTS fallback-a', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    const sources: string[] = [];
+
+    narrateSentences(['Први део.', 'Други део.'], {
+      enabled: true,
+      audioSources: [
+        '/audio/creative/part-1.mp3',
+        '/audio/creative/part-2.mp3'
+      ],
+      onSource: (source) => sources.push(source)
+    });
+
+    await vi.waitFor(() => expect(sources).toEqual(['recorded']));
+    expect((play.mock.instances[0] as HTMLMediaElement).src)
+      .toContain('/audio/creative/part-1.mp3');
+    expect(speak).not.toHaveBeenCalled();
+  });
+
   it('greška snimka ne aktivira Android ili iOS TTS fallback', async () => {
     const sources: string[] = [];
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValueOnce(new Error('nema snimka'));

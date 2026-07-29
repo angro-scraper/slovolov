@@ -9,6 +9,7 @@ export type NarrationSession = {
 type NarrationOptions = {
   enabled: boolean;
   audioKey?: string;
+  audioSources?: string[];
   startIndex?: number;
   onSentence?: (index: number) => void;
   onSource?: (source: 'recorded' | 'unavailable') => void;
@@ -33,13 +34,14 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       options.onSource?.('unavailable');
     };
 
-    if (!options.audioKey) {
+    const explicitSource = options.audioSources?.[index];
+    if (!options.audioKey && !explicitSource) {
       markUnavailable();
       return;
     }
-    const audio = new Audio(versionAudioUrl(
-      `/audio/stories/${options.audioKey}-${index + 1}.mp3`
-    ));
+    const audio = new Audio(explicitSource
+      ? versionAudioUrl(explicitSource)
+      : versionAudioUrl(`/audio/stories/${options.audioKey}-${index + 1}.mp3`));
     currentAudio = audio;
     audio.onended = () => {
       if (stopped) return;

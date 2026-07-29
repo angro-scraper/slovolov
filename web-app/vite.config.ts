@@ -36,7 +36,8 @@ export default defineConfig(({ mode }) => {
         'icons/apple-touch-icon.png',
         'icons/slovolov-icon-192.png',
         'icons/slovolov-icon-512.png',
-        'audio/feedback/*.mp3'
+        'audio/feedback/*.mp3',
+        'audio/creative/*.mp3'
       ],
       manifest: {
         name: 'Slovolov — učimo srpska slova',

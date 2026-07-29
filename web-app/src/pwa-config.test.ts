@@ -44,6 +44,22 @@ describe('PWA audio knjige', () => {
     }
   });
 
+  it('sve Moje knjige mogu da se slušaju offline istim naratorom', () => {
+    const config = readFileSync(resolve(process.cwd(), 'vite.config.ts'), 'utf8');
+    expect(config).toContain("'audio/creative/*.mp3'");
+    const audioRoot = resolve(process.cwd(), 'public', 'audio', 'creative');
+    for (const filename of [
+      'opening-h1-p1.mp3',
+      'challenge-q4-p4.mp3',
+      'solution-a4-q4.mp3',
+      'ending-e4-h4.mp3'
+    ]) {
+      const audioPath = resolve(audioRoot, filename);
+      expect(existsSync(audioPath), audioPath).toBe(true);
+      expect(statSync(audioPath).size, audioPath).toBeGreaterThan(10_000);
+    }
+  });
+
   it('svaka bajka označena kao snimljena ima stvarni audio za svaku rečenicu', () => {
     const manifest = JSON.parse(
       readFileSync(resolve(process.cwd(), 'public', 'content', 'stories', 'manifest.json'), 'utf8')

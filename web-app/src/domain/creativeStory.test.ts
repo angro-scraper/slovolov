@@ -14,6 +14,9 @@ describe('Kreativni studio', () => {
 
     expect(story.title.length).toBeGreaterThan(10);
     expect(story.paragraphs).toHaveLength(4);
+    expect(story.narrationParagraphs).toHaveLength(4);
+    expect(story.narrationParagraphs.join(' ')).not.toContain('Мила');
+    expect(story.narrationParagraphs.join(' ')).toContain('мали аутор');
     expect(story.text.split(/[.!?]+/).filter(Boolean).length).toBeGreaterThanOrEqual(9);
     expect(story.text.length).toBeGreaterThan(500);
     expect(story.text).toContain('Мила');

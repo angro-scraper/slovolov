@@ -504,6 +504,26 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('status')).toHaveTextContent('sačuvana');
   });
 
+  it('Moju knjigu čita samo postojeći snimljeni narator', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    vi.mocked(window.speechSynthesis.speak).mockClear();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja priča/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Slušaj moju priču/i }));
+
+    await waitFor(() => expect(play.mock.instances.some(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/creative/')
+    )).toBe(true));
+    const narratorAudio = play.mock.instances.find(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/creative/')
+    ) as HTMLMediaElement;
+    expect(narratorAudio.src)
+      .toContain('/audio/creative/opening-h1-p1.mp3');
+    expect(window.speechSynthesis.speak).not.toHaveBeenCalled();
+    expect(screen.getByText(/postojeći provereni srpski narator Sophie/i)).toBeVisible();
+  });
+
   it('roditeljske kontrole su iza jednostavne roditeljske provere', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));

@@ -28,6 +28,12 @@ import {
   type AdventureLevel
 } from './domain/adventure';
 import { narrateSentences, type NarrationSession } from './services/narration';
+import {
+  createCreativeNarrationSources,
+  deserializeCreativeBook,
+  serializeCreativeBook,
+  type CreativeSelection
+} from './services/creativeNarration';
 import { loadFullStoryContent, type FullStoryContent } from './services/fullStoryLibrary';
 import {
   downloadStoryForOffline,
@@ -365,7 +371,7 @@ export function App() {
     if (screen === 'reading') return <Reading onBack={() => activeAdventureLevel ? navigate('adventure') : navigate('home')} sound={sound} onLevelComplete={activeAdventureLevel ? finishAdventureLevel : undefined} adventureDifficulty={activeAdventureLevel?.difficulty} />;
     if (screen === 'fairy-tales') return <FairyTales onBack={() => navigate('home')} onFamily={() => navigate('settings')} sound={sound} />;
     if (screen === 'creative') return <CreativeStudio onBack={() => activeAdventureLevel ? navigate('adventure') : navigate('home')} sound={sound} onLevelComplete={activeAdventureLevel ? finishAdventureLevel : undefined} adventureDifficulty={activeAdventureLevel?.difficulty} />;
-    if (screen === 'progress') return <Progress onBack={() => navigate('home')} />;
+    if (screen === 'progress') return <Progress onBack={() => navigate('home')} sound={sound} />;
     return <Settings onBack={() => navigate('home')} />;
   }, [activeAdventureLevel, celebrate, coloringMessage, familyUnlocked, finishAdventureLevel, letterCase, navigate, openAdventureLevel, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
 
@@ -1662,7 +1668,11 @@ function CreativeStudio({
   const [endingIndex, setEndingIndex] = useState(0);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [drawingOpen, setDrawingOpen] = useState(false);
+  const [storyPlayback, setStoryPlayback] = useState<'idle' | 'playing'>('idle');
+  const [activeStoryParagraph, setActiveStoryParagraph] = useState(-1);
+  const [narratorSource, setNarratorSource] = useState<'recorded' | 'unavailable' | null>(null);
   const [message, setMessage] = useState('Izaberi junaka i tok priče. Svaki izbor menja avanturu.');
+  const storySessionRef = useRef<NarrationSession | null>(null);
   const saveCreation = useProgressStore((state) => state.saveCreation);
   const completeGame = useProgressStore((state) => state.completeGame);
   const profile = useProgressStore((state) => state.profile);
@@ -1676,7 +1686,56 @@ function CreativeStudio({
     helper: creativeHelpers[helperIndex],
     ending: creativeEndings[endingIndex]
   }), [endingIndex, helperIndex, hero, placeIndex, profile.name, questIndex]);
+  const storySelection: CreativeSelection = {
+    heroIndex,
+    placeIndex,
+    questIndex,
+    helperIndex,
+    endingIndex
+  };
   const chapterLabels = ['Почетак', 'Изазов', 'Решење', 'Срећан крај'];
+
+  const stopStory = useCallback(() => {
+    storySessionRef.current?.stop();
+    storySessionRef.current = null;
+    setStoryPlayback('idle');
+    setActiveStoryParagraph(-1);
+  }, []);
+
+  const playStory = () => {
+    stopStory();
+    if (!sound) {
+      setNarratorSource('unavailable');
+      setMessage('Uključi zvuk u podešavanjima da bi narator pročitao Moju knjigu.');
+      return;
+    }
+    setStoryPlayback('playing');
+    setNarratorSource(null);
+    setMessage('Sophie, naš provereni srpski narator, čita tvoju priču.');
+    storySessionRef.current = narrateSentences(story.narrationParagraphs, {
+      enabled: true,
+      audioSources: createCreativeNarrationSources(storySelection),
+      onSentence: setActiveStoryParagraph,
+      onSource: (source) => {
+        setNarratorSource(source);
+        if (source === 'unavailable') {
+          setStoryPlayback('idle');
+          setMessage('Naratorski snimak trenutno nije dostupan. Glas telefona neće biti korišćen.');
+        }
+      },
+      onComplete: () => {
+        setStoryPlayback('idle');
+        setActiveStoryParagraph(-1);
+        setMessage('Sophie je pročitala celu tvoju priču. ⭐');
+      }
+    });
+  };
+
+  useEffect(() => () => storySessionRef.current?.stop(), []);
+  useEffect(() => {
+    stopStory();
+    setNarratorSource(null);
+  }, [endingIndex, helperIndex, heroIndex, placeIndex, questIndex, stopStory]);
 
   return (
     <div className="single-screen">
@@ -1693,13 +1752,16 @@ function CreativeStudio({
           </header>
           <div className="creative-story-pages" aria-label="Cela moja priča">
             {story.paragraphs.map((paragraph, index) => (
-              <article key={chapterLabels[index]}>
+              <article key={chapterLabels[index]} className={activeStoryParagraph === index ? 'narrating' : ''}>
                 <strong>{chapterLabels[index]}</strong>
                 <p>{paragraph}</p>
               </article>
             ))}
           </div>
           <div className="creative-preview-actions">
+            {storyPlayback === 'playing'
+              ? <button className="primary" onClick={stopStory}>⏹ Zaustavi priču</button>
+              : <button className="primary" onClick={playStory}>🔊 Slušaj moju priču</button>}
             <button className="secondary" onClick={() => {
               setHeroIndex((value) => (value + 1) % creativeHeroes.length);
               setPlaceIndex((value) => (value + 1) % creativePlaces.length);
@@ -1711,6 +1773,11 @@ function CreativeStudio({
             {(adventureDifficulty === undefined || adventureDifficulty >= 6) && <button className="secondary" onClick={() => setVoiceOpen((value) => !value)}>🎙️ Ispričaj je svojim glasom</button>}
             {(adventureDifficulty === undefined || adventureDifficulty >= 5) && <button className="secondary" onClick={() => setDrawingOpen((value) => !value)}>🎨 Nacrtaj naslovnicu</button>}
           </div>
+          <p className={`creative-narrator ${narratorSource ?? 'ready'}`}>
+            {narratorSource === 'recorded' && '🎙️ Čita postojeći provereni srpski narator Sophie'}
+            {narratorSource === 'unavailable' && '⚠️ Snimak nije dostupan — glas telefona je i dalje isključen'}
+            {narratorSource === null && '🎧 Moju knjigu čita isti narator kao ostale Slovolov priče'}
+          </p>
         </section>
         {voiceOpen && <VoicePractice enabled={microphoneEnabled} phrase={story.title} />}
         {drawingOpen && (
@@ -1747,7 +1814,7 @@ function CreativeStudio({
           </fieldset>}
         </section>
         <button className="primary" onClick={() => {
-          saveCreation(story.text);
+          saveCreation(serializeCreativeBook(story.text, storySelection));
           completeGame('creative-first-story');
           setMessage('Cela priča je sačuvana samo na ovom uređaju. Osvojio si 2 zvezdice! ⭐');
           void speak('Bravo! Tvoja priča je sačuvana.', sound);
@@ -1759,7 +1826,63 @@ function CreativeStudio({
   );
 }
 
-function Progress({ onBack }: { onBack: () => void }) {
+function SavedCreation({ saved, sound }: { saved: string; sound: boolean }) {
+  const restored = useMemo(() => deserializeCreativeBook(saved), [saved]);
+  const [playback, setPlayback] = useState<'idle' | 'playing'>('idle');
+  const [message, setMessage] = useState('');
+  const sessionRef = useRef<NarrationSession | null>(null);
+  const [title, ...body] = restored.text.split('\n').filter(Boolean);
+
+  const stop = () => {
+    sessionRef.current?.stop();
+    sessionRef.current = null;
+    setPlayback('idle');
+  };
+
+  useEffect(() => () => sessionRef.current?.stop(), []);
+
+  const play = () => {
+    if (!restored.selection || !sound) {
+      setMessage(sound
+        ? 'Ova starija priča nema sačuvane naratorske segmente.'
+        : 'Uključi zvuk u podešavanjima.');
+      return;
+    }
+    stop();
+    const paragraphs = restored.text.split(/\n\s*\n/).slice(1);
+    setPlayback('playing');
+    setMessage('Sophie čita priču.');
+    sessionRef.current = narrateSentences(paragraphs, {
+      enabled: true,
+      audioSources: createCreativeNarrationSources(restored.selection),
+      onSource: (source) => {
+        if (source === 'unavailable') {
+          setPlayback('idle');
+          setMessage('Snimak nije dostupan. Glas telefona neće biti korišćen.');
+        }
+      },
+      onComplete: () => {
+        setPlayback('idle');
+        setMessage('Priča je pročitana.');
+      }
+    });
+  };
+
+  return (
+    <article>
+      <strong>🎭 {title}</strong>
+      <small>{body.join(' ').slice(0, 130)}…</small>
+      {restored.selection && (
+        <button className="small-action" onClick={playback === 'playing' ? stop : play}>
+          {playback === 'playing' ? '⏹ Zaustavi' : '🔊 Slušaj priču'}
+        </button>
+      )}
+      {message && <small role="status">{message}</small>}
+    </article>
+  );
+}
+
+function Progress({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const profile = useProgressStore((state) => state.profile);
   const percent = Math.round(profile.learnedLetters.length / 30 * 100);
   const summary = summarizeLearning(profile.skillStats);
@@ -1793,15 +1916,9 @@ function Progress({ onBack }: { onBack: () => void }) {
         {profile.savedCreations.length > 0 && (
           <section className="saved-creations">
             <h3>Moje priče</h3>
-            {profile.savedCreations.slice(-3).reverse().map((creation) => {
-              const [title, ...body] = creation.split('\n').filter(Boolean);
-              return (
-                <article key={creation}>
-                  <strong>🎭 {title}</strong>
-                  <small>{body.join(' ').slice(0, 130)}…</small>
-                </article>
-              );
-            })}
+            {profile.savedCreations.slice(-3).reverse().map((creation) => (
+              <SavedCreation key={creation} saved={creation} sound={sound} />
+            ))}
           </section>
         )}
         <h3>Medalje</h3><div className="medals">{['🥉', '🥈', '🥇'].map((medal, index) => <span key={medal} className={profile.medals.length > index ? '' : 'locked'}>{medal}</span>)}</div>

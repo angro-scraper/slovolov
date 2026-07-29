@@ -35,6 +35,7 @@ export type CreativeEnding = {
 export type CreativeStory = {
   title: string;
   paragraphs: [string, string, string, string];
+  narrationParagraphs: [string, string, string, string];
   text: string;
 };
 
@@ -89,5 +90,16 @@ export function buildCreativeStory(input: {
     `На путу је срео помоћника по имену ${helper.name}. Помоћник му је поклонио ${helper.gift} и рекао: „${helper.advice}“ Заједно су открили да ${quest.discovery}.`,
     `${ending.celebration}. ${hero.name} је разумео нешто важно: ${ending.lesson}. Тако се завршила авантура коју је осмислило дете по имену ${childName}, а нова прича већ је чекала иза следеће странице.`
   ];
-  return { title, paragraphs, text: `${title}\n\n${paragraphs.join('\n\n')}` };
+  const narrationParagraphs: CreativeStory['narrationParagraphs'] = [
+    paragraphs[0],
+    paragraphs[1],
+    paragraphs[2],
+    `${ending.celebration}. ${hero.name} је разумео нешто важно: ${ending.lesson}. Тако се завршила авантура коју је осмислио мали аутор, а нова прича већ је чекала иза следеће странице.`
+  ];
+  return {
+    title,
+    paragraphs,
+    narrationParagraphs,
+    text: `${title}\n\n${paragraphs.join('\n\n')}`
+  };
 }
