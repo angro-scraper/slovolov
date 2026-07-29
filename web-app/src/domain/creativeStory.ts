@@ -84,7 +84,7 @@ export function buildCreativeStory(input: {
   const { childName, hero, place, quest, helper, ending } = input;
   const title = `${hero.name} и ${quest.label.toLocaleLowerCase('sr-Cyrl')}`;
   const paragraphs: CreativeStory['paragraphs'] = [
-    `Једног сунчаног јутра, ${hero.name}, ${hero.quality} јунак, нашао се у ${place.label}. ${place.arrival.charAt(0).toLocaleUpperCase('sr-Cyrl')}${place.arrival.slice(1)}. Његов посебан таленат био је необичан: ${hero.talent}.`,
+    `Једног сунчаног јутра, ${hero.name}, ${hero.quality} јунак, нашао се у ${place.label}. ${place.arrival.charAt(0).toLocaleUpperCase('sr-Cyrl')}${place.arrival.slice(1)}. Посебан таленат овог јунака био је необичан: ${hero.talent}.`,
     `Убрзо је сазнао нешто забрињавајуће: ${quest.problem}. Док је размишљао одакле да почне, приметио је нешто необично: ${place.secret}. Није одустао: ${quest.action}.`,
     `На путу је срео помоћника по имену ${helper.name}. Помоћник му је поклонио ${helper.gift} и рекао: „${helper.advice}“ Заједно су открили да ${quest.discovery}.`,
     `${ending.celebration}. ${hero.name} је разумео нешто важно: ${ending.lesson}. Тако се завршила авантура коју је осмислило дете по имену ${childName}, а нова прича већ је чекала иза следеће странице.`
