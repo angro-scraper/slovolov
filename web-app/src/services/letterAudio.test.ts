@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AUDIO_ASSET_VERSION } from './audioAssets';
 import { resolveLetterAudio } from './letterAudio';
 
 describe('lokalni srpski izgovor slova', () => {
@@ -9,7 +10,7 @@ describe('lokalni srpski izgovor slova', () => {
     ['Nj', '/audio/letters/17-lesson.mp3'],
     ['Џ', '/audio/letters/29-lesson.mp3']
   ])('vezuje %s za tačan lokalni snimak', (text, source) => {
-    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=sr-sophie-quiz-v5-20260729`);
+    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=${AUDIO_ASSET_VERSION}`);
   });
 
   it.each([
@@ -17,7 +18,7 @@ describe('lokalni srpski izgovor slova', () => {
     ['Љ, као Љубичица.', '/audio/letters/14-lesson.mp3'],
     ['Dž kao džip', '/audio/letters/29-lesson.mp3']
   ])('vezuje primer %s za snimljenu srpsku frazu', (text, source) => {
-    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=sr-sophie-quiz-v5-20260729`);
+    expect(resolveLetterAudio(text)?.source).toBe(`${source}?v=${AUDIO_ASSET_VERSION}`);
   });
 
   it('ne presreće običnu rečenicu', () => {

@@ -20,6 +20,8 @@ describe('stvarni lokalni audio za čitanje', () => {
   it('generator koristi samo odobreni Sophie narator', () => {
     const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-audio.py'), 'utf8');
     expect(generator).toContain('VOICE = "sr-RS-SophieNeural"');
+    expect(generator).toContain('"Напиши велико слово А."');
+    expect(generator).not.toContain('"Napiši veliko slovo A."');
     expect(generator).not.toContain('SpeechSynthesisUtterance');
   });
 

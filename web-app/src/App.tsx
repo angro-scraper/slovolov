@@ -494,6 +494,7 @@ function VoiceQuest({
       return;
     }
     setMessage('Браво! Тачно си написао и освојио звездицу. ⭐');
+    void speak('Bravo! Tačan odgovor!', sound);
   };
 
   return (
@@ -504,6 +505,12 @@ function VoiceQuest({
           <span aria-hidden="true">🦉</span>
           <div><small>NIVO {level?.order ?? 1}</small><h2>{level?.title ?? 'Vežba pisanja'}</h2><p>Sovica čita zadatak, a ti pišeš ili slažeš reči.</p></div>
         </section>
+        <button
+          className="secondary narrator-replay"
+          onClick={() => void speakRecordedPrompt(task.label, adventureLiteracyAudio(difficulty), sound)}
+        >
+          🔊 Poslušaj Sovicu
+        </button>
         <div className="voice-phrase"><small>{task.label}</small><strong>{task.kind === 'input' ? task.hint : selected.join(' ') || 'ДОДИРНИ РЕЧИ'}</strong></div>
         {task.kind === 'input' ? (
           <input
@@ -522,7 +529,7 @@ function VoiceQuest({
             {selected.length > 0 && <button onClick={() => setSelected([])}>Почни поново</button>}
           </div>
         )}
-        <p role="status">{message}</p>
+        <p role="status" aria-live="off">{message}</p>
         <button className="secondary" onClick={check}>Провери</button>
         {correct && message.startsWith('Браво') && <button className="primary" onClick={onComplete}>Настави авантуру ⭐</button>}
       </main>

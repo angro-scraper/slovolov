@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AUDIO_ASSET_VERSION } from './audioAssets';
 import type { FullStoryContent } from './fullStoryLibrary';
 import {
   downloadStoryForOffline,
@@ -57,7 +58,7 @@ describe('offline audio-bajka', () => {
 
     expect(caches.open).toHaveBeenCalledWith(STORY_AUDIO_CACHE);
     expect(request).toHaveBeenCalledTimes(2);
-    expect(request.mock.calls[0][0]).toContain('?v=sr-sophie-quiz-v5-20260729');
+    expect(request.mock.calls[0][0]).toContain(`?v=${AUDIO_ASSET_VERSION}`);
     expect(cache.put).toHaveBeenCalledTimes(2);
     expect(progress).toHaveBeenLastCalledWith({ completed: 2, total: 2 });
     await expect(isStoryAvailableOffline(story)).resolves.toBe(true);

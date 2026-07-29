@@ -387,9 +387,26 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('heading', { name: /Piši sa Sovicom/i })).toBeVisible();
     expect(screen.queryByText(/snimi svoj glas/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Upiši slovo/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: /Poslušaj Sovicu/i })).toBeVisible();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'off');
     await waitFor(() => expect(play.mock.instances.some(
       (instance) => (instance as HTMLMediaElement).src.includes('/audio/reading/adventure/literacy-1.mp3')
     )).toBe(true));
+  });
+
+  it('avantura posle tačnog pisanja pušta postojeći Sophie Bravo snimak', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Nivo 1:/i }));
+
+    fireEvent.change(screen.getByLabelText(/Upiši slovo/i), { target: { value: 'A' } });
+    fireEvent.click(screen.getByRole('button', { name: /Proveri/i }));
+
+    await waitFor(() => expect(play.mock.instances.some(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/feedback/bravo-correct.mp3')
+    )).toBe(true));
+    expect(screen.getByRole('status')).toHaveTextContent(/Bravo/i);
   });
 
   it('priče se biraju prema uzrastu deteta', () => {

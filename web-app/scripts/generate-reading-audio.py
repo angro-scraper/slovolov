@@ -75,12 +75,12 @@ ADVENTURES = [
 ]
 
 LITERACY_PROMPTS = [
-    "Napiši veliko slovo A.",
-    "Napiši reč avion.",
-    "Dodirni reči pravilnim redom i složi: Sova leti.",
-    "Napiši reč ljuljaška.",
-    "Složi reči pravilnim redom: Mala sova leti iznad šume.",
-    "Složi tri rečenice pravilnim redom i napravi malu priču.",
+    "Напиши велико слово А.",
+    "Напиши реч авион.",
+    "Додирни речи правилним редом и сложи: Сова лети.",
+    "Напиши реч љуљашка.",
+    "Сложи речи правилним редом: Мала сова лети изнад шуме.",
+    "Сложи три реченице правилним редом и направи малу причу.",
 ]
 
 

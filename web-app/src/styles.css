@@ -608,6 +608,7 @@ body {
 .literacy-input:focus { outline: 4px solid rgb(109 93 252 / 18%); border-color: var(--purple); }
 .literacy-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
 .literacy-tiles button { border: 0; border-radius: 16px; padding: 12px 15px; color: var(--purple); background: #eef2ff; font-weight: 900; }
+.narrator-replay { justify-self: center; min-height: 46px; }
 .word-reading-grid button { display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 7px; }
 .word-reading-grid button span { font-size: 1.35rem; }
 .safe-note { margin: 0; color: #69738c; font-size: .72rem; font-weight: 800; text-align: center; }
