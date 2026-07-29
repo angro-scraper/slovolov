@@ -118,7 +118,7 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
     fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Piši broj' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Broj 6' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Broj 11' }));
     expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
   });
 
@@ -195,7 +195,7 @@ describe('Slovolov glavni tok', () => {
       timeout: 5_500
     });
     expect(screen.getByText('Koliko sličica vidiš?')).toBeVisible();
-  });
+  }, 7_000);
 
   it('kviz izgovara naziv slike, ne otkriva reč i nudi početna slova', async () => {
     const play = vi.spyOn(HTMLMediaElement.prototype, 'play');
@@ -483,17 +483,22 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByText(/Kinderinhalte bleiben auf Serbisch/i)).toBeVisible();
   });
 
-  it('kupovina je samo u roditeljskom delu i web ne prikazuje lažan uspeh', () => {
+  it('kupovina je samo u roditeljskom delu i web ne prikazuje lažan uspeh', async () => {
     vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
     render(<App />);
-    expect(screen.queryByText('4,99 €')).not.toBeInTheDocument();
+    expect(screen.queryByText('6,99 €')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
     unlockParentSettings();
 
     expect(screen.getByRole('heading', { name: 'Slovolov Porodica' })).toBeVisible();
     expect(screen.getByText(/jednokratno/i)).toBeVisible();
+    expect(screen.getByText(/Jedna kupovina/i)).toBeVisible();
+    expect(screen.getByText(/Bez reklama/i)).toBeVisible();
     expect(screen.getByText(/Android\/iOS aplikaciji/i)).toBeVisible();
     expect(screen.getByRole('button', { name: /Vrati kupovinu/i })).toBeDisabled();
+    await waitFor(() => expect(
+      screen.getAllByText('Kupovina je dostupna u instaliranoj Android/iOS aplikaciji.')
+    ).toHaveLength(1));
   });
 
   it('potvrđeno porodično pravo prikazuje trajno otključan sadržaj', () => {

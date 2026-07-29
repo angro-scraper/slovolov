@@ -1631,10 +1631,17 @@ function Settings({ onBack }: { onBack: () => void }) {
                   ? 'Otključano zauvek'
                   : !commerceEnabled
                     ? 'Sadržaj je dostupan tokom pripreme prodavnice'
-                    : `${purchaseOffer.price ?? '4,99 €'} · jednokratno`}
+                    : `${purchaseOffer.price ?? '6,99 €'} · jednokratno`}
               </p>
             </div>
           </div>
+          {!store.familyAccess.isUnlocked && commerceEnabled && (
+            <div className="family-trust-row" aria-label="Prednosti porodičnog paketa">
+              <span>✓ Jedna kupovina</span>
+              <span>✓ Bez reklama</span>
+              <span>✓ Bez pretplate</span>
+            </div>
+          )}
           <ul>
             <li>Svih 30 slova i brojevi 0–100</li>
             <li>Sve kompletne bajke i buduća proširenja sadržaja</li>
@@ -1651,11 +1658,11 @@ function Settings({ onBack }: { onBack: () => void }) {
             </div>
           )}
           {(store.familyAccess.isUnlocked || !commerceEnabled) && <strong className="family-owned">✓ Porodični sadržaj je dostupan svim profilima.</strong>}
-          {commerceEnabled && !isNativePurchasePlatform() && (
+          {commerceEnabled && !isNativePurchasePlatform() && !purchaseMessage && (
             <p className="purchase-message">Kupovina je dostupna u instaliranoj Android/iOS aplikaciji.</p>
           )}
           {purchaseMessage && <p className="purchase-message" role="status">{purchaseMessage}</p>}
-          <small>Bez pretplate, reklama i automatskog obnavljanja.</small>
+          <small>Kupovinu potvrđuje roditelj. Nema reklama, pretplate ni automatskog obnavljanja.</small>
         </section>
         <label><span>🔊 Zvuk</span><input type="checkbox" checked={store.soundEnabled} onChange={store.toggleSound} /></label>
         <label><span>🌙 Tamni režim</span><input type="checkbox" checked={store.darkMode} onChange={store.toggleTheme} /></label>
