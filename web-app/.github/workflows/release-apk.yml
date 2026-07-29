@@ -1,0 +1,52 @@
+name: Objavi Android APK
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: GitHub release tag, na primer v3.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  android-release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm test -- --run
+      - run: npm run cap:sync
+      - run: chmod +x android/gradlew
+      - run: ./gradlew assembleDebug
+        working-directory: android
+      - name: Pripremi APK
+        shell: bash
+        run: |
+          version="${RELEASE_TAG#v}"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "Slovolov-${version}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Slovolov-Android-${{ env.RELEASE_TAG }}
+          path: Slovolov-*.apk
+      - name: Dodaj APK u GitHub izdanje
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release upload "$RELEASE_TAG" Slovolov-*.apk --clobber --repo "$GITHUB_REPOSITORY"

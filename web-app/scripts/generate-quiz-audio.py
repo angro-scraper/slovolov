@@ -14,11 +14,12 @@ ROOT = Path(__file__).resolve().parents[1]
 LETTERS_PATH = ROOT / "src" / "data" / "letters.json"
 OUTPUT_DIR = ROOT / "public" / "audio" / "quiz"
 VOICE = "sr-RS-SophieNeural"
+QUIZ_RATE = "-18%"
 
 
 async def save(text: str, target: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    communicate = edge_tts.Communicate(text=text, voice=VOICE, rate="-10%")
+    communicate = edge_tts.Communicate(text=text, voice=VOICE, rate=QUIZ_RATE)
     await communicate.save(str(target))
 
 
@@ -31,7 +32,7 @@ async def main() -> None:
             number += 1
             word = entry["word"]
             await save(
-                f"Na slici je {word}. Koje je prvo slovo?",
+                f"На слици је {word}. Које је прво слово?",
                 OUTPUT_DIR / f"{number:02d}.mp3",
             )
             print(f"{number:02d} {word}")
