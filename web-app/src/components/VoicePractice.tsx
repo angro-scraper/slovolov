@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
-export function VoicePractice({ enabled, phrase }: { enabled: boolean; phrase: string }) {
+export function VoicePractice({
+  enabled,
+  phrase,
+  onRecorded
+}: {
+  enabled: boolean;
+  phrase: string;
+  onRecorded?: () => void;
+}) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -8,7 +16,7 @@ export function VoicePractice({ enabled, phrase }: { enabled: boolean; phrase: s
   const [audioUrl, setAudioUrl] = useState('');
   const [message, setMessage] = useState(
     enabled
-      ? `Izgovori: ${phrase}. Snimak ostaje samo na ovom uređaju.`
+      ? `Sovica sluša. Izgovori: ${phrase}. Snimak ostaje samo na ovom uređaju.`
       : 'Roditelj može da uključi lokalnu vežbu glasa u podešavanjima.'
   );
 
@@ -41,6 +49,7 @@ export function VoicePractice({ enabled, phrase }: { enabled: boolean; phrase: s
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
         setMessage('Snimak je spreman samo na ovom uređaju. Poslušaj i uporedi.');
+        onRecorded?.();
       };
       streamRef.current = stream;
       recorderRef.current = recorder;
@@ -60,6 +69,7 @@ export function VoicePractice({ enabled, phrase }: { enabled: boolean; phrase: s
   return (
     <aside className="voice-practice">
       <div><span>🎙️</span><p role="status">{message}</p></div>
+      <small>Sovica te ohrabruje, ali ne ocenjuje da li je izgovor savršen.</small>
       {recording
         ? <button className="secondary" onClick={stopRecording}>Zaustavi snimanje</button>
         : <button className="secondary" onClick={() => void startRecording()}>Snimi moj glas</button>}

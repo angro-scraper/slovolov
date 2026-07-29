@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { quizQuestions } from './data/quizQuestions';
 import { LATIN_ALPHABET } from './domain/letters';
+import { adventureWorlds } from './domain/adventure';
 import { clearFullStoryCache } from './services/fullStoryLibrary';
 import { convertInterfaceText } from './services/interfaceScript';
 import { useProgressStore } from './store/progress';
@@ -65,6 +66,40 @@ describe('Slovolov glavni tok', () => {
       'src',
       '/icons/slovolov-icon-192.png'
     );
+  });
+
+  it('otvara mapu od 30 progresivnih nivoa i ne preskače zaključan nivo', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+
+    expect(screen.getByText('Sovicina šuma glasova')).toBeVisible();
+    const first = screen.getByRole('button', { name: /Nivo 1: Prvi glas$/i });
+    const second = screen.getByRole('button', { name: /Nivo 2: Slovo i slika, zaključano/i });
+    expect(first).toBeEnabled();
+    expect(second).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: /Nivo \d+:/i })).toHaveLength(36);
+  });
+
+  it('otključava sledeći nivo tek kada je prethodni stvarno završen', async () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+    useProgressStore.getState().completeLearningPath('voice-1');
+
+    await waitFor(() => expect(
+      screen.getByRole('button', { name: /Nivo 2: Slovo i slika$/i })
+    ).toBeEnabled());
+  });
+
+  it('prikazuje stvarni progresivni logički zadatak sa jasnim objašnjenjem', async () => {
+    const levels = adventureWorlds.flatMap((world) => world.levels);
+    levels.slice(0, 18).forEach((level) => useProgressStore.getState().completeLearningPath(level.id));
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Nivo 19: Sabiranje slikama$/i }));
+    fireEvent.click(screen.getByRole('button', { name: '3' }));
+
+    expect(await screen.findByText(/Dve i jedna su tri/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Nastavi avanturu' })).toBeEnabled();
   });
 
   it('otvara školu slova i prikazuje reči u izabranom pismu', () => {

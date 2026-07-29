@@ -14,6 +14,12 @@ describe('privatna vežba izgovora', () => {
     expect(screen.queryByRole('button', { name: /Snimi moj glas/i })).not.toBeInTheDocument();
   });
 
+  it('Sovica podstiče dete bez lažne ocene izgovora', () => {
+    render(<VoicePractice enabled phrase="МАМА" />);
+    expect(screen.getByText(/Sovica sluša/i)).toBeVisible();
+    expect(screen.getByText(/ne ocenjuje da li je izgovor savršen/i)).toBeVisible();
+  });
+
   it('snima lokalno i nudi preslušavanje bez mrežnog zahteva', async () => {
     const stopTrack = vi.fn();
     const getUserMedia = vi.fn().mockResolvedValue({ getTracks: () => [{ stop: stopTrack }] });

@@ -6,9 +6,17 @@ type ColoringPadProps = {
   letter: string;
   illustration?: string;
   onSaved?: (letter: string) => void;
+  storageKey?: string;
+  canvasLabel?: string;
 };
 
-export function ColoringPad({ letter, illustration = '🌈', onSaved }: ColoringPadProps) {
+export function ColoringPad({
+  letter,
+  illustration = '🌈',
+  onSaved,
+  storageKey,
+  canvasLabel
+}: ColoringPadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [color, setColor] = useState(palette[0]);
   const [drawing, setDrawing] = useState(false);
@@ -23,13 +31,13 @@ export function ColoringPad({ letter, illustration = '🌈', onSaved }: Coloring
     canvas.height = bounds.height * ratio;
     const context = canvas.getContext('2d');
     context?.scale(ratio, ratio);
-    const saved = localStorage.getItem(`slovolov-coloring-${letter}`);
+    const saved = localStorage.getItem(`slovolov-coloring-${storageKey ?? letter}`);
     if (saved) {
       const image = new Image();
       image.onload = () => context?.drawImage(image, 0, 0, bounds.width, bounds.height);
       image.src = saved;
     }
-  }, [letter]);
+  }, [letter, storageKey]);
 
   const drawPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
@@ -52,7 +60,7 @@ export function ColoringPad({ letter, illustration = '🌈', onSaved }: Coloring
     }
     try {
       const image = canvas.toDataURL('image/png');
-      localStorage.setItem(`slovolov-coloring-${letter}`, image);
+      localStorage.setItem(`slovolov-coloring-${storageKey ?? letter}`, image);
       setMessage('Crtež je sačuvan! Otvaramo sledeće slovo.');
       onSaved?.(letter);
     } catch {
@@ -63,16 +71,16 @@ export function ColoringPad({ letter, illustration = '🌈', onSaved }: Coloring
   const clear = () => {
     const canvas = canvasRef.current;
     if (canvas) canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
-    localStorage.removeItem(`slovolov-coloring-${letter}`);
+    localStorage.removeItem(`slovolov-coloring-${storageKey ?? letter}`);
     setMessage('Platno je obrisano.');
   };
 
   return (
     <div className="coloring-pad">
-      <div className="coloring-picture" aria-hidden="true">{illustration}<strong>{letter}</strong></div>
+      <div className="coloring-picture" aria-hidden="true">{illustration}{letter && <strong>{letter}</strong>}</div>
       <canvas
         ref={canvasRef}
-        aria-label={`Bojanka za slovo ${letter}`}
+        aria-label={canvasLabel ?? `Bojanka za slovo ${letter}`}
         onPointerDown={(event) => {
           event.currentTarget.setPointerCapture(event.pointerId);
           setDrawing(true);

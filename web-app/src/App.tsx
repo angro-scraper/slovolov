@@ -6,6 +6,9 @@ import { isCommerceEnabled } from './config/commerce';
 import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
+import { familyMissions } from './data/familyMissions';
+import { logicChallenges } from './data/logicChallenges';
+import { cultureCards } from './data/serbianCulture';
 import { seededChoices } from './domain/choices';
 import { canAccessLetter, canAccessNumber, canAccessStory } from './domain/access';
 import { nextLetterToPractice, summarizeLearning } from './domain/learning';
@@ -18,6 +21,12 @@ import {
   creativePlaces,
   creativeQuests
 } from './domain/creativeStory';
+import {
+  adventureWorlds,
+  getAdventureProgress,
+  isAdventureLevelUnlocked,
+  type AdventureLevel
+} from './domain/adventure';
 import { narrateSentences, type NarrationSession } from './services/narration';
 import { loadFullStoryContent, type FullStoryContent } from './services/fullStoryLibrary';
 import {
@@ -42,9 +51,10 @@ import {
 } from './services/purchases';
 import { useProgressStore } from './store/progress';
 
-type Screen = 'home' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
+type Screen = 'home' | 'adventure' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
 
 const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: string }> = [
+  { screen: 'adventure', icon: '🗺️', title: 'Moja avantura', subtitle: '36 nivoa koji postaju sve teži' },
   { screen: 'adaptive', icon: '✨', title: 'Moja lekcija', subtitle: 'Pametno ponavljanje baš za mene' },
   { screen: 'daily', icon: '🌞', title: 'Dnevni izazov', subtitle: 'Tri kratka koraka i 3 zvezdice' },
   { screen: 'learn', icon: '🔤', title: 'Nauči slova', subtitle: 'Slušaj, gledaj i pamti' },
@@ -81,6 +91,7 @@ export function App() {
   const appRef = useRef<HTMLDivElement>(null);
   const [screen, setScreen] = useState<Screen>('home');
   const [selected, setSelected] = useState<Letter>(letters[0]);
+  const [activeAdventureLevel, setActiveAdventureLevel] = useState<AdventureLevel | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [letterCase, setLetterCase] = useState<'upper' | 'lower'>('upper');
   const [traceMessage, setTraceMessage] = useState('Prati celo svetlo slovo prstom.');
@@ -99,6 +110,17 @@ export function App() {
     stopAppSpeech();
     setScreen(nextScreen);
   }, []);
+  const openAdventureLevel = useCallback((level: AdventureLevel) => {
+    setActiveAdventureLevel(level);
+    navigate(level.route);
+  }, [navigate]);
+  const finishAdventureLevel = useCallback(() => {
+    if (activeAdventureLevel) {
+      useProgressStore.getState().completeLearningPath(activeAdventureLevel.id);
+    }
+    setActiveAdventureLevel(null);
+    navigate('adventure');
+  }, [activeAdventureLevel, navigate]);
 
   useLayoutEffect(() => {
     const root = appRef.current;
@@ -329,18 +351,23 @@ export function App() {
       </div>
     );
 
+    if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} />;
+    if (screen === 'voice') return <VoiceQuest level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} />;
+    if (screen === 'family-missions') return <FamilyMissions level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} />;
+    if (screen === 'logic') return <LogicLab level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
+    if (screen === 'culture') return <CultureExplorer level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} script={script} />;
     if (screen === 'adaptive') return <AdaptiveLesson onBack={() => navigate('home')} sound={sound} />;
     if (screen === 'daily') return <DailyChallenge onBack={() => navigate('home')} sound={sound} />;
     if (screen === 'games') return <GameHub onBack={() => navigate('home')} sound={sound} />;
 
     if (screen === 'quiz') return <Quiz onBack={() => navigate('home')} sound={sound} />;
     if (screen === 'numbers') return <Numbers onBack={() => navigate('home')} onFamily={() => navigate('settings')} sound={sound} />;
-    if (screen === 'reading') return <Reading onBack={() => navigate('home')} sound={sound} />;
+    if (screen === 'reading') return <Reading onBack={() => activeAdventureLevel ? navigate('adventure') : navigate('home')} sound={sound} onLevelComplete={activeAdventureLevel ? finishAdventureLevel : undefined} adventureDifficulty={activeAdventureLevel?.difficulty} />;
     if (screen === 'fairy-tales') return <FairyTales onBack={() => navigate('home')} onFamily={() => navigate('settings')} sound={sound} />;
-    if (screen === 'creative') return <CreativeStudio onBack={() => navigate('home')} sound={sound} />;
+    if (screen === 'creative') return <CreativeStudio onBack={() => activeAdventureLevel ? navigate('adventure') : navigate('home')} sound={sound} onLevelComplete={activeAdventureLevel ? finishAdventureLevel : undefined} adventureDifficulty={activeAdventureLevel?.difficulty} />;
     if (screen === 'progress') return <Progress onBack={() => navigate('home')} />;
     return <Settings onBack={() => navigate('home')} />;
-  }, [celebrate, coloringMessage, familyUnlocked, letterCase, navigate, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
+  }, [activeAdventureLevel, celebrate, coloringMessage, familyUnlocked, finishAdventureLevel, letterCase, navigate, openAdventureLevel, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
 
   const appClasses = [
     'app',
@@ -352,6 +379,202 @@ export function App() {
   ].filter(Boolean).join(' ');
 
   return <div ref={appRef} className={appClasses} data-script={script}>{body}</div>;
+}
+
+function AdventureMap({
+  onBack,
+  onOpen
+}: {
+  onBack: () => void;
+  onOpen: (level: AdventureLevel) => void;
+}) {
+  const completed = useProgressStore((state) => state.profile.completedLearningPaths);
+  const progress = getAdventureProgress(completed);
+  return (
+    <div className="adventure-screen">
+      <Header title="Moja avantura" onBack={onBack} />
+      <main className="adventure-map">
+        <section className="adventure-summary">
+          <div>
+            <small>VELIKA SLOVOLOV AVANTURA</small>
+            <h2>{progress.completed}/{progress.total} nivoa</h2>
+            <p>Svaki sledeći nivo donosi malo teži zadatak.</p>
+          </div>
+          <div className="adventure-ring" style={{ '--progress': `${progress.percent * 3.6}deg` } as React.CSSProperties}>
+            <strong>{progress.percent}%</strong>
+          </div>
+        </section>
+        <div className="adventure-worlds">
+          {adventureWorlds.map((world) => (
+            <section className="adventure-world" key={world.id} style={{ '--world-color': world.color } as React.CSSProperties}>
+              <header><div><h3>{world.title}</h3><p>{world.description}</p></div><span>{world.levels.at(-1)?.icon}</span></header>
+              <div className="adventure-levels">
+                {world.levels.map((level) => {
+                  const done = completed.includes(level.id);
+                  const unlocked = done || isAdventureLevelUnlocked(level, completed);
+                  return (
+                    <button
+                      key={level.id}
+                      className={`${done ? 'done' : ''} ${unlocked ? '' : 'locked'}`}
+                      disabled={!unlocked}
+                      onClick={() => onOpen(level)}
+                      aria-label={`Nivo ${level.order}: ${level.title}${done ? ', završeno' : unlocked ? '' : ', zaključano'}`}
+                    >
+                      <span>{done ? '✓' : unlocked ? level.icon : '🔒'}</span>
+                      <strong>{level.order}</strong>
+                      <small>{level.title}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function VoiceQuest({
+  level,
+  onBack,
+  onComplete
+}: {
+  level: AdventureLevel | null;
+  onBack: () => void;
+  onComplete: () => void;
+}) {
+  const microphoneEnabled = useProgressStore((state) => state.microphonePracticeEnabled);
+  const difficulty = level?.difficulty ?? 1;
+  const phrases = ['А', 'АВИОН', 'СУНЦЕ И ШУМА', 'ЉУЉАШКА', 'ЊЕЖНИ ЉИЉАН', 'МАЛА СОВА ЛЕТИ ИЗНАД ШУМЕ'];
+  const phrase = phrases[Math.min(phrases.length - 1, difficulty - 1)];
+  const [recorded, setRecorded] = useState(false);
+  return (
+    <div className="single-screen">
+      <Header title="Pričaj sa Sovicom" onBack={onBack} />
+      <main className="voice-quest">
+        <section className="owl-coach">
+          <span aria-hidden="true">🦉</span>
+          <div><small>NIVO {level?.order ?? 1}</small><h2>{level?.title ?? 'Vežba glasa'}</h2><p>Poslušaj sebe i pokušaj ponovo ako želiš. Ovde nema loše ocene.</p></div>
+        </section>
+        <div className="voice-phrase"><small>PONOVI</small><strong>{phrase}</strong></div>
+        <VoicePractice enabled={microphoneEnabled} phrase={phrase} onRecorded={() => setRecorded(true)} />
+        {recorded && <button className="primary" onClick={onComplete}>Snimak je spreman — završi nivo ⭐</button>}
+        {!microphoneEnabled && <p className="safe-note">Roditelj prvo uključuje mikrofon u zaštićenim podešavanjima. Snimak se ne šalje na internet.</p>}
+      </main>
+    </div>
+  );
+}
+
+function FamilyMissions({
+  level,
+  onBack,
+  onComplete
+}: {
+  level: AdventureLevel | null;
+  onBack: () => void;
+  onComplete: () => void;
+}) {
+  const desiredDifficulty = Math.min(3, Math.max(1, Math.ceil((level?.difficulty ?? 1) / 2))) as 1 | 2 | 3;
+  const missions = familyMissions.filter((mission) => mission.difficulty === desiredDifficulty);
+  const [missionIndex, setMissionIndex] = useState(0);
+  const mission = missions[missionIndex % missions.length];
+  return (
+    <div className="single-screen">
+      <Header title="Porodična misija" onBack={onBack} />
+      <main className="family-mission">
+        <section className="mission-card">
+          <span className="mission-icon">{mission.icon}</span>
+          <small>BEZ EKRANA · TEŽINA {mission.difficulty}/3</small>
+          <h2>{mission.title}</h2>
+          <p className="child-prompt">{mission.childPrompt}</p>
+          <aside><strong>Za roditelja</strong><p>{mission.parentPrompt}</p></aside>
+        </section>
+        <div className="mission-actions">
+          <button className="secondary" onClick={() => setMissionIndex((value) => value + 1)}>Druga misija</button>
+          <button className="primary" onClick={onComplete}>Uradili smo zajedno ⭐</button>
+        </div>
+        <p className="safe-note">Telefon sada može da se spusti. Kada završite, vratite se i potvrdite zajedno.</p>
+      </main>
+    </div>
+  );
+}
+
+function LogicLab({
+  level,
+  onBack,
+  onComplete,
+  sound
+}: {
+  level: AdventureLevel | null;
+  onBack: () => void;
+  onComplete: () => void;
+  sound: boolean;
+}) {
+  const requestedLevel = Math.min(logicChallenges.length, Math.max(1, level?.difficulty ?? 1));
+  const challenge = logicChallenges[requestedLevel - 1];
+  const [message, setMessage] = useState('Pogledaj, razmisli i izaberi odgovor.');
+  const [solved, setSolved] = useState(false);
+  return (
+    <div className="single-screen">
+      <Header title="Svet brojeva i logike" onBack={onBack} />
+      <main className="logic-lab">
+        <section className="logic-card">
+          <div className="logic-level"><span>{challenge.icon}</span><small>NIVO {challenge.level}/8</small></div>
+          <h2>{challenge.prompt}</h2>
+          <div className="logic-visual" aria-label={challenge.prompt}>{challenge.visual}</div>
+          <div className="logic-answers">
+            {challenge.answers.map((answer) => <button key={answer} disabled={solved} onClick={() => {
+              if (answer !== challenge.correct) {
+                setMessage('Pokušaj ponovo. Razmisli korak po korak.');
+                return;
+              }
+              setSolved(true);
+              setMessage(`Tačno! ${challenge.explanation} ⭐`);
+              void speak('Bravo! Tačan odgovor.', sound);
+            }}>{answer}</button>)}
+          </div>
+          <p role="status">{message}</p>
+        </section>
+        {solved && <button className="primary" onClick={onComplete}>Nastavi avanturu</button>}
+      </main>
+    </div>
+  );
+}
+
+function CultureExplorer({
+  level,
+  onBack,
+  onComplete,
+  script
+}: {
+  level: AdventureLevel | null;
+  onBack: () => void;
+  onComplete: () => void;
+  script: 'cyrillic' | 'latin';
+}) {
+  const desiredLevel = Math.min(3, Math.max(1, Math.ceil((level?.difficulty ?? 1) / 2))) as 1 | 2 | 3;
+  const cards = cultureCards.filter((card) => card.level <= desiredLevel);
+  const [index, setIndex] = useState(0);
+  const card = cards[index % cards.length];
+  return (
+    <div className="single-screen">
+      <Header title="Srpski kod kuće" onBack={onBack} />
+      <main className="culture-explorer">
+        <section className="culture-card">
+          <span>{card.icon}</span>
+          <small>{card.category.toLocaleUpperCase('sr')}</small>
+          <h2>{script === 'cyrillic' ? card.titleCyrillic : card.titleLatin}</h2>
+          <p>{script === 'cyrillic' ? card.fact : transliterate(card.fact)}</p>
+          <aside><strong>Razgovarajte zajedno</strong><p>{script === 'cyrillic' ? card.familyPrompt : transliterate(card.familyPrompt)}</p></aside>
+        </section>
+        <div className="mission-actions">
+          <button className="secondary" onClick={() => setIndex((value) => value + 1)}>Sledeća kartica</button>
+          <button className="primary" onClick={onComplete}>Naučili smo nešto novo ⭐</button>
+        </div>
+      </main>
+    </div>
+  );
 }
 
 function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean }) {
@@ -867,10 +1090,24 @@ function Numbers({ onBack, onFamily, sound }: { onBack: () => void; onFamily: ()
   );
 }
 
-function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+function Reading({
+  onBack,
+  sound,
+  onLevelComplete,
+  adventureDifficulty
+}: {
+  onBack: () => void;
+  sound: boolean;
+  onLevelComplete?: () => void;
+  adventureDifficulty?: number;
+}) {
   const [active, setActive] = useState(0);
-  const [level, setLevel] = useState<'phonics' | 'syllables' | 'words' | 'story'>('syllables');
-  const [age, setAge] = useState<ReadingAge>('6–8');
+  const [level, setLevel] = useState<'phonics' | 'syllables' | 'words' | 'story'>(
+    adventureDifficulty === undefined ? 'syllables' : adventureDifficulty <= 1 ? 'syllables' : adventureDifficulty <= 2 || adventureDifficulty === 5 ? 'words' : 'story'
+  );
+  const [age, setAge] = useState<ReadingAge>(
+    adventureDifficulty === undefined ? '6–8' : adventureDifficulty <= 3 ? '4–6' : adventureDifficulty <= 4 ? '6–8' : '8–10'
+  );
   const [storyIndex, setStoryIndex] = useState(0);
   const [message, setMessage] = useState('Slušaj, pa pročitaj naglas.');
   const completeReading = useProgressStore((state) => state.completeReading);
@@ -926,6 +1163,7 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               ))}
             </div>
             <p>Dodirni svaki slog, poslušaj ga i ponovi naglas.</p>
+            {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam slogove ⭐</button>}
           </section>
         )}
         {level === 'words' && (
@@ -939,6 +1177,7 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             </div>
             <p>Prvo pročitaj samostalno, zatim dodirni reč za proveru.</p>
             <VoicePractice enabled={microphoneEnabled} phrase="МАМА" />
+            {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam čitanje ⭐</button>}
           </section>
         )}
         {level === 'story' && (
@@ -978,6 +1217,7 @@ function Reading({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                   completeReading(story.id);
                   setMessage('Bravo! Razumeo si priču i osvojio zvezdicu! ⭐');
                   void speak('Bravo! Razumeo si priču.', sound);
+                  onLevelComplete?.();
                 }}>{answer}</button>
               ))}
             </div>
@@ -1404,13 +1644,24 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
   );
 }
 
-function CreativeStudio({ onBack, sound }: { onBack: () => void; sound: boolean }) {
+function CreativeStudio({
+  onBack,
+  sound,
+  onLevelComplete,
+  adventureDifficulty
+}: {
+  onBack: () => void;
+  sound: boolean;
+  onLevelComplete?: () => void;
+  adventureDifficulty?: number;
+}) {
   const [heroIndex, setHeroIndex] = useState(0);
   const [placeIndex, setPlaceIndex] = useState(0);
   const [questIndex, setQuestIndex] = useState(0);
   const [helperIndex, setHelperIndex] = useState(0);
   const [endingIndex, setEndingIndex] = useState(0);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [drawingOpen, setDrawingOpen] = useState(false);
   const [message, setMessage] = useState('Izaberi junaka i tok priče. Svaki izbor menja avanturu.');
   const saveCreation = useProgressStore((state) => state.saveCreation);
   const completeGame = useProgressStore((state) => state.completeGame);
@@ -1435,7 +1686,7 @@ function CreativeStudio({ onBack, sound }: { onBack: () => void; sound: boolean 
           <header className="creative-cover">
             <span aria-hidden="true">{hero.emoji}</span>
             <div>
-              <small>PRIČA KOJU JE OSMISLILO DETE</small>
+              <small>MOJA KNJIGA · PRIČA KOJU JE OSMISLILO DETE</small>
               <h2>{story.title}</h2>
               <p>Autor: {profile.name}</p>
             </div>
@@ -1457,37 +1708,50 @@ function CreativeStudio({ onBack, sound }: { onBack: () => void; sound: boolean 
               setEndingIndex((value) => (value + 1) % creativeEndings.length);
               setMessage('Napravljena je nova kombinacija priče.');
             }}>🎲 Nova priča</button>
-            <button className="secondary" onClick={() => setVoiceOpen((value) => !value)}>🎙️ Ispričaj je svojim glasom</button>
+            {(adventureDifficulty === undefined || adventureDifficulty >= 6) && <button className="secondary" onClick={() => setVoiceOpen((value) => !value)}>🎙️ Ispričaj je svojim glasom</button>}
+            {(adventureDifficulty === undefined || adventureDifficulty >= 5) && <button className="secondary" onClick={() => setDrawingOpen((value) => !value)}>🎨 Nacrtaj naslovnicu</button>}
           </div>
         </section>
         {voiceOpen && <VoicePractice enabled={microphoneEnabled} phrase={story.title} />}
+        {drawingOpen && (
+          <section className="creative-drawing" aria-label="Ilustracija za Moju knjigu">
+            <ColoringPad
+              letter=""
+              storageKey={`moja-knjiga-${heroIndex}-${placeIndex}-${questIndex}`}
+              canvasLabel="Platno za naslovnicu Moje knjige"
+              illustration={hero.emoji}
+              onSaved={() => setMessage('Naslovnica je sačuvana lokalno uz tvoju Moju knjigu.')}
+            />
+          </section>
+        )}
         <section className="creative-options">
           <fieldset>
             <legend>1. Junak</legend>
             <div>{creativeHeroes.map((item, index) => <button key={item.name} className={index === heroIndex ? 'active' : ''} onClick={() => setHeroIndex(index)}>{item.emoji} {item.name}</button>)}</div>
           </fieldset>
-          <fieldset>
+          {(adventureDifficulty === undefined || adventureDifficulty >= 2) && <fieldset>
             <legend>2. Mesto</legend>
             <div>{creativePlaces.map((place, index) => <button key={place.label} className={index === placeIndex ? 'active' : ''} onClick={() => setPlaceIndex(index)}>{place.emoji} {place.label}</button>)}</div>
-          </fieldset>
-          <fieldset>
+          </fieldset>}
+          {(adventureDifficulty === undefined || adventureDifficulty >= 3) && <fieldset>
             <legend>3. Pustolovina</legend>
             <div>{creativeQuests.map((quest, index) => <button key={quest.label} className={index === questIndex ? 'active' : ''} onClick={() => setQuestIndex(index)}>{quest.label}</button>)}</div>
-          </fieldset>
-          <fieldset>
+          </fieldset>}
+          {(adventureDifficulty === undefined || adventureDifficulty >= 4) && <fieldset>
             <legend>4. Pomoćnik</legend>
             <div>{creativeHelpers.map((helper, index) => <button key={helper.name} className={index === helperIndex ? 'active' : ''} onClick={() => setHelperIndex(index)}>{helper.emoji} {helper.name}</button>)}</div>
-          </fieldset>
-          <fieldset>
+          </fieldset>}
+          {(adventureDifficulty === undefined || adventureDifficulty >= 4) && <fieldset>
             <legend>5. Završetak</legend>
             <div>{creativeEndings.map((ending, index) => <button key={ending.label} className={index === endingIndex ? 'active' : ''} onClick={() => setEndingIndex(index)}>{ending.label}</button>)}</div>
-          </fieldset>
+          </fieldset>}
         </section>
         <button className="primary" onClick={() => {
           saveCreation(story.text);
           completeGame('creative-first-story');
           setMessage('Cela priča je sačuvana samo na ovom uređaju. Osvojio si 2 zvezdice! ⭐');
           void speak('Bravo! Tvoja priča je sačuvana.', sound);
+          onLevelComplete?.();
         }}>💾 Sačuvaj moju priču</button>
         <p className="creative-status" role="status">{message}</p>
       </main>
@@ -1500,6 +1764,7 @@ function Progress({ onBack }: { onBack: () => void }) {
   const percent = Math.round(profile.learnedLetters.length / 30 * 100);
   const summary = summarizeLearning(profile.skillStats);
   const learningMinutes = Math.round(profile.learningSeconds / 60);
+  const adventureProgress = getAdventureProgress(profile.completedLearningPaths);
   return (
     <>
       <Header title="Moj napredak" onBack={onBack} />
@@ -1507,6 +1772,13 @@ function Progress({ onBack }: { onBack: () => void }) {
         <div className="profile-avatar">{profile.avatar}</div><h2>{profile.name}</h2>
         <div className="progress-ring" style={{ '--progress': `${percent * 3.6}deg` } as React.CSSProperties}><span>{percent}%</span></div>
         <div className="stats"><article><b>{profile.learnedLetters.length}</b><small>Naučenih slova</small></article><article><b>{profile.learnedNumbers.length}</b><small>Naučenih brojeva</small></article><article><b>{profile.stars} ⭐</b><small>Zvezdica</small></article><article><b>{profile.streak} 🔥</b><small>Dnevni niz</small></article></div>
+        <section className="adventure-progress-card">
+          <div><strong>{adventureProgress.completed}/{adventureProgress.total}</strong><small>Završenih nivoa avanture</small></div>
+          <div className="adventure-progress-track"><span style={{ width: `${adventureProgress.percent}%` }} /></div>
+          <p>{summary.needsPractice.length
+            ? 'Sledeći nivo će ponoviti veštine koje su detetu trenutno najpotrebnije.'
+            : 'Spremno je za sledeći otključani nivo na mapi avanture.'}</p>
+        </section>
         <section className="learning-insights">
           <h3>Moj pregled učenja</h3>
           <div>
