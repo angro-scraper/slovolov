@@ -10,13 +10,21 @@ import {
 } from './nativeAudioSession';
 
 let activeAudio: HTMLAudioElement | null = null;
+let activeCompletion: ((completed: boolean) => void) | null = null;
+let playbackGeneration = 0;
 
 function stopOtherVoices(): void {
-  stopAllAppAudio();
-  if (!activeAudio) return;
-  activeAudio.pause();
-  activeAudio.currentTime = 0;
+  playbackGeneration += 1;
+  const previousAudio = activeAudio;
+  const previousCompletion = activeCompletion;
   activeAudio = null;
+  activeCompletion = null;
+  stopAllAppAudio();
+  if (previousAudio) {
+    previousAudio.pause();
+    previousAudio.currentTime = 0;
+  }
+  previousCompletion?.(false);
   void releaseNativeAudioSession();
 }
 
@@ -26,16 +34,40 @@ export function stopAppSpeech(): void {
 
 async function playSource(
   localSource: string,
-  enabled: boolean
+  enabled: boolean,
+  waitForEnd = false
 ): Promise<boolean> {
-  if (!enabled) return false;
+  if (!enabled) {
+    stopOtherVoices();
+    return false;
+  }
   stopOtherVoices();
+  const generation = playbackGeneration;
   const audio = new Audio(versionAudioUrl(localSource));
   activeAudio = audio;
   audio.currentTime = 0;
-  audio.onended = () => {
-    if (activeAudio === audio) activeAudio = null;
+  let finish: ((completed: boolean) => void) | null = null;
+  const completion = waitForEnd
+    ? new Promise<boolean>((resolve) => {
+        finish = resolve;
+        activeCompletion = resolve;
+      })
+    : null;
+
+  const finishPlayback = (completed: boolean) => {
+    if (activeAudio === audio) {
+      activeAudio = null;
+      activeCompletion = null;
+    }
+    finish?.(completed);
+    finish = null;
     void releaseNativeAudioSession();
+  };
+  audio.onended = () => {
+    finishPlayback(true);
+  };
+  audio.onerror = () => {
+    finishPlayback(false);
   };
   try {
     // Ne čekamo native most pre play(): iOS zahteva da HTML audio počne u
@@ -44,18 +76,28 @@ async function playSource(
     const nativeActivation = activateNativeAudioSession();
     await audio.play();
     await nativeActivation;
+    if (generation !== playbackGeneration || activeAudio !== audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      finishPlayback(false);
+      return false;
+    }
     await activateNativeAudioSession();
-    return true;
+    return completion ?? true;
   } catch {
-    if (activeAudio === audio) activeAudio = null;
+    finishPlayback(false);
     return false;
   }
 }
 
-export async function speak(text: string, enabled = true): Promise<void> {
+async function speakLocal(
+  text: string,
+  enabled: boolean,
+  waitForEnd: boolean
+): Promise<boolean> {
   if (!enabled) {
     stopOtherVoices();
-    return;
+    return false;
   }
   const letterAudio = resolveLetterAudio(text);
   const feedbackAudio = resolveFeedbackAudio(text);
@@ -69,7 +111,18 @@ export async function speak(text: string, enabled = true): Promise<void> {
     ?? versionAudioUrl(`/audio/${encodeURIComponent(key)}.mp3`);
   // Aplikacija nikada ne prelazi na glas telefona. Android/iOS sistemski TTS
   // ume da izgovori srpska slova drugim jezikom i da se preklopi sa snimkom.
-  await playSource(localSource, enabled);
+  return playSource(localSource, enabled, waitForEnd);
+}
+
+export async function speak(text: string, enabled = true): Promise<void> {
+  await speakLocal(text, enabled, false);
+}
+
+export async function speakAndWait(
+  text: string,
+  enabled = true
+): Promise<boolean> {
+  return speakLocal(text, enabled, true);
 }
 
 export async function speakRecordedPrompt(
@@ -83,4 +136,17 @@ export async function speakRecordedPrompt(
     return;
   }
   await playSource(localSource, enabled);
+}
+
+export async function speakRecordedPromptAndWait(
+  text: string,
+  localSource: string,
+  enabled = true
+): Promise<boolean> {
+  void text;
+  if (!enabled) {
+    stopOtherVoices();
+    return false;
+  }
+  return playSource(localSource, enabled, true);
 }

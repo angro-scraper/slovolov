@@ -17,7 +17,13 @@ import {
   isStoryAvailableOffline,
   type StoryDownloadProgress
 } from './services/storyOffline';
-import { speak, speakRecordedPrompt, stopAppSpeech } from './services/speech';
+import {
+  speak,
+  speakAndWait,
+  speakRecordedPrompt,
+  speakRecordedPromptAndWait,
+  stopAppSpeech
+} from './services/speech';
 import { createQuizRound } from './data/quizQuestions';
 import { applyInterfaceScript } from './services/interfaceScript';
 import {
@@ -624,7 +630,9 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const [score, setScore] = useState(0);
   const [message, setMessage] = useState('Poslušaj naziv slike i izaberi početno slovo.');
   const [advancing, setAdvancing] = useState(false);
-  const nextQuestionTimer = useRef<number | null>(null);
+  const [promptPlaying, setPromptPlaying] = useState(false);
+  const mounted = useRef(true);
+  const promptGeneration = useRef(0);
   const target = round[Math.min(question, round.length - 1)];
   const targetLetter = letters[target.letterIndex];
   const prompt = `Na slici je ${target.word}. Koje je prvo slovo?`;
@@ -634,15 +642,31 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     letters[(target.letterIndex + 11) % 30]
   ], question + target.letterIndex);
 
-  useEffect(() => {
-    if (question < round.length && !advancing) {
-      void speakRecordedPrompt(prompt, target.audioSource, sound);
+  const playPrompt = useCallback(async () => {
+    const generation = ++promptGeneration.current;
+    setPromptPlaying(true);
+    await speakRecordedPromptAndWait(prompt, target.audioSource, sound);
+    if (mounted.current && generation === promptGeneration.current) {
+      setPromptPlaying(false);
     }
-  }, [advancing, prompt, question, round.length, sound, target.audioSource]);
+  }, [prompt, sound, target.audioSource]);
 
-  useEffect(() => () => {
-    if (nextQuestionTimer.current !== null) window.clearTimeout(nextQuestionTimer.current);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      promptGeneration.current += 1;
+      stopAppSpeech();
+    };
   }, []);
+
+  useEffect(() => {
+    if (question < round.length) void playPrompt();
+    return () => {
+      promptGeneration.current += 1;
+      stopAppSpeech();
+    };
+  }, [playPrompt, question, round.length]);
 
   return (
     <div className="single-screen">
@@ -656,7 +680,8 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           <button
             className="secondary quiz-listen"
             aria-label="Poslušaj naziv slike ponovo"
-            onClick={() => void speakRecordedPrompt(prompt, target.audioSource, sound)}
+            disabled={advancing || promptPlaying}
+            onClick={() => void playPrompt()}
           >
             🔊 Poslušaj ponovo
           </button>
@@ -669,12 +694,14 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             setScore((value) => value + 1);
             setMessage('Bravo! Tačan odgovor.');
             setAdvancing(true);
-            void speak('Bravo! Tačan odgovor!', sound);
-            nextQuestionTimer.current = window.setTimeout(() => {
+            promptGeneration.current += 1;
+            void (async () => {
+              await speakAndWait('Bravo! Tačan odgovor!', sound);
+              if (!mounted.current) return;
               setQuestion((value) => value + 1);
               setMessage('Poslušaj naziv slike i izaberi početno slovo.');
               setAdvancing(false);
-            }, 4_400);
+            })();
           }}>{letter.upper}</button>)}</div>
           <p role="status">{message}</p>
         </> : <div className="result"><span>{score >= 9 ? '🥇' : score >= 7 ? '🥈' : '🥉'}</span><h2>{score}/{round.length} tačnih!</h2><button className="primary" onClick={onBack}>Na početak</button></div>}

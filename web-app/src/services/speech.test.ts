@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { speak, speakRecordedPrompt, stopAppSpeech } from './speech';
+import {
+  speak,
+  speakAndWait,
+  speakRecordedPrompt,
+  speakRecordedPromptAndWait,
+  stopAppSpeech
+} from './speech';
 import * as nativeAudioSession from './nativeAudioSession';
 
 describe('isključivo lokalni govor aplikacije', () => {
@@ -64,6 +70,40 @@ describe('isključivo lokalni govor aplikacije', () => {
     expect(created[0].currentTime).toBe(0);
     expect(created[1].src).toBe('/audio/quiz/02.mp3?v=sr-sophie-lesson-v4-20260728');
     expect(synthSpeak).not.toHaveBeenCalled();
+  });
+
+  it('kviz čeka kraj jednog snimka i zastareli poziv ne može da nastavi da govori', async () => {
+    const first = speakRecordedPromptAndWait('Prvo', '/audio/quiz/01.mp3');
+    await vi.waitFor(() => expect(created).toHaveLength(1));
+
+    const second = speakRecordedPromptAndWait('Drugo', '/audio/quiz/02.mp3');
+    await expect(first).resolves.toBe(false);
+    expect(pause).toHaveBeenCalled();
+    expect(created[0].currentTime).toBe(0);
+
+    let secondFinished = false;
+    void second.then(() => {
+      secondFinished = true;
+    });
+    await Promise.resolve();
+    expect(secondFinished).toBe(false);
+
+    await vi.waitFor(() => expect(nativeAudioSession.activateNativeAudioSession)
+      .toHaveBeenCalledTimes(3));
+    created[1].onended?.();
+    await expect(second).resolves.toBe(true);
+    expect(synthSpeak).not.toHaveBeenCalled();
+  });
+
+  it('pohvala može da završi pre nego što kviz pređe na sledeće pitanje', async () => {
+    const finished = speakAndWait('Bravo! Tačan odgovor!');
+    await vi.waitFor(() => expect(created).toHaveLength(1));
+    await vi.waitFor(() => expect(nativeAudioSession.activateNativeAudioSession)
+      .toHaveBeenCalledTimes(2));
+
+    created[0].onended?.();
+
+    await expect(finished).resolves.toBe(true);
   });
 
   it('izgovor slova koristi lokalni paket i nikada glas telefona', async () => {

@@ -52,7 +52,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     private func activateExclusiveAudio() {
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            try session.setCategory(
+                .playback,
+                mode: .spokenAudio,
+                options: [.interruptSpokenAudioAndMixWithOthers]
+            )
             try session.setActive(true)
         } catch {
             NSLog("Slovolov audio fokus nije aktiviran: \(error.localizedDescription)")
@@ -84,7 +88,11 @@ class SlovolovAudioSessionPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func activate(_ call: CAPPluginCall) {
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            try session.setCategory(
+                .playback,
+                mode: .spokenAudio,
+                options: [.interruptSpokenAudioAndMixWithOthers]
+            )
             try session.setActive(true)
             call.resolve(["granted": true])
         } catch {

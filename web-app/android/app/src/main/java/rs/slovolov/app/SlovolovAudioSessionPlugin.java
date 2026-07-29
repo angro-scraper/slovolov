@@ -1,6 +1,8 @@
 package rs.slovolov.app;
 
+import android.content.Context;
 import android.media.AudioManager;
+import android.view.accessibility.AccessibilityManager;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -17,6 +19,14 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class SlovolovAudioSessionPlugin extends Plugin {
     @PluginMethod
     public void activate(PluginCall call) {
+        AccessibilityManager accessibilityManager = (AccessibilityManager)
+            getContext().getSystemService(Context.ACCESSIBILITY_SERVICE);
+        if (accessibilityManager != null && accessibilityManager.isEnabled()) {
+            // TalkBack i drugi accessibility servisi mogu nastaviti prethodnu
+            // najavu preko lokalnog kviz snimka. Androidov javni API traži da
+            // svi takvi servisi odmah prekinu trenutni govorni feedback.
+            accessibilityManager.interrupt();
+        }
         getActivity().setVolumeControlStream(AudioManager.STREAM_MUSIC);
         JSObject result = new JSObject();
         result.put("granted", true);

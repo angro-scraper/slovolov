@@ -213,6 +213,11 @@ describe('Slovolov glavni tok', () => {
     await waitFor(() => expect(play).toHaveBeenCalled());
     expect((play.mock.instances.at(-1) as HTMLAudioElement).src).toContain(current!.audioSource);
 
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+    (play.mock.instances.at(-1) as HTMLAudioElement).dispatchEvent(new Event('ended'));
+    await waitFor(() => expect(screen.getByRole('button', {
+      name: 'Poslušaj naziv slike ponovo'
+    })).toBeEnabled());
     play.mockClear();
     fireEvent.click(screen.getByRole('button', { name: 'Poslušaj naziv slike ponovo' }));
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
@@ -236,12 +241,33 @@ describe('Slovolov glavni tok', () => {
     await waitFor(() => expect(play).toHaveBeenCalled());
     play.mockClear();
     fireEvent.click(screen.getByRole('button', {
-      name: LATIN_ALPHABET[current.letterIndex]
+      name: LATIN_ALPHABET[current.letterIndex].toLocaleUpperCase('sr-Latn')
     }));
 
     await waitFor(() => expect(play).toHaveBeenCalled());
     expect((play.mock.instances.at(-1) as HTMLAudioElement).src)
       .toContain('/audio/feedback/bravo-correct.mp3');
+  });
+
+  it('kviz prelazi dalje tek kada se završi lokalni Bravo snimak', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Kviz/i }));
+    const image = screen.getByRole('img', { name: 'Slika za kviz pitanje' });
+    const current = quizQuestions.find((question) => question.emoji === image.textContent)!;
+    await waitFor(() => expect(play).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', {
+      name: LATIN_ALPHABET[current.letterIndex].toLocaleUpperCase('sr-Latn')
+    }));
+    await waitFor(() => expect((play.mock.instances.at(-1) as HTMLAudioElement).src)
+      .toContain('/audio/feedback/bravo-correct.mp3'));
+    await new Promise((resolve) => window.setTimeout(resolve, 0));
+
+    expect(screen.getByText('Kviz 1/10')).toBeVisible();
+    (play.mock.instances.at(-1) as HTMLAudioElement).dispatchEvent(new Event('ended'));
+
+    await waitFor(() => expect(screen.getByText('Kviz 2/10')).toBeVisible());
   });
 
   it('brojevi imaju stvarno računanje prilagođeno deci', () => {
