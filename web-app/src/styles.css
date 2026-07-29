@@ -604,6 +604,12 @@ body {
 .owl-coach { display: grid; grid-template-columns: 88px 1fr; align-items: center; gap: 13px; padding: 18px; border-radius: 28px; background: linear-gradient(135deg, #ede9fe, #dbeafe); }
 .owl-coach > span { font-size: 4.5rem; }.owl-coach small { color: var(--purple); font-weight: 900; }.owl-coach h2 { margin: 3px 0; }.owl-coach p { margin: 0; color: #566078; font-size: .78rem; font-weight: 800; }
 .voice-phrase { display: grid; justify-items: center; gap: 5px; padding: 18px; border-radius: 24px; background: #fff8d6; }.voice-phrase small { color: #8a651b; font-weight: 900; }.voice-phrase strong { color: var(--purple); font: 900 clamp(2rem, 10vw, 3.5rem) var(--font-family); text-align: center; }
+.literacy-input { width: 100%; min-height: 58px; border: 3px solid #dfe4ff; border-radius: 20px; padding: 10px 18px; color: var(--ink); background: #fff; text-align: center; font: 900 1.8rem var(--font-family); text-transform: uppercase; }
+.literacy-input:focus { outline: 4px solid rgb(109 93 252 / 18%); border-color: var(--purple); }
+.literacy-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; }
+.literacy-tiles button { border: 0; border-radius: 16px; padding: 12px 15px; color: var(--purple); background: #eef2ff; font-weight: 900; }
+.word-reading-grid button { display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 7px; }
+.word-reading-grid button span { font-size: 1.35rem; }
 .safe-note { margin: 0; color: #69738c; font-size: .72rem; font-weight: 800; text-align: center; }
 .mission-card, .logic-card, .culture-card { display: grid; justify-items: center; gap: 10px; padding: 22px; border-radius: 30px; background: linear-gradient(145deg, #fff8dc, #f0fdf4); box-shadow: var(--shadow); text-align: center; }
 .mission-icon, .culture-card > span { font-size: 4.5rem; }.mission-card > small, .culture-card > small { color: var(--purple); font-weight: 900; letter-spacing: .08em; }.mission-card h2, .logic-card h2, .culture-card h2 { margin: 0; font: 900 1.55rem var(--font-family); }.child-prompt { margin: 0; font-size: 1.18rem; font-weight: 900; }

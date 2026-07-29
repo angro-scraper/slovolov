@@ -37,7 +37,8 @@ export default defineConfig(({ mode }) => {
         'icons/slovolov-icon-192.png',
         'icons/slovolov-icon-512.png',
         'audio/feedback/*.mp3',
-        'audio/creative/*.mp3'
+        'audio/creative/*.mp3',
+        'audio/reading/**/*.mp3'
       ],
       manifest: {
         name: 'Slovolov — učimo srpska slova',

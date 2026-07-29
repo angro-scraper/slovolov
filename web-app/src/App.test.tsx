@@ -72,9 +72,9 @@ describe('Slovolov glavni tok', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
 
-    expect(screen.getByText('Sovicina šuma glasova')).toBeVisible();
-    const first = screen.getByRole('button', { name: /Nivo 1: Prvi glas$/i });
-    const second = screen.getByRole('button', { name: /Nivo 2: Slovo i slika, zaključano/i });
+    expect(screen.getByText('Sovicina škola pisanja')).toBeVisible();
+    const first = screen.getByRole('button', { name: /Nivo 1: Prvo slovo$/i });
+    const second = screen.getByRole('button', { name: /Nivo 2: Moja prva reč, zaključano/i });
     expect(first).toBeEnabled();
     expect(second).toBeDisabled();
     expect(screen.getAllByRole('button', { name: /Nivo \d+:/i })).toHaveLength(36);
@@ -86,7 +86,7 @@ describe('Slovolov glavni tok', () => {
     useProgressStore.getState().completeLearningPath('voice-1');
 
     await waitFor(() => expect(
-      screen.getByRole('button', { name: /Nivo 2: Slovo i slika$/i })
+      screen.getByRole('button', { name: /Nivo 2: Moja prva reč$/i })
     ).toBeEnabled());
   });
 
@@ -337,12 +337,59 @@ describe('Slovolov glavni tok', () => {
     await waitFor(() => expect(screen.getByText(/Šta pronalazi/)).toBeVisible());
   });
 
-  it('vežba izgovora ostaje zaključana dok roditelj ne dozvoli mikrofon', () => {
+  it('slogovi imaju više primera i svaki klik pokreće lokalni Sophie snimak', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Čitanje/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: /MA/i }));
+
+    await waitFor(() => expect(play.mock.instances.some(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/reading/syllable-ma.mp3')
+    )).toBe(true));
+    expect(screen.getByRole('button', { name: /Sledeći slogovi/i })).toBeVisible();
+    expect(screen.getByRole('status')).toHaveAttribute('aria-live', 'off');
+  });
+
+  it('reči prikazuju odgovarajuću sliku i izgovaraju samo izabranu reč', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Čitanje/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Reči' }));
 
-    expect(screen.getByText(/roditelj može da uključi/i)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /🦉.*СОВА/i }));
+
+    await waitFor(() => expect(play.mock.instances.some(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/reading/word-sova.mp3')
+    )).toBe(true));
+    expect(screen.queryByText(/roditelj može da uključi/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sledeće reči/i })).toBeVisible();
+  });
+
+  it('dugme Pročitaj rečenicu koristi stvarni snimak izabrane priče', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Čitanje/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Priča' }));
+    fireEvent.click(screen.getByRole('button', { name: /Pročitaj rečenicu/i }));
+
+    await waitFor(() => expect(play.mock.instances.some(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/reading/stories/')
+    )).toBe(true));
+  });
+
+  it('prvi svet avanture koristi pisanje i Sophie naratora bez dečjeg snimanja', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Nivo 1:/i }));
+
+    expect(screen.getByRole('heading', { name: /Piši sa Sovicom/i })).toBeVisible();
+    expect(screen.queryByText(/snimi svoj glas/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Upiši slovo/i)).toBeVisible();
+    await waitFor(() => expect(play.mock.instances.some(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/reading/adventure/literacy-1.mp3')
+    )).toBe(true));
   });
 
   it('priče se biraju prema uzrastu deteta', () => {

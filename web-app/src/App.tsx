@@ -6,6 +6,7 @@ import { isCommerceEnabled } from './config/commerce';
 import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
+import { rhymeRounds, syllableSets, wordReadingRounds } from './data/readingLessons';
 import { familyMissions } from './data/familyMissions';
 import { logicChallenges } from './data/logicChallenges';
 import { cultureCards } from './data/serbianCulture';
@@ -47,6 +48,13 @@ import {
   speakRecordedPromptAndWait,
   stopAppSpeech
 } from './services/speech';
+import {
+  adventureLiteracyAudio,
+  readingRhymeAudio,
+  readingStorySentenceAudio,
+  readingSyllableAudio,
+  readingWordAudio
+} from './services/readingAudio';
 import { createQuizRound } from './data/quizQuestions';
 import { applyInterfaceScript } from './services/interfaceScript';
 import {
@@ -358,7 +366,7 @@ export function App() {
     );
 
     if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} />;
-    if (screen === 'voice') return <VoiceQuest level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} />;
+    if (screen === 'voice') return <VoiceQuest level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
     if (screen === 'family-missions') return <FamilyMissions level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} />;
     if (screen === 'logic') return <LogicLab level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
     if (screen === 'culture') return <CultureExplorer level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} script={script} />;
@@ -444,29 +452,79 @@ function AdventureMap({
 function VoiceQuest({
   level,
   onBack,
-  onComplete
+  onComplete,
+  sound
 }: {
   level: AdventureLevel | null;
   onBack: () => void;
   onComplete: () => void;
+  sound: boolean;
 }) {
-  const microphoneEnabled = useProgressStore((state) => state.microphonePracticeEnabled);
   const difficulty = level?.difficulty ?? 1;
-  const phrases = ['А', 'АВИОН', 'СУНЦЕ И ШУМА', 'ЉУЉАШКА', 'ЊЕЖНИ ЉИЉАН', 'МАЛА СОВА ЛЕТИ ИЗНАД ШУМЕ'];
-  const phrase = phrases[Math.min(phrases.length - 1, difficulty - 1)];
-  const [recorded, setRecorded] = useState(false);
+  const tasks = [
+    { kind: 'input', label: 'Упиши слово', target: 'А', hint: 'А' },
+    { kind: 'input', label: 'Упиши реч', target: 'АВИОН', hint: 'АВИОН' },
+    { kind: 'tiles', label: 'Сложи кратку реченицу', target: 'СОВА ЛЕТИ', tiles: ['ЛЕТИ', 'СОВА'] },
+    { kind: 'input', label: 'Упиши тежу реч', target: 'ЉУЉАШКА', hint: 'ЉУЉАШКА' },
+    { kind: 'tiles', label: 'Сложи дужу реченицу', target: 'МАЛА СОВА ЛЕТИ ИЗНАД ШУМЕ', tiles: ['ШУМЕ', 'СОВА', 'ИЗНАД', 'МАЛА', 'ЛЕТИ'] },
+    {
+      kind: 'sentences',
+      label: 'Сложи малу причу',
+      target: 'МАЛА СОВА ЈЕ НАШЛА ЗВЕЗДУ|ОНА ЈЕ ПОНЕЛА ЗВЕЗДУ ДО БРДА|ЗАЈЕДНО СУ ЈЕ ВРАТИЛЕ НА НЕБО',
+      tiles: ['ОНА ЈЕ ПОНЕЛА ЗВЕЗДУ ДО БРДА', 'ЗАЈЕДНО СУ ЈЕ ВРАТИЛЕ НА НЕБО', 'МАЛА СОВА ЈЕ НАШЛА ЗВЕЗДУ']
+    }
+  ] as const;
+  const task = tasks[Math.min(tasks.length - 1, difficulty - 1)];
+  const [answer, setAnswer] = useState('');
+  const [selected, setSelected] = useState<string[]>([]);
+  const [message, setMessage] = useState('Послушај Совицу и реши задатак.');
+  const normalized = (value: string) => transliterate(value).toLocaleUpperCase('sr').replace(/[.!?]/g, '').replace(/\s+/g, ' ').trim();
+  const assembled = selected.join(task.kind === 'sentences' ? '|' : ' ');
+  const correct = task.kind === 'input'
+    ? normalized(answer) === normalized(task.target)
+    : normalized(assembled.replace(/\|/g, '|')) === normalized(task.target.replace(/\|/g, '|'));
+
+  useEffect(() => {
+    void speakRecordedPrompt(task.label, adventureLiteracyAudio(difficulty), sound);
+  }, [difficulty, sound, task.label]);
+
+  const check = () => {
+    if (!correct) {
+      setMessage('Покушај поново. Погледај редослед и пажљиво напиши.');
+      return;
+    }
+    setMessage('Браво! Тачно си написао и освојио звездицу. ⭐');
+  };
+
   return (
     <div className="single-screen">
-      <Header title="Pričaj sa Sovicom" onBack={onBack} />
+      <Header title="Piši sa Sovicom" onBack={onBack} />
       <main className="voice-quest">
         <section className="owl-coach">
           <span aria-hidden="true">🦉</span>
-          <div><small>NIVO {level?.order ?? 1}</small><h2>{level?.title ?? 'Vežba glasa'}</h2><p>Poslušaj sebe i pokušaj ponovo ako želiš. Ovde nema loše ocene.</p></div>
+          <div><small>NIVO {level?.order ?? 1}</small><h2>{level?.title ?? 'Vežba pisanja'}</h2><p>Sovica čita zadatak, a ti pišeš ili slažeš reči.</p></div>
         </section>
-        <div className="voice-phrase"><small>PONOVI</small><strong>{phrase}</strong></div>
-        <VoicePractice enabled={microphoneEnabled} phrase={phrase} onRecorded={() => setRecorded(true)} />
-        {recorded && <button className="primary" onClick={onComplete}>Snimak je spreman — završi nivo ⭐</button>}
-        {!microphoneEnabled && <p className="safe-note">Roditelj prvo uključuje mikrofon u zaštićenim podešavanjima. Snimak se ne šalje na internet.</p>}
+        <div className="voice-phrase"><small>{task.label}</small><strong>{task.kind === 'input' ? task.hint : selected.join(' ') || 'ДОДИРНИ РЕЧИ'}</strong></div>
+        {task.kind === 'input' ? (
+          <input
+            className="literacy-input"
+            aria-label={task.label}
+            value={answer}
+            onChange={(event) => setAnswer(event.target.value)}
+            autoCapitalize="characters"
+            autoComplete="off"
+          />
+        ) : (
+          <div className="literacy-tiles">
+            {task.tiles.map((tile) => (
+              <button key={tile} disabled={selected.includes(tile)} onClick={() => setSelected((current) => [...current, tile])}>{tile}</button>
+            ))}
+            {selected.length > 0 && <button onClick={() => setSelected([])}>Почни поново</button>}
+          </div>
+        )}
+        <p role="status">{message}</p>
+        <button className="secondary" onClick={check}>Провери</button>
+        {correct && message.startsWith('Браво') && <button className="primary" onClick={onComplete}>Настави авантуру ⭐</button>}
       </main>
     </div>
   );
@@ -825,7 +883,6 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                   }}>{letter.upper}</button>
                 ))}
             </div>
-            <p role="status">{message}</p>
           </section>
         )}
         {mode === 'word' && (
@@ -1115,10 +1172,15 @@ function Reading({
     adventureDifficulty === undefined ? '6–8' : adventureDifficulty <= 3 ? '4–6' : adventureDifficulty <= 4 ? '6–8' : '8–10'
   );
   const [storyIndex, setStoryIndex] = useState(0);
+  const [rhymeIndex, setRhymeIndex] = useState(0);
+  const [syllableSetIndex, setSyllableSetIndex] = useState(0);
+  const [wordRoundIndex, setWordRoundIndex] = useState(0);
   const [message, setMessage] = useState('Slušaj, pa pročitaj naglas.');
   const completeReading = useProgressStore((state) => state.completeReading);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
-  const microphoneEnabled = useProgressStore((state) => state.microphonePracticeEnabled);
+  const rhymeRound = rhymeRounds[rhymeIndex % rhymeRounds.length];
+  const syllableSet = syllableSets[syllableSetIndex % syllableSets.length];
+  const wordRound = wordReadingRounds[wordRoundIndex % wordReadingRounds.length];
   const storiesForAge = readingStories.filter((story) => story.age === age);
   const story = storiesForAge[storyIndex];
   const sentences = story.sentences;
@@ -1141,48 +1203,59 @@ function Reading({
           <section className="reading-stage phonics-stage">
             <div className="story-art">👂 🎵</div>
             <h2>Koje se reči rimuju?</h2>
-            <strong className="rhyme-prompt">МАК</strong>
+            <small>Rima {rhymeIndex + 1}/{rhymeRounds.length}</small>
+            <button className="rhyme-prompt" onClick={() => void speakRecordedPrompt(rhymeRound.prompt, readingRhymeAudio(rhymeRound.id, 'prompt'), sound)}>{rhymeRound.prompt} 🔊</button>
             <div className="word-reading-grid">
-              {['РАК', 'САТ', 'МИШ'].map((word) => (
+              {rhymeRound.options.map((word) => (
                 <button key={word} onClick={() => {
-                  const correct = word === 'РАК';
-                  recordSkillAttempt('phonics:rhyme:МАК', correct);
+                  const correct = word === rhymeRound.correct;
+                  recordSkillAttempt(`phonics:rhyme:${rhymeRound.prompt}`, correct);
                   if (!correct) {
-                    setMessage('Poslušaj završetak: МАК — РАК.');
+                    setMessage(`Poslušaj završetak: ${rhymeRound.prompt} — ${rhymeRound.correct}.`);
                     return;
                   }
-                  setMessage('Tačno! МАК i РАК se rimuju. ⭐');
-                  void speak('Мак, рак.', sound);
+                  setMessage(`Tačno! ${rhymeRound.prompt} i ${rhymeRound.correct} se rimuju. ⭐`);
+                  void speakRecordedPrompt(`${rhymeRound.prompt}, ${rhymeRound.correct}`, readingRhymeAudio(rhymeRound.id, 'result'), sound);
                 }}>{word}</button>
               ))}
             </div>
+            <button className="secondary" onClick={() => { setRhymeIndex((value) => (value + 1) % rhymeRounds.length); setMessage('Poslušaj novu reč i pronađi rimu.'); }}>Sledeća rima</button>
             <p role="status">{message}</p>
           </section>
         )}
         {level === 'syllables' && (
           <section className="reading-stage">
-            <div className="story-art">🗣️ М + А</div>
+            <div className="story-art">🗣️ {syllableSet.lead} + А</div>
             <h2>Spoj glasove u slog</h2>
+            <small>Grupa {syllableSetIndex + 1}/{syllableSets.length}</small>
             <div className="syllable-grid">
-              {['МА', 'МЕ', 'МИ', 'МО', 'МУ'].map((syllable) => (
-                <button key={syllable} onClick={() => void speak(syllable, sound)}>{syllable}</button>
+              {syllableSet.syllables.map((syllable) => (
+                <button key={syllable} onClick={() => {
+                  setMessage(`Čuješ slog ${syllable}. Ponovi ga polako.`);
+                  void speakRecordedPrompt(syllable, readingSyllableAudio(syllable), sound);
+                }}>{syllable} 🔊</button>
               ))}
             </div>
             <p>Dodirni svaki slog, poslušaj ga i ponovi naglas.</p>
+            <button className="secondary" onClick={() => { setSyllableSetIndex((value) => (value + 1) % syllableSets.length); setMessage('Nova grupa slogova je spremna.'); }}>Sledeći slogovi</button>
             {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam slogove ⭐</button>}
           </section>
         )}
         {level === 'words' && (
           <section className="reading-stage">
-            <div className="story-art">👩 🦉 🌳</div>
+            <div className="story-art">{wordRound.words.map((item) => item.image).join(' ')}</div>
             <h2>Pročitaj celu reč</h2>
+            <small>Grupa {wordRoundIndex + 1}/{wordReadingRounds.length}</small>
             <div className="word-reading-grid">
-              {['МАМА', 'СОВА', 'ШУМА'].map((word) => (
-                <button key={word} onClick={() => void speak(word, sound)}>{word}</button>
+              {wordRound.words.map(({ word, image }) => (
+                <button key={word} aria-label={`${image} ${word}`} onClick={() => {
+                  setMessage(`Čuješ samo reč ${word}.`);
+                  void speakRecordedPrompt(word, readingWordAudio(word), sound);
+                }}><span>{image}</span><strong>{word}</strong> 🔊</button>
               ))}
             </div>
             <p>Prvo pročitaj samostalno, zatim dodirni reč za proveru.</p>
-            <VoicePractice enabled={microphoneEnabled} phrase="МАМА" />
+            <button className="secondary" onClick={() => { setWordRoundIndex((value) => (value + 1) % wordReadingRounds.length); setMessage('Nova grupa reči je spremna.'); }}>Sledeće reči</button>
             {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam čitanje ⭐</button>}
           </section>
         )}
@@ -1206,7 +1279,7 @@ function Reading({
             <div className="story-art">{story.art}</div>
             <h2>{story.title}</h2>
             {sentences.map((sentence, index) => (
-              <button key={sentence} className={index === active ? 'sentence active' : 'sentence'} onClick={() => { setActive(index); void speak(sentence, sound); }}>
+              <button key={sentence} className={index === active ? 'sentence active' : 'sentence'} onClick={() => { setActive(index); setMessage(`Slušaš rečenicu ${index + 1}.`); void speakRecordedPrompt(sentence, readingStorySentenceAudio(story.id, index), sound); }}>
                 {sentence}
               </button>
             ))}
@@ -1227,10 +1300,10 @@ function Reading({
                 }}>{answer}</button>
               ))}
             </div>
-            <button className="primary" onClick={() => void speak(sentences[active], sound)}>🔊 Pročitaj rečenicu</button>
+            <button className="primary" onClick={() => { setMessage(`Slušaš rečenicu ${active + 1}.`); void speakRecordedPrompt(sentences[active], readingStorySentenceAudio(story.id, active), sound); }}>🔊 Pročitaj rečenicu</button>
           </section>
         )}
-        <p className="reading-feedback" role="status">{message}</p>
+        <p className="reading-feedback" role="status" aria-live="off">{message}</p>
       </main>
     </div>
   );
@@ -1770,7 +1843,7 @@ function CreativeStudio({
               setEndingIndex((value) => (value + 1) % creativeEndings.length);
               setMessage('Napravljena je nova kombinacija priče.');
             }}>🎲 Nova priča</button>
-            {(adventureDifficulty === undefined || adventureDifficulty >= 6) && <button className="secondary" onClick={() => setVoiceOpen((value) => !value)}>🎙️ Ispričaj je svojim glasom</button>}
+            {adventureDifficulty === undefined && <button className="secondary" onClick={() => setVoiceOpen((value) => !value)}>🎙️ Ispričaj je svojim glasom</button>}
             {(adventureDifficulty === undefined || adventureDifficulty >= 5) && <button className="secondary" onClick={() => setDrawingOpen((value) => !value)}>🎨 Nacrtaj naslovnicu</button>}
           </div>
           <p className={`creative-narrator ${narratorSource ?? 'ready'}`}>

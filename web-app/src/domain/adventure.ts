@@ -39,16 +39,16 @@ const level = (
 export const adventureWorlds: AdventureWorld[] = [
   {
     id: 'voice',
-    title: 'Sovicina šuma glasova',
-    description: 'Slušaj, ponovi i pronađi glas.',
+    title: 'Sovicina škola pisanja',
+    description: 'Piši slova, reči i slaži priče.',
     color: '#6d5dfc',
     levels: [
-      level('voice-1', 1, 'Prvi glas', 'Poslušaj i ponovi jedno slovo.', '🎙️', 1, 'voice'),
-      level('voice-2', 2, 'Slovo i slika', 'Poveži glas sa poznatom slikom.', '🖼️', 2, 'voice'),
-      level('voice-3', 3, 'Dva slična glasa', 'Razlikuj S i Š.', '👂', 3, 'voice'),
-      level('voice-4', 4, 'Moja prva reč', 'Snimi i preslušaj kratku reč.', '🗣️', 4, 'voice'),
-      level('voice-5', 5, 'Teške reči', 'Vežbaj LJ, NJ, DŽ, Đ i Ć.', '🦉', 5, 'voice'),
-      level('voice-6', 6, 'Sovicin izazov', 'Izgovori celu kratku rečenicu.', '🏅', 6, 'voice')
+      level('voice-1', 1, 'Prvo slovo', 'Napiši jedno veliko slovo.', '✍️', 1, 'voice'),
+      level('voice-2', 2, 'Moja prva reč', 'Napiši kratku poznatu reč.', '📝', 2, 'voice'),
+      level('voice-3', 3, 'Kratka rečenica', 'Složi dve reči pravilnim redom.', '🧩', 3, 'voice'),
+      level('voice-4', 4, 'Teža reč', 'Napiši reč sa slovom LJ.', '🦉', 4, 'voice'),
+      level('voice-5', 5, 'Duža rečenica', 'Složi pet reči pravilnim redom.', '📖', 5, 'voice'),
+      level('voice-6', 6, 'Moja mala priča', 'Složi tri rečenice u priču.', '🏅', 6, 'voice')
     ]
   },
   {
@@ -61,7 +61,7 @@ export const adventureWorlds: AdventureWorld[] = [
       level('reading-2', 8, 'Kratke reči', 'Čitaj reči od dva sloga.', '📖', 2, 'reading'),
       level('reading-3', 9, 'Rečenice', 'Čitaj jednu po jednu rečenicu.', '✏️', 3, 'reading'),
       level('reading-4', 10, 'Mala priča', 'Priča i jedno pitanje.', '📗', 4, 'reading'),
-      level('reading-5', 11, 'Čitam naglas', 'Snimi svoje čitanje lokalno.', '🎧', 5, 'reading'),
+      level('reading-5', 11, 'Čitam i razumem', 'Pročitaj reči i pronađi značenje.', '🎧', 5, 'reading'),
       level('reading-6', 12, 'Razumem priču', 'Pročitaj, zaključi i odgovori.', '🏆', 6, 'reading')
     ]
   },
@@ -104,7 +104,7 @@ export const adventureWorlds: AdventureWorld[] = [
       level('creative-3', 27, 'Velika pustolovina', 'Izaberi problem koji junak rešava.', '🗝️', 3, 'creative'),
       level('creative-4', 28, 'Prijatelj pomaže', 'Dodaj pomoćnika i srećan kraj.', '🤝', 4, 'creative'),
       level('creative-5', 29, 'Moja naslovnica', 'Nacrtaj ilustraciju svoje knjige.', '🎨', 5, 'creative'),
-      level('creative-6', 30, 'Ja sam pripovedač', 'Snimi celu priču svojim glasom.', '🎙️', 6, 'creative')
+      level('creative-6', 30, 'Moja audio-knjiga', 'Poslušaj svoju priču sa naratorom.', '🔊', 6, 'creative')
     ]
   },
   {
