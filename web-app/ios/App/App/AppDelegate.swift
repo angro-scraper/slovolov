@@ -94,6 +94,7 @@ class SlovolovAudioSessionPlugin: CAPPlugin, CAPBridgedPlugin {
                 options: [.interruptSpokenAudioAndMixWithOthers]
             )
             try session.setActive(true)
+            bridge?.webView?.accessibilityElementsHidden = true
             call.resolve(["granted": true])
         } catch {
             call.reject(
@@ -106,6 +107,7 @@ class SlovolovAudioSessionPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func release(_ call: CAPPluginCall) {
         do {
+            bridge?.webView?.accessibilityElementsHidden = false
             try AVAudioSession.sharedInstance().setActive(
                 false,
                 options: .notifyOthersOnDeactivation

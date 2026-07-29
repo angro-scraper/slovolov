@@ -2,6 +2,7 @@ package rs.slovolov.app;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.view.View;
 import android.view.accessibility.AccessibilityManager;
 
 import com.getcapacitor.JSObject;
@@ -28,13 +29,23 @@ public class SlovolovAudioSessionPlugin extends Plugin {
             accessibilityManager.interrupt();
         }
         getActivity().setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        JSObject result = new JSObject();
-        result.put("granted", true);
-        call.resolve(result);
+        getActivity().runOnUiThread(() -> {
+            getBridge().getWebView().setImportantForAccessibility(
+                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+            );
+            JSObject result = new JSObject();
+            result.put("granted", true);
+            call.resolve(result);
+        });
     }
 
     @PluginMethod
     public void release(PluginCall call) {
-        call.resolve();
+        getActivity().runOnUiThread(() -> {
+            getBridge().getWebView().setImportantForAccessibility(
+                View.IMPORTANT_FOR_ACCESSIBILITY_YES
+            );
+            call.resolve();
+        });
     }
 }

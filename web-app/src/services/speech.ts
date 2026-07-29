@@ -13,7 +13,7 @@ let activeAudio: HTMLAudioElement | null = null;
 let activeCompletion: ((completed: boolean) => void) | null = null;
 let playbackGeneration = 0;
 
-function stopOtherVoices(): void {
+function stopOtherVoices(releaseSession = true): void {
   playbackGeneration += 1;
   const previousAudio = activeAudio;
   const previousCompletion = activeCompletion;
@@ -25,7 +25,9 @@ function stopOtherVoices(): void {
     previousAudio.currentTime = 0;
   }
   previousCompletion?.(false);
-  void releaseNativeAudioSession();
+  if (releaseSession) {
+    void releaseNativeAudioSession();
+  }
 }
 
 export function stopAppSpeech(): void {
@@ -41,7 +43,9 @@ async function playSource(
     stopOtherVoices();
     return false;
   }
-  stopOtherVoices();
+  // Novi snimak nasleđuje istu native sesiju. Ne puštamo zastareli release
+  // između dva pitanja jer bi time TalkBack/VoiceOver ponovo dobio WebView.
+  stopOtherVoices(false);
   const generation = playbackGeneration;
   const audio = new Audio(versionAudioUrl(localSource));
   activeAudio = audio;
@@ -55,13 +59,16 @@ async function playSource(
     : null;
 
   const finishPlayback = (completed: boolean) => {
-    if (activeAudio === audio) {
+    const isCurrent = activeAudio === audio;
+    if (isCurrent) {
       activeAudio = null;
       activeCompletion = null;
     }
     finish?.(completed);
     finish = null;
-    void releaseNativeAudioSession();
+    if (isCurrent) {
+      void releaseNativeAudioSession();
+    }
   };
   audio.onended = () => {
     finishPlayback(true);
