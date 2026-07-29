@@ -10,6 +10,14 @@ import { seededChoices } from './domain/choices';
 import { canAccessLetter, canAccessNumber, canAccessStory } from './domain/access';
 import { nextLetterToPractice, summarizeLearning } from './domain/learning';
 import { displayLetter, letters, transliterate, type Letter } from './domain/letters';
+import {
+  buildCreativeStory,
+  creativeEndings,
+  creativeHelpers,
+  creativeHeroes,
+  creativePlaces,
+  creativeQuests
+} from './domain/creativeStory';
 import { narrateSentences, type NarrationSession } from './services/narration';
 import { loadFullStoryContent, type FullStoryContent } from './services/fullStoryLibrary';
 import {
@@ -1397,50 +1405,88 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
 }
 
 function CreativeStudio({ onBack, sound }: { onBack: () => void; sound: boolean }) {
-  const heroes = [
-    { name: 'Змај', emoji: '🐉' },
-    { name: 'Лисица', emoji: '🦊' },
-    { name: 'Сова', emoji: '🦉' },
-    { name: 'Пчела', emoji: '🐝' }
-  ];
-  const places = ['чаробну шуму', 'звездани град', 'тајно острво', 'шарену школу'];
-  const missions = ['проналази златни кључ', 'помаже изгубљеном другару', 'учи нову песму', 'чува малу звезду'];
   const [heroIndex, setHeroIndex] = useState(0);
   const [placeIndex, setPlaceIndex] = useState(0);
-  const [missionIndex, setMissionIndex] = useState(0);
-  const [message, setMessage] = useState('Izaberi junaka, mesto i pustolovinu.');
+  const [questIndex, setQuestIndex] = useState(0);
+  const [helperIndex, setHelperIndex] = useState(0);
+  const [endingIndex, setEndingIndex] = useState(0);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const [message, setMessage] = useState('Izaberi junaka i tok priče. Svaki izbor menja avanturu.');
   const saveCreation = useProgressStore((state) => state.saveCreation);
   const completeGame = useProgressStore((state) => state.completeGame);
-  const hero = heroes[heroIndex];
-  const sentence = `${hero.name} odlazi u ${places[placeIndex]} i ${missions[missionIndex]}.`;
+  const profile = useProgressStore((state) => state.profile);
+  const microphoneEnabled = useProgressStore((state) => state.microphonePracticeEnabled);
+  const hero = creativeHeroes[heroIndex];
+  const story = useMemo(() => buildCreativeStory({
+    childName: profile.name,
+    hero,
+    place: creativePlaces[placeIndex],
+    quest: creativeQuests[questIndex],
+    helper: creativeHelpers[helperIndex],
+    ending: creativeEndings[endingIndex]
+  }), [endingIndex, helperIndex, hero, placeIndex, profile.name, questIndex]);
+  const chapterLabels = ['Почетак', 'Изазов', 'Решење', 'Срећан крај'];
 
   return (
     <div className="single-screen">
       <Header title="Moja priča" onBack={onBack} />
       <main className="creative-studio">
         <section className="creative-preview">
-          <span>{hero.emoji}</span>
-          <h2>{sentence}</h2>
-          <button className="secondary" onClick={() => void speak(sentence, sound)}>🔊 Poslušaj moju priču</button>
+          <header className="creative-cover">
+            <span aria-hidden="true">{hero.emoji}</span>
+            <div>
+              <small>PRIČA KOJU JE OSMISLILO DETE</small>
+              <h2>{story.title}</h2>
+              <p>Autor: {profile.name}</p>
+            </div>
+          </header>
+          <div className="creative-story-pages" aria-label="Cela moja priča">
+            {story.paragraphs.map((paragraph, index) => (
+              <article key={chapterLabels[index]}>
+                <strong>{chapterLabels[index]}</strong>
+                <p>{paragraph}</p>
+              </article>
+            ))}
+          </div>
+          <div className="creative-preview-actions">
+            <button className="secondary" onClick={() => {
+              setHeroIndex((value) => (value + 1) % creativeHeroes.length);
+              setPlaceIndex((value) => (value + 1) % creativePlaces.length);
+              setQuestIndex((value) => (value + 1) % creativeQuests.length);
+              setHelperIndex((value) => (value + 1) % creativeHelpers.length);
+              setEndingIndex((value) => (value + 1) % creativeEndings.length);
+              setMessage('Napravljena je nova kombinacija priče.');
+            }}>🎲 Nova priča</button>
+            <button className="secondary" onClick={() => setVoiceOpen((value) => !value)}>🎙️ Ispričaj je svojim glasom</button>
+          </div>
         </section>
+        {voiceOpen && <VoicePractice enabled={microphoneEnabled} phrase={story.title} />}
         <section className="creative-options">
           <fieldset>
             <legend>1. Junak</legend>
-            <div>{heroes.map((item, index) => <button key={item.name} className={index === heroIndex ? 'active' : ''} onClick={() => setHeroIndex(index)}>{item.emoji} {item.name}</button>)}</div>
+            <div>{creativeHeroes.map((item, index) => <button key={item.name} className={index === heroIndex ? 'active' : ''} onClick={() => setHeroIndex(index)}>{item.emoji} {item.name}</button>)}</div>
           </fieldset>
           <fieldset>
             <legend>2. Mesto</legend>
-            <div>{places.map((place, index) => <button key={place} className={index === placeIndex ? 'active' : ''} onClick={() => setPlaceIndex(index)}>{place}</button>)}</div>
+            <div>{creativePlaces.map((place, index) => <button key={place.label} className={index === placeIndex ? 'active' : ''} onClick={() => setPlaceIndex(index)}>{place.emoji} {place.label}</button>)}</div>
           </fieldset>
           <fieldset>
             <legend>3. Pustolovina</legend>
-            <div>{missions.map((mission, index) => <button key={mission} className={index === missionIndex ? 'active' : ''} onClick={() => setMissionIndex(index)}>{mission}</button>)}</div>
+            <div>{creativeQuests.map((quest, index) => <button key={quest.label} className={index === questIndex ? 'active' : ''} onClick={() => setQuestIndex(index)}>{quest.label}</button>)}</div>
+          </fieldset>
+          <fieldset>
+            <legend>4. Pomoćnik</legend>
+            <div>{creativeHelpers.map((helper, index) => <button key={helper.name} className={index === helperIndex ? 'active' : ''} onClick={() => setHelperIndex(index)}>{helper.emoji} {helper.name}</button>)}</div>
+          </fieldset>
+          <fieldset>
+            <legend>5. Završetak</legend>
+            <div>{creativeEndings.map((ending, index) => <button key={ending.label} className={index === endingIndex ? 'active' : ''} onClick={() => setEndingIndex(index)}>{ending.label}</button>)}</div>
           </fieldset>
         </section>
         <button className="primary" onClick={() => {
-          saveCreation(sentence);
+          saveCreation(story.text);
           completeGame('creative-first-story');
-          setMessage('Tvoja priča je sačuvana samo na ovom uređaju. ⭐');
+          setMessage('Cela priča je sačuvana samo na ovom uređaju. Osvojio si 2 zvezdice! ⭐');
           void speak('Bravo! Tvoja priča je sačuvana.', sound);
         }}>💾 Sačuvaj moju priču</button>
         <p className="creative-status" role="status">{message}</p>
@@ -1475,7 +1521,15 @@ function Progress({ onBack }: { onBack: () => void }) {
         {profile.savedCreations.length > 0 && (
           <section className="saved-creations">
             <h3>Moje priče</h3>
-            {profile.savedCreations.slice(-3).reverse().map((creation) => <p key={creation}>🎭 {creation}</p>)}
+            {profile.savedCreations.slice(-3).reverse().map((creation) => {
+              const [title, ...body] = creation.split('\n').filter(Boolean);
+              return (
+                <article key={creation}>
+                  <strong>🎭 {title}</strong>
+                  <small>{body.join(' ').slice(0, 130)}…</small>
+                </article>
+              );
+            })}
           </section>
         )}
         <h3>Medalje</h3><div className="medals">{['🥉', '🥈', '🥇'].map((medal, index) => <span key={medal} className={profile.medals.length > index ? '' : 'locked'}>{medal}</span>)}</div>

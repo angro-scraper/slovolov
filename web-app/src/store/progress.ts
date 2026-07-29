@@ -196,7 +196,7 @@ export const useProgressStore = create<ProgressState>()(
         return { profiles, profile: profiles.find((item) => item.id === state.activeProfileId) ?? profiles[0] };
       }),
       saveCreation: (sentence) => set((state) => {
-        const cleanSentence = sentence.trim().slice(0, 240);
+        const cleanSentence = sentence.trim().slice(0, 1800);
         if (!cleanSentence) return state;
         const profiles = state.profiles.map((profile) => (
           profile.id === state.activeProfileId

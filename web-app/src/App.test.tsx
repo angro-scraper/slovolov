@@ -454,12 +454,18 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('button', { name: 'Složi reč' })).toBeVisible();
   });
 
-  it('kreativna radionica pravi i lokalno čuva detetovu rečenicu', () => {
+  it('kreativna radionica pravi i lokalno čuva punu detetovu priču', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Moja priča/i }));
+
+    expect(screen.getByText('Početak')).toBeVisible();
+    expect(screen.getByText('Izazov')).toBeVisible();
+    expect(screen.getByText('Rešenje')).toBeVisible();
+    expect(screen.getByText('Srećan kraj')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: /Sačuvaj moju priču/i }));
 
     expect(useProgressStore.getState().profile.savedCreations).toHaveLength(1);
+    expect(useProgressStore.getState().profile.savedCreations[0].length).toBeGreaterThan(500);
     expect(screen.getByRole('status')).toHaveTextContent('sačuvana');
   });
 
