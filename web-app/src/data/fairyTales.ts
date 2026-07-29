@@ -962,8 +962,12 @@ const classics: ClassicTaleSeed[] = [
   }
 ];
 
-function buildTale(seed: ClassicTaleSeed, age: FairyTaleAge): FairyTale {
-  const hasFullContent = hasFullStoryContent(seed.id);
+function buildTale(
+  seed: ClassicTaleSeed,
+  age: FairyTaleAge,
+  useFullSourceContent: boolean
+): FairyTale {
+  const hasFullContent = useFullSourceContent && hasFullStoryContent(seed.id);
   const pages = hasFullContent
     ? [['Цела изворно проверена прича се учитава…']]
     : seed.plot.map((event) => [event]);
@@ -979,7 +983,7 @@ function buildTale(seed: ClassicTaleSeed, age: FairyTaleAge): FairyTale {
     answers: seed.answers,
     correct: seed.correct,
     audioKey: `${seed.id}-${hasFullContent ? 'full' : 'sazeta'}`,
-    recordedAudio: seed.recordedAudio ?? true,
+    recordedAudio: hasFullContent ? (seed.recordedAudio ?? true) : false,
     recordedVoice: 'sr-RS-SophieNeural',
     plotKey: seed.id,
     source: seed.source,
@@ -1018,6 +1022,25 @@ const publishedStories: ClassicTaleSeed[] = fullStoryContentCatalog.map((entry, 
   };
 });
 
-export const fairyTales: FairyTale[] = fairyTaleAges.flatMap((age) =>
-  publishedStories.map((seed) => buildTale(seed, age))
+export type FairyTaleCatalogMode = 'full-source' | 'store-safe';
+
+/**
+ * Web izdanje čuva javnodomenske izvorne tekstove. Prodavničko izdanje koristi
+ * posebno napisane, uzrasno prilagođene verzije i nikada ne pokazuje niti
+ * učitava izvorne JSON/audio pakete.
+ */
+export function createFairyTaleCatalog(mode: FairyTaleCatalogMode): FairyTale[] {
+  const useFullSourceContent = mode === 'full-source';
+  const seeds = useFullSourceContent ? publishedStories : classics;
+
+  return fairyTaleAges.flatMap((age) =>
+    seeds.map((seed) => buildTale(seed, age, useFullSourceContent))
+  );
+}
+
+export const storeSafeContentEnabled =
+  import.meta.env.VITE_STORE_SAFE_CONTENT === 'true';
+
+export const fairyTales: FairyTale[] = createFairyTaleCatalog(
+  storeSafeContentEnabled ? 'store-safe' : 'full-source'
 );

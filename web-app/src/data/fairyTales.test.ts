@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fairyTales } from './fairyTales';
+import { createFairyTaleCatalog, fairyTales } from './fairyTales';
 import { fullStoryContentIds } from './fullStoryContentManifest';
 
 describe('biblioteka bajki sa zvukom', () => {
@@ -76,5 +76,36 @@ describe('biblioteka bajki sa zvukom', () => {
     expect(allText).not.toContain('ништа од овога није само украс');
     expect(allText).not.toContain('Тако оригинална радња бајке');
     expect(allText).not.toContain('Приповедач нас не позива само');
+  });
+
+  it('prodavničko izdanje koristi samo dečje prilagođene priče', () => {
+    const storeStories = createFairyTaleCatalog('store-safe');
+
+    expect(storeStories).toHaveLength(74);
+    expect(new Set(storeStories.map((story) => story.plotKey)).size).toBe(37);
+    expect(storeStories.every((story) => story.edition === 'abridged')).toBe(true);
+    expect(storeStories.every((story) => !story.fullContentAvailable)).toBe(true);
+    expect(storeStories.every((story) => story.reviewed === false)).toBe(true);
+    expect(storeStories.every((story) => story.recordedAudio === false)).toBe(true);
+    expect(storeStories.every((story) => story.audioKey.endsWith('-sazeta'))).toBe(true);
+  });
+
+  it('prodavnički katalog nema eksplicitne scene iz izvornih izdanja', () => {
+    const storeText = createFairyTaleCatalog('store-safe')
+      .flatMap((story) => story.sentences)
+      .join(' ')
+      .toLocaleLowerCase('sr');
+
+    for (const explicitPhrase of [
+      'те га прождере',
+      'одмах га растргну',
+      'те га распори',
+      'за врат те удави',
+      'сама себе усред срца',
+      'сама себе лијеву руку осијече',
+      'десну у огњу изгори'
+    ]) {
+      expect(storeText).not.toContain(explicitPhrase);
+    }
   });
 });
