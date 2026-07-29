@@ -703,7 +703,7 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
               setAdvancing(false);
             })();
           }}>{letter.upper}</button>)}</div>
-          <p role="status">{message}</p>
+          <p aria-live="off">{message}</p>
         </> : <div className="result"><span>{score >= 9 ? '🥇' : score >= 7 ? '🥈' : '🥉'}</span><h2>{score}/{round.length} tačnih!</h2><button className="primary" onClick={onBack}>Na početak</button></div>}
       </main>
     </div>

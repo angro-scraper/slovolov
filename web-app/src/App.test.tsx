@@ -270,6 +270,15 @@ describe('Slovolov glavni tok', () => {
     await waitFor(() => expect(screen.getByText('Kviz 2/10')).toBeVisible());
   });
 
+  it('kviz poruku ne prosleđuje TalkBack ili VoiceOver glasu telefona', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Kviz/i }));
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByText('Poslušaj naziv slike i izaberi početno slovo.'))
+      .toHaveAttribute('aria-live', 'off');
+  });
+
   it('brojevi imaju stvarno računanje prilagođeno deci', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–100/i }));
