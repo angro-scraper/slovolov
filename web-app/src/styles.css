@@ -543,10 +543,58 @@ body {
 .learning-insights article { padding: 10px 4px; border-radius: 15px; background: white; text-align: center; }.learning-insights b, .learning-insights small { display: block; }
 .learning-insights p, .saved-creations p { margin: 8px 0 0; color: #566078; font-size: .8rem; font-weight: 800; }
 
-.parent-gate { display: grid; place-content: center; justify-items: center; gap: 13px; text-align: center; }
-.parent-gate > span { font-size: 5rem; }.parent-gate h2, .parent-gate p { margin: 0; }
-.parent-gate form { width: min(100%, 340px); display: grid; gap: 10px; padding: 18px; border-radius: 23px; background: var(--surface); box-shadow: var(--shadow); }
-.parent-gate label { font-weight: 900; }.parent-gate input { height: 58px; border: 2px solid #dce2f0; border-radius: 16px; text-align: center; font: 900 1.5rem var(--font-family); }
+.parent-gate {
+  display: grid;
+  place-items: center;
+  padding: clamp(20px, 5vh, 48px) 0;
+  text-align: center;
+}
+.parent-gate-card {
+  width: min(100%, 430px);
+  display: grid;
+  justify-items: stretch;
+  gap: 20px;
+  padding: clamp(24px, 6vw, 36px);
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(255, 210, 87, .2), transparent 35%),
+    var(--surface);
+  box-shadow: 0 22px 60px rgba(50, 45, 128, .13);
+}
+.parent-gate-icon {
+  width: 96px;
+  height: 96px;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  border-radius: 30px;
+  background: linear-gradient(145deg, #fff8d8, #fff);
+  box-shadow: 0 12px 30px rgba(255, 180, 41, .16);
+  font-size: 4rem;
+}
+.parent-gate-copy { display: grid; gap: 8px; }
+.parent-gate h2, .parent-gate p { margin: 0; }
+.parent-gate h2 { font: 900 clamp(1.7rem, 7vw, 2.25rem)/1.08 var(--font-family); letter-spacing: -.025em; }
+.parent-gate-copy p { max-width: 34ch; justify-self: center; color: #566078; font-weight: 700; line-height: 1.45; }
+.parent-gate form {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+}
+.parent-gate label { font-weight: 900; }
+.parent-gate input {
+  width: 100%;
+  height: 58px;
+  border: 2px solid #dce2f0;
+  border-radius: 17px;
+  background: rgba(255, 255, 255, .92);
+  text-align: center;
+  font: 900 1.5rem var(--font-family);
+  box-shadow: inset 0 2px 5px rgba(50, 45, 128, .04);
+}
+.parent-gate .primary { width: 100%; min-height: 58px; border-radius: 17px; }
 .accessibility-section, .privacy-section, .parent-language-section { padding: 12px; border: 1px solid #e2e8f0; border-radius: 18px; background: var(--surface); }
 .accessibility-section h2, .privacy-section h2, .parent-language-section h2 { font-family: var(--font-family); font-weight: 900; }
 .accessibility-section label, .privacy-section label { min-height: 46px; display: flex; align-items: center; justify-content: space-between; font-weight: 800; }

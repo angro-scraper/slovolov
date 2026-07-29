@@ -1595,23 +1595,27 @@ function Settings({ onBack }: { onBack: () => void }) {
       <div className="single-screen">
         <Header title="Roditeljski deo" onBack={onBack} />
         <main className="parent-gate">
-          <span aria-hidden="true">🔐</span>
-          <h2>Provera za roditelje</h2>
-          <p>Ovaj deo menja profile, mikrofon i način učenja.</p>
-          <form onSubmit={(event) => {
-            event.preventDefault();
-            if (gateAnswer.trim() !== '7') {
-              setGateError('Odgovor nije tačan. Pokušajte ponovo.');
-              return;
-            }
-            setGateError('');
-            setParentUnlocked(true);
-          }}>
-            <label htmlFor="parent-gate-answer">Koliko je 4 + 3?</label>
-            <input id="parent-gate-answer" inputMode="numeric" value={gateAnswer} onChange={(event) => setGateAnswer(event.target.value)} />
-            <button className="primary" type="submit">Otvori roditeljski deo</button>
-          </form>
-          {gateError && <p className="form-error" role="alert">{gateError}</p>}
+          <section className="parent-gate-card">
+            <span className="parent-gate-icon" aria-hidden="true">🔐</span>
+            <div className="parent-gate-copy">
+              <h2>Provera za roditelje</h2>
+              <p>Ovaj deo menja profile, mikrofon i način učenja.</p>
+            </div>
+            <form onSubmit={(event) => {
+              event.preventDefault();
+              if (gateAnswer.trim() !== '7') {
+                setGateError('Odgovor nije tačan. Pokušajte ponovo.');
+                return;
+              }
+              setGateError('');
+              setParentUnlocked(true);
+            }}>
+              <label htmlFor="parent-gate-answer">Koliko je 4 + 3?</label>
+              <input id="parent-gate-answer" inputMode="numeric" value={gateAnswer} onChange={(event) => setGateAnswer(event.target.value)} />
+              <button className="primary" type="submit">Otvori roditeljski deo</button>
+            </form>
+            {gateError && <p className="form-error" role="alert">{gateError}</p>}
+          </section>
         </main>
       </div>
     );
