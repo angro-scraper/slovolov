@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AUDIO_ASSET_VERSION } from './audioAssets';
 import * as nativeAudioSession from './nativeAudioSession';
+import * as nativeAudioPlayback from './nativeAudioPlayback';
 import { narrateSentences } from './narration';
 
 describe('audio pripovedanje', () => {
@@ -13,6 +14,7 @@ describe('audio pripovedanje', () => {
     vi.clearAllMocks();
     vi.spyOn(nativeAudioSession, 'activateNativeAudioSession').mockResolvedValue(true);
     vi.spyOn(nativeAudioSession, 'releaseNativeAudioSession').mockResolvedValue();
+    vi.spyOn(nativeAudioPlayback, 'startNativeAudioPlayback').mockResolvedValue(null);
     Object.defineProperty(window, 'speechSynthesis', {
       configurable: true,
       value: {
@@ -117,6 +119,42 @@ describe('audio pripovedanje', () => {
     expect(play).toHaveBeenCalledTimes(2);
     expect((play.mock.instances[0] as HTMLMediaElement).src).toContain('.mp3');
     expect((play.mock.instances[1] as HTMLMediaElement).src).toContain('.ogg');
+    expect(speak).not.toHaveBeenCalled();
+  });
+
+  it('na Android tabletu posle HTML grešaka koristi nativni MediaPlayer', async () => {
+    const sources: string[] = [];
+    vi.spyOn(HTMLMediaElement.prototype, 'play')
+      .mockRejectedValue(new Error('Android WebView ne reprodukuje audio'));
+    const nativeHandle = {
+      pause: vi.fn().mockResolvedValue(undefined),
+      resume: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined)
+    };
+    const nativeStart = vi.spyOn(nativeAudioPlayback, 'startNativeAudioPlayback')
+      .mockImplementation(async (_source, callbacks) => {
+        callbacks.onStarted();
+        return nativeHandle;
+      });
+
+    const session = narrateSentences(['Некада давно.'], {
+      enabled: true,
+      audioKey: 'ivica-i-marica-sazeta',
+      onSource: (source) => sources.push(source)
+    });
+
+    await vi.waitFor(() => expect(sources).toEqual(['recorded']));
+    expect(nativeStart).toHaveBeenCalledTimes(1);
+    expect(nativeStart.mock.calls[0][0]).toContain(
+      '/audio/stories/ivica-i-marica-sazeta-1.mp3'
+    );
+    expect(nativeStart.mock.calls[0][0]).toMatch(/^https?:\/\//);
+    session.pause();
+    session.resume();
+    session.stop();
+    expect(nativeHandle.pause).toHaveBeenCalled();
+    expect(nativeHandle.resume).toHaveBeenCalled();
+    expect(nativeHandle.stop).toHaveBeenCalled();
     expect(speak).not.toHaveBeenCalled();
   });
 

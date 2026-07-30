@@ -3,6 +3,10 @@ import {
   activateNativeAudioSession,
   releaseNativeAudioSession
 } from './nativeAudioSession';
+import {
+  startNativeAudioPlayback,
+  type NativeAudioPlaybackHandle
+} from './nativeAudioPlayback';
 
 export type NarrationSession = {
   pause: () => void;
@@ -24,6 +28,7 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
   let index = Math.max(0, Math.min(options.startIndex ?? 0, sentences.length - 1));
   let stopped = !options.enabled || sentences.length === 0;
   let currentAudio: HTMLAudioElement | null = null;
+  let nativePlayback: NativeAudioPlaybackHandle | null = null;
   let startupTimer: ReturnType<typeof setTimeout> | null = null;
   window.speechSynthesis?.cancel();
 
@@ -45,6 +50,7 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       if (stopped) return;
       stopped = true;
       currentAudio?.pause();
+      void nativePlayback?.stop();
       void releaseNativeAudioSession();
       options.onSource?.('unavailable');
     };
@@ -61,10 +67,45 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       candidates.push(primarySource.replace(/\.mp3$/i, '.ogg'));
     }
 
-    const tryCandidate = (candidateIndex: number) => {
+    const tryNativeCandidate = async (candidateIndex: number): Promise<void> => {
       if (stopped) return;
       if (candidateIndex >= candidates.length) {
         markUnavailable();
+        return;
+      }
+      const absoluteSource = new URL(
+        versionAudioUrl(candidates[candidateIndex]),
+        window.location.href
+      ).href;
+      const handle = await startNativeAudioPlayback(absoluteSource, {
+        onStarted: () => options.onSource?.('recorded'),
+        onEnded: () => {
+          if (stopped) return;
+          nativePlayback = null;
+          index += 1;
+          playCurrent();
+        },
+        onError: () => {
+          if (stopped) return;
+          nativePlayback = null;
+          void tryNativeCandidate(candidateIndex + 1);
+        }
+      });
+      if (stopped) {
+        void handle?.stop();
+        return;
+      }
+      if (handle) {
+        nativePlayback = handle;
+      } else {
+        await tryNativeCandidate(candidateIndex + 1);
+      }
+    };
+
+    const tryCandidate = (candidateIndex: number) => {
+      if (stopped) return;
+      if (candidateIndex >= candidates.length) {
+        void tryNativeCandidate(0);
         return;
       }
 
@@ -117,8 +158,13 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
   const session: NarrationSession = {
     pause: () => {
       currentAudio?.pause();
+      void nativePlayback?.pause();
     },
     resume: () => {
+      if (nativePlayback) {
+        void nativePlayback.resume();
+        return;
+      }
       if (currentAudio && !currentAudio.ended) {
         const nativeActivation = activateNativeAudioSession();
         void currentAudio.play()
@@ -138,6 +184,7 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       clearStartupTimer();
       currentAudio?.pause();
       if (currentAudio) currentAudio.currentTime = 0;
+      void nativePlayback?.stop();
       window.speechSynthesis?.cancel();
       void releaseNativeAudioSession();
     }

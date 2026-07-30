@@ -14,6 +14,19 @@ describe('native prekid glasa telefona', () => {
     expect(source).toContain('IMPORTANT_FOR_ACCESSIBILITY_YES');
   });
 
+  it('Android 13 omot ima nezavisni MediaPlayer fallback za priče', () => {
+    const source = readFileSync(resolve(
+      'android/app/src/main/java/rs/slovolov/app/SlovolovAudioSessionPlugin.java'
+    ), 'utf8');
+
+    expect(source).toContain('new MediaPlayer()');
+    expect(source).toContain('setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)');
+    expect(source).toContain('player.prepareAsync()');
+    expect(source).toContain('notifyListeners("playbackEnded"');
+    expect(source).toContain('notifyListeners("playbackError"');
+    expect(source).toContain('stopAndReleasePlayer()');
+  });
+
   it('iOS prekida druge spoken-audio sesije dok Slovolov govori', () => {
     const source = readFileSync(resolve('ios/App/App/AppDelegate.swift'), 'utf8');
 
