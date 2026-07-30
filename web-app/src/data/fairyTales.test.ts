@@ -101,6 +101,9 @@ describe('biblioteka bajki sa zvukom', () => {
         );
         expect(existsSync(audioPath), audioPath).toBe(true);
         expect(statSync(audioPath).size, audioPath).toBeGreaterThan(1_000);
+        const fallbackPath = audioPath.replace(/\.mp3$/i, '.ogg');
+        expect(existsSync(fallbackPath), fallbackPath).toBe(true);
+        expect(statSync(fallbackPath).size, fallbackPath).toBeGreaterThan(1_000);
       });
     }
   });

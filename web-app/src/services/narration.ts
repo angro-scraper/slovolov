@@ -24,7 +24,13 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
   let index = Math.max(0, Math.min(options.startIndex ?? 0, sentences.length - 1));
   let stopped = !options.enabled || sentences.length === 0;
   let currentAudio: HTMLAudioElement | null = null;
+  let startupTimer: ReturnType<typeof setTimeout> | null = null;
   window.speechSynthesis?.cancel();
+
+  const clearStartupTimer = () => {
+    if (startupTimer !== null) clearTimeout(startupTimer);
+    startupTimer = null;
+  };
 
   const playCurrent = () => {
     if (stopped || index >= sentences.length) {
@@ -48,29 +54,64 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       markUnavailable();
       return;
     }
-    const audio = new Audio(explicitSource
-      ? versionAudioUrl(explicitSource)
-      : versionAudioUrl(`/audio/stories/${options.audioKey}-${index + 1}.mp3`));
-    audio.preload = 'auto';
-    currentAudio = audio;
-    audio.onended = () => {
+    const primarySource = explicitSource
+      ?? `/audio/stories/${options.audioKey}-${index + 1}.mp3`;
+    const candidates = [primarySource];
+    if (/\.mp3$/i.test(primarySource)) {
+      candidates.push(primarySource.replace(/\.mp3$/i, '.ogg'));
+    }
+
+    const tryCandidate = (candidateIndex: number) => {
       if (stopped) return;
-      index += 1;
-      playCurrent();
-    };
-    audio.onerror = markUnavailable;
-    // Prvi play mora ostati u istom korisničkom gestu na iOS-u. Native
-    // aktivaciju pokrećemo paralelno, pa je potvrđujemo još jednom kada
-    // WKWebView/Android WebView zaista započne reprodukciju.
-    const nativeActivation = activateNativeAudioSession();
-    void audio.play()
-      .then(async () => {
-        await nativeActivation;
+      if (candidateIndex >= candidates.length) {
+        markUnavailable();
+        return;
+      }
+
+      const audio = new Audio(versionAudioUrl(candidates[candidateIndex]));
+      let failed = false;
+      audio.preload = 'auto';
+      currentAudio = audio;
+
+      const tryFallback = () => {
+        if (failed || stopped || currentAudio !== audio) return;
+        failed = true;
+        clearStartupTimer();
+        audio.onerror = null;
+        audio.onended = null;
+        audio.pause();
+        tryCandidate(candidateIndex + 1);
+      };
+
+      audio.onended = () => {
         if (stopped || currentAudio !== audio) return;
-        await activateNativeAudioSession();
-        options.onSource?.('recorded');
-      })
-      .catch(markUnavailable);
+        clearStartupTimer();
+        index += 1;
+        playCurrent();
+      };
+      audio.onerror = tryFallback;
+
+      // Ako stari WebView ne odbije format eksplicitno već ostavi play()
+      // obećanje zauvek otvoreno, posle osam sekundi pokušavamo OGG kopiju
+      // istog snimka umesto glasa telefona.
+      startupTimer = setTimeout(tryFallback, 8_000);
+
+      // Prvi play mora ostati u istom korisničkom gestu na iOS-u. Native
+      // aktivaciju pokrećemo paralelno, pa je potvrđujemo još jednom kada
+      // WKWebView/Android WebView zaista započne reprodukciju.
+      const nativeActivation = activateNativeAudioSession();
+      void audio.play()
+        .then(async () => {
+          clearStartupTimer();
+          await nativeActivation;
+          if (stopped || currentAudio !== audio) return;
+          await activateNativeAudioSession();
+          options.onSource?.('recorded');
+        })
+        .catch(tryFallback);
+    };
+
+    tryCandidate(0);
   };
 
   const session: NarrationSession = {
@@ -94,6 +135,7 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
     },
     stop: () => {
       stopped = true;
+      clearStartupTimer();
       currentAudio?.pause();
       if (currentAudio) currentAudio.currentTime = 0;
       window.speechSynthesis?.cancel();

@@ -10,7 +10,7 @@ export function removeStoreUnsafeStoryAssets(outputRoot: string): void {
   for (const fileName of readdirSync(storyAudioRoot)) {
     // Store izdanje zadržava samo uzrasno prilagođene snimke. Puni izvori
     // (`*-full-*` i stariji `*-cela-*`) ne smeju u prodavnički paket.
-    if (!/-sazeta-\d+\.mp3$/i.test(fileName)) {
+    if (!/-sazeta-\d+\.(mp3|ogg)$/i.test(fileName)) {
       rmSync(resolve(storyAudioRoot, fileName), { recursive: true, force: true });
     }
   }

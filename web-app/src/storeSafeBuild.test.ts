@@ -21,6 +21,7 @@ describe('prodavnički audio paket za tablete', () => {
     mkdirSync(contentRoot, { recursive: true });
 
     writeFileSync(join(audioRoot, 'ivica-i-marica-sazeta-1.mp3'), 'tablet-narrator');
+    writeFileSync(join(audioRoot, 'ivica-i-marica-sazeta-1.ogg'), 'tablet-narrator-fallback');
     writeFileSync(join(audioRoot, 'ivica-i-marica-full-1.mp3'), 'full-source');
     writeFileSync(join(audioRoot, 'ivica-i-marica-cela-1.mp3'), 'legacy-full-source');
     writeFileSync(join(contentRoot, 'ivica-i-marica.json'), '{}');
@@ -28,6 +29,7 @@ describe('prodavnički audio paket za tablete', () => {
     removeStoreUnsafeStoryAssets(root);
 
     expect(existsSync(join(audioRoot, 'ivica-i-marica-sazeta-1.mp3'))).toBe(true);
+    expect(existsSync(join(audioRoot, 'ivica-i-marica-sazeta-1.ogg'))).toBe(true);
     expect(existsSync(join(audioRoot, 'ivica-i-marica-full-1.mp3'))).toBe(false);
     expect(existsSync(join(audioRoot, 'ivica-i-marica-cela-1.mp3'))).toBe(false);
     expect(existsSync(contentRoot)).toBe(false);

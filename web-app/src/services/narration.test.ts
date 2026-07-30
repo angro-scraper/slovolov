@@ -88,7 +88,7 @@ describe('audio pripovedanje', () => {
 
   it('greška snimka ne aktivira Android ili iOS TTS fallback', async () => {
     const sources: string[] = [];
-    vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValueOnce(new Error('nema snimka'));
+    vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(new Error('nema snimka'));
 
     narrateSentences(['Некада давно.'], {
       enabled: true,
@@ -98,6 +98,25 @@ describe('audio pripovedanje', () => {
 
     await vi.waitFor(() => expect(sources).toEqual(['unavailable']));
     expect(nativeAudioSession.releaseNativeAudioSession).toHaveBeenCalled();
+    expect(speak).not.toHaveBeenCalled();
+  });
+
+  it('posle MP3 greške automatski koristi OGG kopiju istog naratora', async () => {
+    const sources: string[] = [];
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
+      .mockRejectedValueOnce(new Error('tablet ne dekodira mp3'))
+      .mockResolvedValueOnce();
+
+    narrateSentences(['Некада давно.'], {
+      enabled: true,
+      audioKey: 'ivica-i-marica-sazeta',
+      onSource: (source) => sources.push(source)
+    });
+
+    await vi.waitFor(() => expect(sources).toEqual(['recorded']));
+    expect(play).toHaveBeenCalledTimes(2);
+    expect((play.mock.instances[0] as HTMLMediaElement).src).toContain('.mp3');
+    expect((play.mock.instances[1] as HTMLMediaElement).src).toContain('.ogg');
     expect(speak).not.toHaveBeenCalled();
   });
 

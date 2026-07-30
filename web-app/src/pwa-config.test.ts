@@ -10,7 +10,7 @@ describe('PWA audio knjige', () => {
     expect(config).not.toContain('woff2,mp3');
     expect(config).toContain("url.pathname.startsWith('/audio/stories/')");
     expect(config).toContain("handler: 'CacheFirst'");
-    expect(config).toContain("cacheName: 'slovolov-story-audio-v6'");
+    expect(config).toContain("cacheName: 'slovolov-story-audio-v7'");
     expect(config).toContain('rangeRequests: true');
   });
 
