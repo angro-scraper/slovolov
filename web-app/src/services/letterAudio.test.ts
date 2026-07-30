@@ -3,6 +3,10 @@ import { AUDIO_ASSET_VERSION } from './audioAssets';
 import { resolveLetterAudio } from './letterAudio';
 
 describe('lokalni srpski izgovor slova', () => {
+  it('menja URL paketa da tablet ne zadrži neispravan MP3 keš', () => {
+    expect(AUDIO_ASSET_VERSION).toBe('sr-sophie-tablet-v7-20260730');
+  });
+
   it.each([
     ['Ј', '/audio/letters/11-lesson.mp3'],
     ['j', '/audio/letters/11-lesson.mp3'],

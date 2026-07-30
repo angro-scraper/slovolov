@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AUDIO_ASSET_VERSION } from './audioAssets';
+import * as nativeAudioSession from './nativeAudioSession';
 import { narrateSentences } from './narration';
 
 describe('audio pripovedanje', () => {
@@ -9,6 +11,8 @@ describe('audio pripovedanje', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(nativeAudioSession, 'activateNativeAudioSession').mockResolvedValue(true);
+    vi.spyOn(nativeAudioSession, 'releaseNativeAudioSession').mockResolvedValue();
     Object.defineProperty(window, 'speechSynthesis', {
       configurable: true,
       value: {
@@ -57,6 +61,9 @@ describe('audio pripovedanje', () => {
     await vi.waitFor(() => expect(sources).toEqual(['recorded']));
     expect((play.mock.instances[0] as HTMLMediaElement).src)
       .toContain('/audio/stories/ivica-i-marica-full-1.mp3');
+    expect((play.mock.instances[0] as HTMLMediaElement).src)
+      .toContain(`v=${AUDIO_ASSET_VERSION}`);
+    expect(nativeAudioSession.activateNativeAudioSession).toHaveBeenCalledTimes(2);
     expect(speak).not.toHaveBeenCalled();
   });
 
@@ -90,6 +97,7 @@ describe('audio pripovedanje', () => {
     });
 
     await vi.waitFor(() => expect(sources).toEqual(['unavailable']));
+    expect(nativeAudioSession.releaseNativeAudioSession).toHaveBeenCalled();
     expect(speak).not.toHaveBeenCalled();
   });
 

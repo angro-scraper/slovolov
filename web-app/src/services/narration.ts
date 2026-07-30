@@ -1,4 +1,8 @@
 import { versionAudioUrl } from './audioAssets';
+import {
+  activateNativeAudioSession,
+  releaseNativeAudioSession
+} from './nativeAudioSession';
 
 export type NarrationSession = {
   pause: () => void;
@@ -24,13 +28,18 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
 
   const playCurrent = () => {
     if (stopped || index >= sentences.length) {
-      if (!stopped) options.onComplete?.();
+      if (!stopped) {
+        void releaseNativeAudioSession();
+        options.onComplete?.();
+      }
       return;
     }
     options.onSentence?.(index);
     const markUnavailable = () => {
       if (stopped) return;
       stopped = true;
+      currentAudio?.pause();
+      void releaseNativeAudioSession();
       options.onSource?.('unavailable');
     };
 
@@ -42,6 +51,7 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
     const audio = new Audio(explicitSource
       ? versionAudioUrl(explicitSource)
       : versionAudioUrl(`/audio/stories/${options.audioKey}-${index + 1}.mp3`));
+    audio.preload = 'auto';
     currentAudio = audio;
     audio.onended = () => {
       if (stopped) return;
@@ -49,8 +59,17 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       playCurrent();
     };
     audio.onerror = markUnavailable;
+    // Prvi play mora ostati u istom korisničkom gestu na iOS-u. Native
+    // aktivaciju pokrećemo paralelno, pa je potvrđujemo još jednom kada
+    // WKWebView/Android WebView zaista započne reprodukciju.
+    const nativeActivation = activateNativeAudioSession();
     void audio.play()
-      .then(() => options.onSource?.('recorded'))
+      .then(async () => {
+        await nativeActivation;
+        if (stopped || currentAudio !== audio) return;
+        await activateNativeAudioSession();
+        options.onSource?.('recorded');
+      })
       .catch(markUnavailable);
   };
 
@@ -59,16 +78,26 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
       currentAudio?.pause();
     },
     resume: () => {
-      if (currentAudio && !currentAudio.ended) void currentAudio.play().catch(() => {
-        stopped = true;
-        options.onSource?.('unavailable');
-      });
+      if (currentAudio && !currentAudio.ended) {
+        const nativeActivation = activateNativeAudioSession();
+        void currentAudio.play()
+          .then(async () => {
+            await nativeActivation;
+            if (!stopped) await activateNativeAudioSession();
+          })
+          .catch(() => {
+            stopped = true;
+            void releaseNativeAudioSession();
+            options.onSource?.('unavailable');
+          });
+      }
     },
     stop: () => {
       stopped = true;
       currentAudio?.pause();
       if (currentAudio) currentAudio.currentTime = 0;
       window.speechSynthesis?.cancel();
+      void releaseNativeAudioSession();
     }
   };
 
