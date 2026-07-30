@@ -1,4 +1,4 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createFairyTaleCatalog, fairyTales } from './fairyTales';
@@ -101,6 +101,31 @@ describe('biblioteka bajki sa zvukom', () => {
         );
         expect(existsSync(audioPath), audioPath).toBe(true);
         expect(statSync(audioPath).size, audioPath).toBeGreaterThan(1_000);
+      });
+    }
+  });
+
+  it('snimci priča koriste MPEG-1 MP3 koji podržavaju i stariji Android tableti', () => {
+    const storeStories = createFairyTaleCatalog('store-safe');
+
+    for (const story of storeStories) {
+      story.sentences.forEach((_, index) => {
+        const audioPath = resolve(
+          process.cwd(),
+          'public',
+          'audio',
+          'stories',
+          `${story.audioKey}-${index + 1}.mp3`
+        );
+        const bytes = readFileSync(audioPath);
+        const frameOffset = bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33
+          ? 10 + ((bytes[6] & 0x7f) << 21) + ((bytes[7] & 0x7f) << 14)
+            + ((bytes[8] & 0x7f) << 7) + (bytes[9] & 0x7f)
+          : 0;
+
+        expect(bytes[frameOffset], audioPath).toBe(0xff);
+        expect(bytes[frameOffset + 1] & 0xe0, audioPath).toBe(0xe0);
+        expect(bytes[frameOffset + 1] & 0x18, audioPath).toBe(0x18);
       });
     }
   });

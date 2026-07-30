@@ -98,7 +98,7 @@ export default defineConfig(({ mode }) => {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/stories/'),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'slovolov-story-audio-v5',
+              cacheName: 'slovolov-story-audio-v6',
               expiration: {
                 maxEntries: 3_000,
                 maxAgeSeconds: 60 * 60 * 24 * 365
