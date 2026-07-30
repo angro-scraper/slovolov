@@ -1,3 +1,5 @@
+import { existsSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createFairyTaleCatalog, fairyTales } from './fairyTales';
 import { fullStoryContentIds } from './fullStoryContentManifest';
@@ -86,8 +88,21 @@ describe('biblioteka bajki sa zvukom', () => {
     expect(storeStories.every((story) => story.edition === 'abridged')).toBe(true);
     expect(storeStories.every((story) => !story.fullContentAvailable)).toBe(true);
     expect(storeStories.every((story) => story.reviewed === false)).toBe(true);
-    expect(storeStories.every((story) => story.recordedAudio === false)).toBe(true);
+    expect(storeStories.every((story) => story.recordedAudio === true)).toBe(true);
     expect(storeStories.every((story) => story.audioKey.endsWith('-sazeta'))).toBe(true);
+    for (const story of storeStories) {
+      story.sentences.forEach((_, index) => {
+        const audioPath = resolve(
+          process.cwd(),
+          'public',
+          'audio',
+          'stories',
+          `${story.audioKey}-${index + 1}.mp3`
+        );
+        expect(existsSync(audioPath), audioPath).toBe(true);
+        expect(statSync(audioPath).size, audioPath).toBeGreaterThan(1_000);
+      });
+    }
   });
 
   it('prodavnički katalog nema eksplicitne scene iz izvornih izdanja', () => {

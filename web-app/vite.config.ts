@@ -1,8 +1,8 @@
-import { rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { removeStoreUnsafeStoryAssets } from './src/storeSafeAssets';
 
 function excludeSourceStoryAssets(storeSafeContent: boolean): Plugin {
   return {
@@ -15,8 +15,7 @@ function excludeSourceStoryAssets(storeSafeContent: boolean): Plugin {
         process.cwd(),
         typeof options.dir === 'string' ? options.dir : 'dist'
       );
-      rmSync(resolve(outputRoot, 'content', 'stories'), { recursive: true, force: true });
-      rmSync(resolve(outputRoot, 'audio', 'stories'), { recursive: true, force: true });
+      removeStoreUnsafeStoryAssets(outputRoot);
     }
   };
 }

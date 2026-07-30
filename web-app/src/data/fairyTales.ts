@@ -983,7 +983,11 @@ function buildTale(
     answers: seed.answers,
     correct: seed.correct,
     audioKey: `${seed.id}-${hasFullContent ? 'full' : 'sazeta'}`,
-    recordedAudio: hasFullContent ? (seed.recordedAudio ?? true) : false,
+    // Prodavničko izdanje koristi bezbedne, uzrasno prilagođene tekstove,
+    // ali za njih postoje provereni lokalni `*-sazeta-*.mp3` snimci. Ranije
+    // `false` je ostavljao Android/iOS build bez naratora iako su MP3 fajlovi
+    // bili spakovani uz aplikaciju.
+    recordedAudio: hasFullContent ? (seed.recordedAudio ?? true) : !useFullSourceContent,
     recordedVoice: 'sr-RS-SophieNeural',
     plotKey: seed.id,
     source: seed.source,
