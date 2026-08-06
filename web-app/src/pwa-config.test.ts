@@ -17,7 +17,7 @@ describe('PWA audio knjige', () => {
   it('kešira tačno jedan srpski snimak za svaku od 30 lekcija', () => {
     const config = readFileSync(resolve(process.cwd(), 'vite.config.ts'), 'utf8');
     expect(config).toContain("url.pathname.startsWith('/audio/letters/')");
-    expect(config).toContain("cacheName: 'slovolov-letter-audio-v5'");
+    expect(config).toContain("cacheName: 'slovolov-letter-audio-v6'");
     expect(config).toContain("cacheName: 'slovolov-number-audio-v1'");
     expect(config).toContain("cacheName: 'slovolov-quiz-audio-v2'");
 
