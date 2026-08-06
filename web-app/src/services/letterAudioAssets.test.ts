@@ -11,7 +11,7 @@ describe('srpski izgovor slova', () => {
 
     expect(generator).toContain('VOICE = "sr-RS-SophieNeural"');
     expect(generator).toContain("Ово је слово {letter['upper']}");
-    expect(generator).toContain("{letter['upper']} као {example}");
+    expect(generator).toContain("{letter['upper']}. {letter['upper']} као {example}");
     expect(generator).not.toContain('Понови:');
     expect(generator).toContain('LETTER_RATE = "-28%"');
     expect(generator).not.toContain('PHONETIC_STARTS');
