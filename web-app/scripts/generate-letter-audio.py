@@ -61,10 +61,10 @@ async def main() -> None:
             continue
         prefix = f"{index:02d}"
         example = letter["words"][0]["word"]
-        # Jedan sporiji snimak po lekciji: slovo se izgovori dva puta sa
-        # kratkom pauzom, pa sledi primer. Tako dete jasno čuje glas pre reči.
+        # Jedan sporiji snimak po lekciji: slovo se izgovori u naslovu, zatim
+        # još jednom uz primer. Nema trećeg ponavljanja niti zamuckivanja.
         await save(
-            f"Ово је слово {letter['upper']}. {letter['upper']}. {letter['upper']} као {example}.",
+            f"Ово је слово {letter['upper']}. {letter['upper']} као {example}.",
             OUTPUT_DIR / f"{prefix}-lesson.mp3",
             LETTER_RATE,
         )
