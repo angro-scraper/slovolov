@@ -15,4 +15,10 @@ describe('katalog srpskih slova', () => {
     }
     expect(transliterate('ЉУБАВ')).toBe('LJUBAV');
   });
+
+  it('uči slovo Е kroz ispravnu reč i ilustraciju eksera', () => {
+    const letterE = letters.find((letter) => letter.upper === 'Е');
+
+    expect(letterE?.words[0]).toEqual({ word: 'Ексер', emoji: '🔩' });
+  });
 });

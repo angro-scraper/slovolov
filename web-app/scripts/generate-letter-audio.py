@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -47,9 +48,17 @@ async def save(text: str, target: Path, rate: str) -> None:
 
 
 async def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--letter",
+        help="Generiše samo lokalni snimak za navedeno ćirilično slovo.",
+    )
+    args = parser.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
     letters = json.loads(LETTERS_PATH.read_text(encoding="utf-8"))
     for index, letter in enumerate(letters, start=1):
+        if args.letter and letter["upper"] != args.letter:
+            continue
         prefix = f"{index:02d}"
         example = letter["words"][0]["word"]
         # Jedan sporiji snimak po lekciji: isti glas i ista rečenica za veliko
@@ -61,6 +70,9 @@ async def main() -> None:
             LETTER_RATE,
         )
         print(f"{prefix} {letter['upper']} — {example}")
+
+    if args.letter:
+        return
 
     feedback = {
         "bravo-next-letter.mp3":
