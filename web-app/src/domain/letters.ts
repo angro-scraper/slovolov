@@ -1,6 +1,6 @@
 import rawLetters from '../data/letters.json';
 
-export type LetterWord = { word: string; emoji: string };
+export type LetterWord = { word: string; emoji: string; image?: string };
 export type Letter = {
   upper: string;
   lower: string;

@@ -13,7 +13,7 @@ import { cultureCards } from './data/serbianCulture';
 import { seededChoices } from './domain/choices';
 import { canAccessLetter, canAccessNumber, canAccessStory } from './domain/access';
 import { nextLetterToPractice, summarizeLearning } from './domain/learning';
-import { displayLetter, letters, transliterate, type Letter } from './domain/letters';
+import { displayLetter, letters, transliterate, type Letter, type LetterWord } from './domain/letters';
 import {
   buildCreativeStory,
   creativeEndings,
@@ -82,6 +82,12 @@ const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: stri
   { screen: 'creative', icon: '🎭', title: 'Moja priča', subtitle: 'Izaberi junaka i smisli avanturu' },
   { screen: 'progress', icon: '⭐', title: 'Moj napredak', subtitle: 'Zvezdice, dnevni niz i nagrade' }
 ];
+
+function WordIllustration({ word, className = '' }: { word: LetterWord; className?: string }) {
+  return word.image
+    ? <img className={`word-illustration ${className}`} src={word.image} alt="" />
+    : <span>{word.emoji}</span>;
+}
 
 function Back({ onClick }: { onClick: () => void }) {
   return <button className="back" onClick={onClick} aria-label="Nazad">←</button>;
@@ -270,7 +276,7 @@ export function App() {
                       window.setTimeout(() => setCelebrate(false), 1400);
                     }}
                   >
-                    <span>{word.emoji}</span>
+                    <WordIllustration word={word} />
                     <strong>{script === 'cyrillic' ? word.word : transliterate(word.word)}</strong>
                   </button>
                 ))}
@@ -348,6 +354,7 @@ export function App() {
             key={`coloring-${selected.upper}-${script}`}
             letter={displayLetter(selected, script)}
             illustration={selected.words[0].emoji}
+            illustrationImage={selected.words[0].image}
             onSaved={() => {
               const saved = selected;
               const nextIndex = (letters.indexOf(saved) + 1) % letters.length;
@@ -841,7 +848,7 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                       void speak('Pokušaj ponovo.', sound);
                     }
                   }}>
-                    <span>{word.emoji}</span><strong>{word.word}</strong>
+                    <WordIllustration word={word} /><strong>{word.word}</strong>
                   </button>
                 ))}
             </div>
@@ -976,7 +983,7 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
         {question < round.length ? <>
           <p>Poslušaj i pogodi početno slovo.</p>
           <div className="quiz-emoji" role="img" aria-label="Slika za kviz pitanje">
-            {target.emoji}
+            <WordIllustration word={target} className="quiz-word-illustration" />
           </div>
           <button
             className="secondary quiz-listen"

@@ -19,6 +19,10 @@ describe('katalog srpskih slova', () => {
   it('uči slovo Е kroz ispravnu reč i ilustraciju eksera', () => {
     const letterE = letters.find((letter) => letter.upper === 'Е');
 
-    expect(letterE?.words[0]).toEqual({ word: 'Ексер', emoji: '🔩' });
+    expect(letterE?.words[0]).toEqual({
+      word: 'Ексер',
+      emoji: '📌',
+      image: '/images/letters/ekser.svg'
+    });
   });
 });

@@ -5,6 +5,7 @@ const palette = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#8b5cf6
 type ColoringPadProps = {
   letter: string;
   illustration?: string;
+  illustrationImage?: string;
   onSaved?: (letter: string) => void;
   storageKey?: string;
   canvasLabel?: string;
@@ -13,6 +14,7 @@ type ColoringPadProps = {
 export function ColoringPad({
   letter,
   illustration = '🌈',
+  illustrationImage,
   onSaved,
   storageKey,
   canvasLabel
@@ -77,7 +79,10 @@ export function ColoringPad({
 
   return (
     <div className="coloring-pad">
-      <div className="coloring-picture" aria-hidden="true">{illustration}{letter && <strong>{letter}</strong>}</div>
+      <div className="coloring-picture" aria-hidden="true">
+        {illustrationImage ? <img src={illustrationImage} alt="" /> : illustration}
+        {letter && <strong>{letter}</strong>}
+      </div>
       <canvas
         ref={canvasRef}
         aria-label={canvasLabel ?? `Bojanka za slovo ${letter}`}
