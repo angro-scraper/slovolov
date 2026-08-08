@@ -1825,7 +1825,7 @@ function CreativeStudio({
   }, [endingIndex, helperIndex, heroIndex, placeIndex, questIndex, stopStory]);
 
   return (
-    <div className="single-screen">
+    <div className="single-screen creative-screen">
       <Header title="Moja priča" onBack={onBack} />
       <main className="creative-studio">
         <section className="creative-preview">

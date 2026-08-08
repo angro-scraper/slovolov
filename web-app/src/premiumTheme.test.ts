@@ -23,4 +23,17 @@ describe('premium Slovolov vizuelni sistem', () => {
     expect(app).toContain('Bez reklama');
     expect(app).toContain('Bez pretplate');
   });
+
+  it('Moja priča koristi prirodno skrolovanje umesto sabijanja sadržaja u jedan ekran', () => {
+    const app = readFileSync(resolve('src/App.tsx'), 'utf8');
+    const styles = readFileSync(resolve('src/styles.css'), 'utf8');
+
+    expect(app).toContain('className="single-screen creative-screen"');
+    expect(styles).toContain('.creative-screen {');
+    expect(styles).toContain('overflow-y: auto;');
+    expect(styles).toContain('.creative-screen .creative-preview {');
+    expect(styles).toContain('grid-template-rows: auto auto auto;');
+    expect(styles).toContain('.creative-screen .creative-story-pages { overflow: visible; }');
+    expect(styles).toContain('.creative-screen .creative-options { max-height: none; overflow: visible; }');
+  });
 });
