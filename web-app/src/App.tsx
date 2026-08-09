@@ -28,6 +28,7 @@ import {
   isAdventureLevelUnlocked,
   type AdventureLevel
 } from './domain/adventure';
+import { isTrailUnlocked, trails, trailChoices, type Trail } from './domain/trailGame';
 import { narrateSentences, type NarrationSession } from './services/narration';
 import {
   createCreativeNarrationSources,
@@ -65,7 +66,7 @@ import {
 } from './services/purchases';
 import { useProgressStore } from './store/progress';
 
-type Screen = 'home' | 'adventure' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
+type Screen = 'home' | 'adventure' | 'trail' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
 
 const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: string }> = [
   { screen: 'adventure', icon: '🗺️', title: 'Moja avantura', subtitle: '36 nivoa koji postaju sve teži' },
@@ -112,6 +113,7 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [selected, setSelected] = useState<Letter>(letters[0]);
   const [activeAdventureLevel, setActiveAdventureLevel] = useState<AdventureLevel | null>(null);
+  const [activeTrail, setActiveTrail] = useState<Trail | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [letterCase, setLetterCase] = useState<'upper' | 'lower'>('upper');
   const [traceMessage, setTraceMessage] = useState('Prati celo svetlo slovo prstom.');
@@ -372,7 +374,8 @@ export function App() {
       </div>
     );
 
-    if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} />;
+    if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} onPlayTrail={(trail) => { setActiveTrail(trail); navigate('trail'); }} />;
+    if (screen === 'trail' && activeTrail) return <TrailGame trail={activeTrail} onBack={() => navigate('adventure')} onComplete={() => { setActiveTrail(null); navigate('adventure'); }} sound={sound} script={script} />;
     if (screen === 'voice') return <VoiceQuest level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
     if (screen === 'family-missions') return <FamilyMissions level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} />;
     if (screen === 'logic') return <LogicLab level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
@@ -404,12 +407,15 @@ export function App() {
 
 function AdventureMap({
   onBack,
-  onOpen
+  onOpen,
+  onPlayTrail
 }: {
   onBack: () => void;
   onOpen: (level: AdventureLevel) => void;
+  onPlayTrail: (trail: Trail) => void;
 }) {
   const completed = useProgressStore((state) => state.profile.completedLearningPaths);
+  const completedGames = useProgressStore((state) => state.profile.completedGames);
   const progress = getAdventureProgress(completed);
   return (
     <div className="adventure-screen">
@@ -425,10 +431,32 @@ function AdventureMap({
             <strong>{progress.percent}%</strong>
           </div>
         </section>
+        <section className="trail-picker" aria-labelledby="trail-picker-title">
+          <div className="trail-picker-heading">
+            <div><small>IGRA SKUPLJANJA</small><h2 id="trail-picker-title">Izaberi svoju stazu</h2><p>Sakupi tačne simbole i dođi do cilja.</p></div>
+            <span aria-hidden="true">🧭</span>
+          </div>
+          <div className="trail-picker-grid">
+            {trails.map((trail, index) => {
+              const unlocked = isTrailUnlocked(index, completedGames);
+              const done = completedGames.includes(trail.id);
+              return <button
+                key={trail.id}
+                className={`trail-choice trail-${trail.id.replace('trail-', '')} ${done ? 'done' : ''} ${unlocked ? '' : 'locked'}`}
+                disabled={!unlocked}
+                onClick={() => onPlayTrail(trail)}
+                aria-label={`${trail.title}${done ? ', završeno' : unlocked ? '' : ', zaključano'}`}
+              >
+                <span>{unlocked ? trail.scene : '🔒'}</span><strong>{trail.title}</strong><small>{done ? 'Završeno ✓' : trail.subtitle}</small>
+              </button>;
+            })}
+          </div>
+        </section>
         <div className="adventure-worlds">
           {adventureWorlds.map((world) => (
-            <section className="adventure-world" key={world.id} style={{ '--world-color': world.color } as React.CSSProperties}>
-              <header><div><h3>{world.title}</h3><p>{world.description}</p></div><span>{world.levels.at(-1)?.icon}</span></header>
+            <section className={`adventure-world adventure-world-${world.id}`} key={world.id} style={{ '--world-color': world.color } as React.CSSProperties}>
+              <div className="world-scenery" aria-hidden="true"><span>{world.id === 'voice' ? '🌲' : world.id === 'reading' ? '📚' : world.id === 'family' ? '🌻' : world.id === 'logic' ? '🏔️' : world.id === 'creative' ? '🎨' : '🌌'}</span><i>✨</i><i>{world.levels.at(-1)?.icon}</i></div>
+              <header><div><small>OBLAST {Math.ceil(world.levels[0].order / 6)}</small><h3>{world.title}</h3><p>{world.description}</p></div><span>{world.levels.at(-1)?.icon}</span></header>
               <div className="adventure-levels">
                 {world.levels.map((level) => {
                   const done = completed.includes(level.id);
@@ -454,6 +482,75 @@ function AdventureMap({
       </main>
     </div>
   );
+}
+
+function TrailGame({
+  trail,
+  onBack,
+  onComplete,
+  sound,
+  script
+}: {
+  trail: Trail;
+  onBack: () => void;
+  onComplete: () => void;
+  sound: boolean;
+  script: 'cyrillic' | 'latin';
+}) {
+  const visibleToken = (token: string) => script === 'latin' ? transliterate(token) : token;
+  const [step, setStep] = useState(0);
+  const [message, setMessage] = useState(`Pronađi ${visibleToken(trail.targets[0])} i dodirni ga.`);
+  const [finished, setFinished] = useState(false);
+  const choices = finished ? [] : trailChoices(trail, step);
+  const completeGame = useProgressStore((state) => state.completeGame);
+  const learnLetter = useProgressStore((state) => state.learnLetter);
+  const learnNumber = useProgressStore((state) => state.learnNumber);
+  const target = trail.targets[step];
+
+  const selectToken = (token: string) => {
+    if (finished) return;
+    if (token !== target) {
+      setMessage('Još jednom! Pronađi simbol koji Sovica traži.');
+      void speak('Pokušaj ponovo.', sound);
+      return;
+    }
+    const asNumber = Number(token);
+    if (Number.isInteger(asNumber) && token.trim() !== '') learnNumber(asNumber);
+    else learnLetter(token);
+    if (step === trail.targets.length - 1) {
+      completeGame(trail.id);
+      setStep(trail.targets.length);
+      setFinished(true);
+      setMessage('Bravo! Stigao si do cilja i osvojio dve zvezdice.');
+      void speak('Bravo! Stigao si do cilja!', sound);
+      return;
+    }
+    const nextStep = step + 1;
+    setStep(nextStep);
+    setMessage(`Bravo! Sada pronađi ${visibleToken(trail.targets[nextStep])}.`);
+    void speak('Bravo! Nastavi stazom.', sound);
+  };
+
+  return <div className={`trail-game trail-game-${trail.id.replace('trail-', '')}`} data-testid="trail-game">
+    <Header title={trail.title} onBack={onBack} />
+    <main className="trail-play-area">
+      <section className="trail-game-card">
+        <div className="trail-scenery" aria-hidden="true"><span>{trail.scene}</span><i>⭐</i><i>✨</i></div>
+        <small>STAZA {finished ? trail.targets.length : step + 1}/{trail.targets.length}</small>
+        <h2>{finished ? 'Stigao si do cilja!' : `Sakupi: ${visibleToken(target)}`}</h2>
+        <div className="trail-route" aria-label={`Putanja kroz ${trail.title}`}>
+          <span className="trail-route-line" />
+          {trail.targets.map((item, index) => <i key={`${item}-${index}`} className={index < step ? 'passed' : index === step ? 'current' : ''}>{index < step ? '✓' : visibleToken(item)}</i>)}
+          <b style={{ left: `${Math.min(92, 8 + step * 42)}%` }}>🦉</b>
+        </div>
+        <div className="trail-progress" aria-label={`Napredak ${step} od ${trail.targets.length}`}><span style={{ width: `${(step / trail.targets.length) * 100}%` }} /></div>
+        {!finished ? <div className="trail-tokens" aria-label="Simboli na stazi">
+          {choices.map((token) => <button key={token} onClick={() => selectToken(token)} aria-label={`Sakupi ${visibleToken(token)}`}>{visibleToken(token)}</button>)}
+        </div> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
+        <p role="status">{message}</p>
+      </section>
+    </main>
+  </div>;
 }
 
 function VoiceQuest({
