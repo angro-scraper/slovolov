@@ -25,11 +25,11 @@ export function createPlatformerLevel(tokens: string[]): PlatformerLevel {
   return {
     platforms: [
       { x: 0, width: 28, y: 0 },
-      { x: 28, width: 18, y: 18 },
-      { x: 49, width: 18, y: 33 },
+      { x: 28, width: 18, y: 12 },
+      { x: 49, width: 18, y: 20 },
       { x: 70, width: 30, y: 0 }
     ],
-    collectibles: tokens.map((token, index) => ({ token, x: [36, 57, 79][index] ?? 86, y: [28, 43, 12][index] ?? 12 })),
+    collectibles: tokens.map((token, index) => ({ token, x: [36, 57, 79][index] ?? 86, y: [20, 28, 10][index] ?? 10 })),
     goalX: 91
   };
 }

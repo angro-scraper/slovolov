@@ -574,9 +574,9 @@ function TrailGame({
           <span className="trail-treasure" aria-hidden="true">🎁</span>
         </div>
         {!game.finished ? <div className="platformer-controls" aria-label="Kontrole igre">
-          <button onPointerDown={() => press(-1)} onPointerUp={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi levo">◀</button>
+          <button onPointerDown={() => press(-1)} onPointerUp={() => press(0)} onPointerLeave={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi levo">◀</button>
           <button className="jump-button" onPointerDown={() => press(0, true)} aria-label="Skoči">SKOČI ⤒</button>
-          <button onPointerDown={() => press(1)} onPointerUp={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi desno">▶</button>
+          <button onPointerDown={() => press(1)} onPointerUp={() => press(0)} onPointerLeave={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi desno">▶</button>
         </div> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
         <p role="status">{message}</p>
       </section>
