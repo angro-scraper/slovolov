@@ -433,7 +433,7 @@ function AdventureMap({
         </section>
         <section className="trail-picker" aria-labelledby="trail-picker-title">
           <div className="trail-picker-heading">
-            <div><small>IGRA SKUPLJANJA</small><h2 id="trail-picker-title">Izaberi svoju stazu</h2><p>Sakupi tačne simbole i dođi do cilja.</p></div>
+            <div><small>IGRA SKUPLJANJA</small><h2 id="trail-picker-title">Mapa avanture</h2><p>Vodi Sovicu kroz staze, skupi simbole i otvori blago.</p></div>
             <span aria-hidden="true">🧭</span>
           </div>
           <div className="trail-picker-grid">
@@ -447,7 +447,13 @@ function AdventureMap({
                 onClick={() => onPlayTrail(trail)}
                 aria-label={`${trail.title}${done ? ', završeno' : unlocked ? '' : ', zaključano'}`}
               >
-                <span>{unlocked ? trail.scene : '🔒'}</span><strong>{trail.title}</strong><small>{done ? 'Završeno ✓' : trail.subtitle}</small>
+                <span className="trail-board-owl" aria-hidden="true">{unlocked ? (trail.id === 'trail-forest' ? '🦉' : trail.scene) : '🔒'}</span>
+                <strong>{trail.title}</strong>
+                <span className="trail-board-path" aria-hidden="true">
+                  {trail.targets.map((target, targetIndex) => <i key={targetIndex}>{unlocked ? target : '•'}</i>)}
+                  <b>🎁</b>
+                </span>
+                <small>{done ? 'Završeno ✓' : trail.subtitle}</small>
               </button>;
             })}
           </div>
@@ -501,6 +507,7 @@ function TrailGame({
   const [step, setStep] = useState(0);
   const [message, setMessage] = useState(`Pronađi ${visibleToken(trail.targets[0])} i dodirni ga.`);
   const [finished, setFinished] = useState(false);
+  const [hop, setHop] = useState(0);
   const choices = finished ? [] : trailChoices(trail, step);
   const completeGame = useProgressStore((state) => state.completeGame);
   const learnLetter = useProgressStore((state) => state.learnLetter);
@@ -517,6 +524,7 @@ function TrailGame({
     const asNumber = Number(token);
     if (Number.isInteger(asNumber) && token.trim() !== '') learnNumber(asNumber);
     else learnLetter(token);
+    setHop((value) => value + 1);
     if (step === trail.targets.length - 1) {
       completeGame(trail.id);
       setStep(trail.targets.length);
@@ -535,18 +543,22 @@ function TrailGame({
     <Header title={trail.title} onBack={onBack} />
     <main className="trail-play-area">
       <section className="trail-game-card">
-        <div className="trail-scenery" aria-hidden="true"><span>{trail.scene}</span><i>⭐</i><i>✨</i></div>
         <small>STAZA {finished ? trail.targets.length : step + 1}/{trail.targets.length}</small>
-        <h2>{finished ? 'Stigao si do cilja!' : `Sakupi: ${visibleToken(target)}`}</h2>
-        <div className="trail-route" aria-label={`Putanja kroz ${trail.title}`}>
-          <span className="trail-route-line" />
-          {trail.targets.map((item, index) => <i key={`${item}-${index}`} className={index < step ? 'passed' : index === step ? 'current' : ''}>{index < step ? '✓' : visibleToken(item)}</i>)}
-          <b style={{ left: `${Math.min(92, 8 + step * 42)}%` }}>🦉</b>
+        <h2>{finished ? 'Stigao si do blaga!' : `Sakupi: ${visibleToken(target)}`}</h2>
+        <div className="trail-game-stage" aria-label={`Igračka staza kroz ${trail.title}`}>
+          <span className="trail-cloud cloud-one" aria-hidden="true">☁️</span><span className="trail-cloud cloud-two" aria-hidden="true">☁️</span>
+          <span className="trail-ground" aria-hidden="true" />
+          <span className="trail-dotted-path" aria-hidden="true" />
+          <img key={hop} className="trail-owl" style={{ left: `${Math.min(77, 8 + step * 31)}%` }} src="/icons/slovolov-icon-192.png" alt="" />
+          {choices.map((token, choiceIndex) => <button
+            key={token}
+            className={`trail-token trail-token-${choiceIndex}`}
+            onClick={() => selectToken(token)}
+            aria-label={`Sakupi ${visibleToken(token)}`}
+          >{visibleToken(token)}</button>)}
+          <span className="trail-treasure" aria-hidden="true">🎁</span>
         </div>
-        <div className="trail-progress" aria-label={`Napredak ${step} od ${trail.targets.length}`}><span style={{ width: `${(step / trail.targets.length) * 100}%` }} /></div>
-        {!finished ? <div className="trail-tokens" aria-label="Simboli na stazi">
-          {choices.map((token) => <button key={token} onClick={() => selectToken(token)} aria-label={`Sakupi ${visibleToken(token)}`}>{visibleToken(token)}</button>)}
-        </div> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
+        {!finished ? <p className="trail-instruction">Dodirni pravi simbol. Sovica skače do njega.</p> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
         <p role="status">{message}</p>
       </section>
     </main>
