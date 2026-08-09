@@ -18,19 +18,21 @@ export type PlatformerState = {
 export type PlatformerInput = { direction: -1 | 0 | 1; jump: boolean };
 
 const movementSpeed = 32;
-const jumpVelocity = 47;
+const jumpVelocity = 65;
 const gravity = 118;
 
 export function createPlatformerLevel(tokens: string[]): PlatformerLevel {
   return {
     platforms: [
-      { x: 0, width: 28, y: 0 },
-      { x: 28, width: 18, y: 12 },
-      { x: 49, width: 18, y: 20 },
-      { x: 70, width: 30, y: 0 }
+      { x: 0, width: 30, y: 0 },
+      { x: 35, width: 16, y: 13 },
+      { x: 58, width: 17, y: 7 },
+      { x: 81, width: 22, y: 22 },
+      { x: 110, width: 17, y: 12 },
+      { x: 132, width: 28, y: 0 }
     ],
-    collectibles: tokens.map((token, index) => ({ token, x: [36, 57, 79][index] ?? 86, y: [20, 28, 10][index] ?? 10 })),
-    goalX: 91
+    collectibles: tokens.map((token, index) => ({ token, x: [42, 91, 117][index] ?? 145, y: [21, 31, 20][index] ?? 10 })),
+    goalX: 151
   };
 }
 
@@ -53,7 +55,7 @@ export function advancePlatformer(
   if (state.finished) return state;
   const dt = Math.min(Math.max(seconds, 0), .05);
   const velocityY = input.jump && standingOnPlatform(state, level) ? jumpVelocity : state.velocityY - gravity * dt;
-  const x = Math.max(2, Math.min(94, state.x + input.direction * movementSpeed * dt));
+  const x = Math.max(2, Math.min(154, state.x + input.direction * movementSpeed * dt));
   let y = state.y + velocityY * dt;
   let nextVelocityY = velocityY;
   const passedPlatform = level.platforms.find((platform) =>

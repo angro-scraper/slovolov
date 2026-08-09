@@ -557,6 +557,7 @@ function TrailGame({
   }, [completeGame, learnLetter, learnNumber, level, sound, trail.id, trail.targets]);
 
   const press = (direction: -1 | 0 | 1, jump = false) => { controls.current.direction = direction; controls.current.jump = jump; };
+  const camera = Math.min(62, Math.max(0, game.x - 34));
 
   return <div className={`trail-game trail-game-${trail.id.replace('trail-', '')}`} data-testid="trail-game">
     <Header title={trail.title} onBack={onBack} />
@@ -565,13 +566,14 @@ function TrailGame({
         <small>SAKUPLJENO {game.collected.length}/{trail.targets.length}</small>
         <h2>{game.finished ? 'Stigao si do blaga!' : `Sakupi: ${visibleToken(trail.targets[game.collected.length])}`}</h2>
         <div className="trail-game-stage" aria-label={`Igračka staza kroz ${trail.title}`}>
-          <span className="trail-cloud cloud-one" aria-hidden="true">☁️</span><span className="trail-cloud cloud-two" aria-hidden="true">☁️</span>
-          <span className="trail-ground" aria-hidden="true" />
-          <span className="trail-dotted-path" aria-hidden="true" />
-          {level.platforms.map((platform, index) => <span key={index} className="platform" style={{ left: `${platform.x}%`, width: `${platform.width}%`, bottom: `${platform.y}%` }} />)}
-          <img className={`trail-owl ${game.velocityY > 4 ? 'jumping' : ''}`} style={{ left: `${game.x}%`, bottom: `${game.y + 5}%` }} src="/icons/slovolov-icon-192.png" alt="Sovica" />
-          {level.collectibles.map((collectible, index) => <span key={collectible.token} className={`trail-token trail-token-${index} ${game.collected.includes(collectible.token) ? 'collected' : ''}`} style={{ left: `${collectible.x}%`, bottom: `${collectible.y + 4}%` }}>{visibleToken(collectible.token)}</span>)}
-          <span className="trail-treasure" aria-hidden="true">🎁</span>
+          <div className="platformer-world" style={{ transform: `translateX(-${(camera / 160) * 100}%)` }}>
+            <span className="trail-cloud cloud-one" aria-hidden="true">☁️</span><span className="trail-cloud cloud-two" aria-hidden="true">☁️</span><span className="trail-cloud cloud-three" aria-hidden="true">☁️</span>
+            <span className="trail-hills" aria-hidden="true">🏔️</span><span className="trail-ground" aria-hidden="true" /><span className="trail-dotted-path" aria-hidden="true" />
+            {level.platforms.map((platform, index) => <span key={index} className="platform" style={{ left: `${(platform.x / 160) * 100}%`, width: `${(platform.width / 160) * 100}%`, bottom: `${platform.y}%` }} />)}
+            <img className={`trail-owl ${game.velocityY > 4 ? 'jumping' : ''}`} style={{ left: `${(game.x / 160) * 100}%`, bottom: `${game.y + 5}%` }} src="/icons/slovolov-icon-192.png" alt="Sovica" />
+            {level.collectibles.map((collectible, index) => <span key={collectible.token} className={`trail-token trail-token-${index} ${game.collected.includes(collectible.token) ? 'collected' : ''}`} style={{ left: `${(collectible.x / 160) * 100}%`, bottom: `${collectible.y + 4}%` }}>{visibleToken(collectible.token)}</span>)}
+            <span className="trail-treasure" aria-hidden="true">🎁</span>
+          </div>
         </div>
         {!game.finished ? <div className="platformer-controls" aria-label="Kontrole igre">
           <button onPointerDown={() => press(-1)} onPointerUp={() => press(0)} onPointerLeave={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi levo">◀</button>

@@ -17,6 +17,6 @@ describe('dečja 2D staza', () => {
 
   it('ima platforme koje se mogu dostići jednim dečjim skokom', () => {
     const level = createPlatformerLevel(['А', 'Б', 'В']);
-    expect(level.platforms[2].y - level.platforms[1].y).toBeLessThan(10);
+    expect(level.platforms[3].y - level.platforms[2].y).toBeLessThan(18);
   });
 });
