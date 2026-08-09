@@ -28,7 +28,8 @@ import {
   isAdventureLevelUnlocked,
   type AdventureLevel
 } from './domain/adventure';
-import { isTrailUnlocked, trails, trailChoices, type Trail } from './domain/trailGame';
+import { isTrailUnlocked, trails, type Trail } from './domain/trailGame';
+import { advancePlatformer, createPlatformerLevel, createPlatformerState } from './domain/platformer';
 import { narrateSentences, type NarrationSession } from './services/narration';
 import {
   createCreativeNarrationSources,
@@ -504,61 +505,79 @@ function TrailGame({
   script: 'cyrillic' | 'latin';
 }) {
   const visibleToken = (token: string) => script === 'latin' ? transliterate(token) : token;
-  const [step, setStep] = useState(0);
-  const [message, setMessage] = useState(`Pronađi ${visibleToken(trail.targets[0])} i dodirni ga.`);
-  const [finished, setFinished] = useState(false);
-  const [hop, setHop] = useState(0);
-  const choices = finished ? [] : trailChoices(trail, step);
+  const level = useMemo(() => createPlatformerLevel(trail.targets), [trail.targets]);
+  const [game, setGame] = useState(() => createPlatformerState());
+  const [message, setMessage] = useState(`Kreći se strelicama i skači. Sakupi ${visibleToken(trail.targets[0])}.`);
+  const controls = useRef({ direction: 0 as -1 | 0 | 1, jump: false });
+  const gameRef = useRef(game);
   const completeGame = useProgressStore((state) => state.completeGame);
   const learnLetter = useProgressStore((state) => state.learnLetter);
   const learnNumber = useProgressStore((state) => state.learnNumber);
-  const target = trail.targets[step];
+  const reportedCollected = useRef<string[]>([]);
+  const completedGame = useRef(false);
 
-  const selectToken = (token: string) => {
-    if (finished) return;
-    if (token !== target) {
-      setMessage('Još jednom! Pronađi simbol koji Sovica traži.');
-      void speak('Pokušaj ponovo.', sound);
-      return;
-    }
-    const asNumber = Number(token);
-    if (Number.isInteger(asNumber) && token.trim() !== '') learnNumber(asNumber);
-    else learnLetter(token);
-    setHop((value) => value + 1);
-    if (step === trail.targets.length - 1) {
-      completeGame(trail.id);
-      setStep(trail.targets.length);
-      setFinished(true);
-      setMessage('Bravo! Stigao si do cilja i osvojio dve zvezdice.');
-      void speak('Bravo! Stigao si do cilja!', sound);
-      return;
-    }
-    const nextStep = step + 1;
-    setStep(nextStep);
-    setMessage(`Bravo! Sada pronađi ${visibleToken(trail.targets[nextStep])}.`);
-    void speak('Bravo! Nastavi stazom.', sound);
-  };
+  useEffect(() => { gameRef.current = game; }, [game]);
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') { controls.current.direction = -1; event.preventDefault(); }
+      if (event.key === 'ArrowRight') { controls.current.direction = 1; event.preventDefault(); }
+      if (event.key === 'ArrowUp' || event.key === ' ') { controls.current.jump = true; event.preventDefault(); }
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') controls.current.direction = 0;
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    let frame = 0;
+    let previous = performance.now();
+    const tick = (now: number) => {
+      const next = advancePlatformer(gameRef.current, controls.current, level, (now - previous) / 1000);
+      controls.current.jump = false;
+      previous = now;
+      if (next.collected.length > reportedCollected.current.length) {
+        const token = next.collected.at(-1)!;
+        reportedCollected.current = next.collected;
+        const asNumber = Number(token);
+        if (Number.isInteger(asNumber)) learnNumber(asNumber); else learnLetter(token);
+        setMessage(next.collected.length === level.collectibles.length ? 'Bravo! Sada dođi do sanduka.' : `Bravo! Sakupi još ${visibleToken(trail.targets[next.collected.length])}.`);
+        void speak('Bravo! Sakupio si simbol.', sound);
+      }
+      if (next.finished && !completedGame.current) {
+        completedGame.current = true;
+        completeGame(trail.id);
+        setMessage('Bravo! Otvorio si blago i osvojio dve zvezdice.');
+        void speak('Bravo! Stigao si do cilja!', sound);
+      }
+      gameRef.current = next;
+      setGame(next);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
+  }, [completeGame, learnLetter, learnNumber, level, sound, trail.id, trail.targets]);
+
+  const press = (direction: -1 | 0 | 1, jump = false) => { controls.current.direction = direction; controls.current.jump = jump; };
 
   return <div className={`trail-game trail-game-${trail.id.replace('trail-', '')}`} data-testid="trail-game">
     <Header title={trail.title} onBack={onBack} />
     <main className="trail-play-area">
       <section className="trail-game-card">
-        <small>STAZA {finished ? trail.targets.length : step + 1}/{trail.targets.length}</small>
-        <h2>{finished ? 'Stigao si do blaga!' : `Sakupi: ${visibleToken(target)}`}</h2>
+        <small>SAKUPLJENO {game.collected.length}/{trail.targets.length}</small>
+        <h2>{game.finished ? 'Stigao si do blaga!' : `Sakupi: ${visibleToken(trail.targets[game.collected.length])}`}</h2>
         <div className="trail-game-stage" aria-label={`Igračka staza kroz ${trail.title}`}>
           <span className="trail-cloud cloud-one" aria-hidden="true">☁️</span><span className="trail-cloud cloud-two" aria-hidden="true">☁️</span>
           <span className="trail-ground" aria-hidden="true" />
           <span className="trail-dotted-path" aria-hidden="true" />
-          <img key={hop} className="trail-owl" style={{ left: `${Math.min(77, 8 + step * 31)}%` }} src="/icons/slovolov-icon-192.png" alt="" />
-          {choices.map((token, choiceIndex) => <button
-            key={token}
-            className={`trail-token trail-token-${choiceIndex}`}
-            onClick={() => selectToken(token)}
-            aria-label={`Sakupi ${visibleToken(token)}`}
-          >{visibleToken(token)}</button>)}
+          {level.platforms.map((platform, index) => <span key={index} className="platform" style={{ left: `${platform.x}%`, width: `${platform.width}%`, bottom: `${platform.y}%` }} />)}
+          <img className={`trail-owl ${game.velocityY > 4 ? 'jumping' : ''}`} style={{ left: `${game.x}%`, bottom: `${game.y + 5}%` }} src="/icons/slovolov-icon-192.png" alt="Sovica" />
+          {level.collectibles.map((collectible, index) => <span key={collectible.token} className={`trail-token trail-token-${index} ${game.collected.includes(collectible.token) ? 'collected' : ''}`} style={{ left: `${collectible.x}%`, bottom: `${collectible.y + 4}%` }}>{visibleToken(collectible.token)}</span>)}
           <span className="trail-treasure" aria-hidden="true">🎁</span>
         </div>
-        {!finished ? <p className="trail-instruction">Dodirni pravi simbol. Sovica skače do njega.</p> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
+        {!game.finished ? <div className="platformer-controls" aria-label="Kontrole igre">
+          <button onPointerDown={() => press(-1)} onPointerUp={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi levo">◀</button>
+          <button className="jump-button" onPointerDown={() => press(0, true)} aria-label="Skoči">SKOČI ⤒</button>
+          <button onPointerDown={() => press(1)} onPointerUp={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi desno">▶</button>
+        </div> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
         <p role="status">{message}</p>
       </section>
     </main>
