@@ -80,6 +80,15 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getAllByRole('button', { name: /Nivo \d+:/i })).toHaveLength(36);
   });
 
+  it('ne prikazuje uklonjenu igru skupljanja na mapi avanture', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+
+    expect(screen.queryByText('IGRA SKUPLJANJA')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Vodi Sovicu kroz staze/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Šuma slova/i })).not.toBeInTheDocument();
+  });
+
   it('otključava sledeći nivo tek kada je prethodni stvarno završen', async () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));

@@ -28,8 +28,6 @@ import {
   isAdventureLevelUnlocked,
   type AdventureLevel
 } from './domain/adventure';
-import { isTrailUnlocked, trails, type Trail } from './domain/trailGame';
-import { advancePlatformer, createPlatformerLevel, createPlatformerState } from './domain/platformer';
 import { narrateSentences, type NarrationSession } from './services/narration';
 import {
   createCreativeNarrationSources,
@@ -67,7 +65,7 @@ import {
 } from './services/purchases';
 import { useProgressStore } from './store/progress';
 
-type Screen = 'home' | 'adventure' | 'trail' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
+type Screen = 'home' | 'adventure' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
 
 const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: string }> = [
   { screen: 'adventure', icon: '🗺️', title: 'Moja avantura', subtitle: '36 nivoa koji postaju sve teži' },
@@ -114,7 +112,6 @@ export function App() {
   const [screen, setScreen] = useState<Screen>('home');
   const [selected, setSelected] = useState<Letter>(letters[0]);
   const [activeAdventureLevel, setActiveAdventureLevel] = useState<AdventureLevel | null>(null);
-  const [activeTrail, setActiveTrail] = useState<Trail | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [letterCase, setLetterCase] = useState<'upper' | 'lower'>('upper');
   const [traceMessage, setTraceMessage] = useState('Prati celo svetlo slovo prstom.');
@@ -375,8 +372,7 @@ export function App() {
       </div>
     );
 
-    if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} onPlayTrail={(trail) => { setActiveTrail(trail); navigate('trail'); }} />;
-    if (screen === 'trail' && activeTrail) return <TrailGame trail={activeTrail} onBack={() => navigate('adventure')} onComplete={() => { setActiveTrail(null); navigate('adventure'); }} sound={sound} script={script} />;
+    if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} />;
     if (screen === 'voice') return <VoiceQuest level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
     if (screen === 'family-missions') return <FamilyMissions level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} />;
     if (screen === 'logic') return <LogicLab level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
@@ -408,15 +404,12 @@ export function App() {
 
 function AdventureMap({
   onBack,
-  onOpen,
-  onPlayTrail
+  onOpen
 }: {
   onBack: () => void;
   onOpen: (level: AdventureLevel) => void;
-  onPlayTrail: (trail: Trail) => void;
 }) {
   const completed = useProgressStore((state) => state.profile.completedLearningPaths);
-  const completedGames = useProgressStore((state) => state.profile.completedGames);
   const progress = getAdventureProgress(completed);
   return (
     <div className="adventure-screen">
@@ -430,33 +423,6 @@ function AdventureMap({
           </div>
           <div className="adventure-ring" style={{ '--progress': `${progress.percent * 3.6}deg` } as React.CSSProperties}>
             <strong>{progress.percent}%</strong>
-          </div>
-        </section>
-        <section className="trail-picker" aria-labelledby="trail-picker-title">
-          <div className="trail-picker-heading">
-            <div><small>IGRA SKUPLJANJA</small><h2 id="trail-picker-title">Mapa avanture</h2><p>Vodi Sovicu kroz staze, skupi simbole i otvori blago.</p></div>
-            <span aria-hidden="true">🧭</span>
-          </div>
-          <div className="trail-picker-grid">
-            {trails.map((trail, index) => {
-              const unlocked = isTrailUnlocked(index, completedGames);
-              const done = completedGames.includes(trail.id);
-              return <button
-                key={trail.id}
-                className={`trail-choice trail-${trail.id.replace('trail-', '')} ${done ? 'done' : ''} ${unlocked ? '' : 'locked'}`}
-                disabled={!unlocked}
-                onClick={() => onPlayTrail(trail)}
-                aria-label={`${trail.title}${done ? ', završeno' : unlocked ? '' : ', zaključano'}`}
-              >
-                <span className="trail-board-owl" aria-hidden="true">{unlocked ? (trail.id === 'trail-forest' ? '🦉' : trail.scene) : '🔒'}</span>
-                <strong>{trail.title}</strong>
-                <span className="trail-board-path" aria-hidden="true">
-                  {trail.targets.map((target, targetIndex) => <i key={targetIndex}>{unlocked ? target : '•'}</i>)}
-                  <b>🎁</b>
-                </span>
-                <small>{done ? 'Završeno ✓' : trail.subtitle}</small>
-              </button>;
-            })}
           </div>
         </section>
         <div className="adventure-worlds">
@@ -489,101 +455,6 @@ function AdventureMap({
       </main>
     </div>
   );
-}
-
-function TrailGame({
-  trail,
-  onBack,
-  onComplete,
-  sound,
-  script
-}: {
-  trail: Trail;
-  onBack: () => void;
-  onComplete: () => void;
-  sound: boolean;
-  script: 'cyrillic' | 'latin';
-}) {
-  const visibleToken = (token: string) => script === 'latin' ? transliterate(token) : token;
-  const level = useMemo(() => createPlatformerLevel(trail.targets), [trail.targets]);
-  const [game, setGame] = useState(() => createPlatformerState());
-  const [message, setMessage] = useState(`Kreći se strelicama i skači. Sakupi ${visibleToken(trail.targets[0])}.`);
-  const controls = useRef({ direction: 0 as -1 | 0 | 1, jump: false });
-  const gameRef = useRef(game);
-  const completeGame = useProgressStore((state) => state.completeGame);
-  const learnLetter = useProgressStore((state) => state.learnLetter);
-  const learnNumber = useProgressStore((state) => state.learnNumber);
-  const reportedCollected = useRef<string[]>([]);
-  const completedGame = useRef(false);
-
-  useEffect(() => { gameRef.current = game; }, [game]);
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft') { controls.current.direction = -1; event.preventDefault(); }
-      if (event.key === 'ArrowRight') { controls.current.direction = 1; event.preventDefault(); }
-      if (event.key === 'ArrowUp' || event.key === ' ') { controls.current.jump = true; event.preventDefault(); }
-    };
-    const onKeyUp = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') controls.current.direction = 0;
-    };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    let frame = 0;
-    let previous = performance.now();
-    const tick = (now: number) => {
-      const next = advancePlatformer(gameRef.current, controls.current, level, (now - previous) / 1000);
-      controls.current.jump = false;
-      previous = now;
-      if (next.collected.length > reportedCollected.current.length) {
-        const token = next.collected.at(-1)!;
-        reportedCollected.current = next.collected;
-        const asNumber = Number(token);
-        if (Number.isInteger(asNumber)) learnNumber(asNumber); else learnLetter(token);
-        setMessage(next.collected.length === level.collectibles.length ? 'Bravo! Sada dođi do sanduka.' : `Bravo! Sakupi još ${visibleToken(trail.targets[next.collected.length])}.`);
-        void speak('Bravo! Sakupio si simbol.', sound);
-      }
-      if (next.finished && !completedGame.current) {
-        completedGame.current = true;
-        completeGame(trail.id);
-        setMessage('Bravo! Otvorio si blago i osvojio dve zvezdice.');
-        void speak('Bravo! Stigao si do cilja!', sound);
-      }
-      gameRef.current = next;
-      setGame(next);
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(frame); window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); };
-  }, [completeGame, learnLetter, learnNumber, level, sound, trail.id, trail.targets]);
-
-  const press = (direction: -1 | 0 | 1, jump = false) => { controls.current.direction = direction; controls.current.jump = jump; };
-  const camera = Math.min(62, Math.max(0, game.x - 34));
-
-  return <div className={`trail-game trail-game-${trail.id.replace('trail-', '')}`} data-testid="trail-game">
-    <Header title={trail.title} onBack={onBack} />
-    <main className="trail-play-area">
-      <section className="trail-game-card">
-        <small>SAKUPLJENO {game.collected.length}/{trail.targets.length}</small>
-        <h2>{game.finished ? 'Stigao si do blaga!' : `Sakupi: ${visibleToken(trail.targets[game.collected.length])}`}</h2>
-        <div className="trail-game-stage" aria-label={`Igračka staza kroz ${trail.title}`}>
-          <div className="platformer-world" style={{ transform: `translateX(-${(camera / 160) * 100}%)` }}>
-            <span className="trail-cloud cloud-one" aria-hidden="true">☁️</span><span className="trail-cloud cloud-two" aria-hidden="true">☁️</span><span className="trail-cloud cloud-three" aria-hidden="true">☁️</span>
-            <span className="trail-hills" aria-hidden="true">🏔️</span><span className="trail-ground" aria-hidden="true" /><span className="trail-dotted-path" aria-hidden="true" />
-            {level.platforms.map((platform, index) => <span key={index} className="platform" style={{ left: `${(platform.x / 160) * 100}%`, width: `${(platform.width / 160) * 100}%`, bottom: `${platform.y}%` }} />)}
-            <img className={`trail-owl ${game.velocityY > 4 ? 'jumping' : ''}`} style={{ left: `${(game.x / 160) * 100}%`, bottom: `${game.y + 5}%` }} src="/icons/slovolov-icon-192.png" alt="Sovica" />
-            {level.collectibles.map((collectible, index) => <span key={collectible.token} className={`trail-token trail-token-${index} ${game.collected.includes(collectible.token) ? 'collected' : ''}`} style={{ left: `${(collectible.x / 160) * 100}%`, bottom: `${collectible.y + 4}%` }}>{visibleToken(collectible.token)}</span>)}
-            <span className="trail-treasure" aria-hidden="true">🎁</span>
-          </div>
-        </div>
-        {!game.finished ? <div className="platformer-controls" aria-label="Kontrole igre">
-          <button onPointerDown={() => press(-1)} onPointerUp={() => press(0)} onPointerLeave={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi levo">◀</button>
-          <button className="jump-button" onPointerDown={() => press(0, true)} aria-label="Skoči">SKOČI ⤒</button>
-          <button onPointerDown={() => press(1)} onPointerUp={() => press(0)} onPointerLeave={() => press(0)} onPointerCancel={() => press(0)} aria-label="Idi desno">▶</button>
-        </div> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
-        <p role="status">{message}</p>
-      </section>
-    </main>
-  </div>;
 }
 
 function VoiceQuest({
