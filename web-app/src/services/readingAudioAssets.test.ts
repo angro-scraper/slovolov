@@ -17,15 +17,19 @@ function publicPath(source: string): string {
 }
 
 describe('stvarni lokalni audio za čitanje', () => {
-  it('generator koristi isti profil glavnog Sophie naratora kao audio-priče', () => {
-    const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-audio.py'), 'utf8');
-    expect(generator).toContain('VOICE = "sr-RS-SophieNeural"');
-    expect(generator).toContain('RATE = "-8%"');
-    expect(generator).toContain('PITCH = "+2Hz"');
-    expect(generator).toContain('pitch=PITCH');
-    expect(generator).toContain('"Напиши велико слово А."');
-    expect(generator).not.toContain('"Napiši veliko slovo A."');
+  it('generator čitanja koristi zaključan Ana SRB ElevenLabs profil, bez ključa u repozitorijumu', () => {
+    const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-elevenlabs-audio.py'), 'utf8');
+    const profile = readFileSync(resolve(process.cwd(), 'scripts', 'reading-elevenlabs-profile.json'), 'utf8');
+    expect(generator).toContain('ELEVENLABS_API_KEY');
+    expect(generator).toContain('ELEVENLABS_READING_VOICE_ID');
+    expect(profile).toContain('"outputFormat": "mp3_44100_128"');
+    expect(generator).toContain('synthesize');
+    expect(profile).toContain('Ana SRB - Call center voice');
+    expect(profile).toContain('"speed": 0.81');
+    expect(profile).toContain('"similarityBoost": 0.27');
+    expect(profile).toContain('"stability": 1.0');
     expect(generator).not.toContain('SpeechSynthesisUtterance');
+    expect(generator).not.toContain('xi-api-key:');
   });
 
   it('svaki prikazani primer ima svoj lokalni MP3', () => {

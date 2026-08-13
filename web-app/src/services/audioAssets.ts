@@ -4,7 +4,7 @@
  * Audio je ranije godinama ostajao u CacheFirst kešu pod istim URL-om, pa su
  * telefon i PWA mogli da reprodukuju staru verziju i posle novog izdanja.
  */
-export const AUDIO_ASSET_VERSION = 'sr-sophie-reading-v11-20260813';
+export const AUDIO_ASSET_VERSION = 'sr-ana-reading-v12-20260814';
 
 export function versionAudioUrl(source: string): string {
   if (/[?&]v=/.test(source)) return source;
