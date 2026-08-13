@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Capacitor } from '@capacitor/core';
 import { App } from './App';
 import { quizQuestions } from './data/quizQuestions';
 import { LATIN_ALPHABET } from './domain/letters';
@@ -57,6 +58,7 @@ describe('Slovolov glavni tok', () => {
     clearFullStoryCache();
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
+    vi.restoreAllMocks();
   });
 
   it('prikazuje novi dečji Slovolov logo na početnom ekranu', () => {
@@ -143,7 +145,7 @@ describe('Slovolov glavni tok', () => {
       screen.getByRole('heading', { name: 'Подешавања за родитеље' })
     ).toBeVisible());
     expect(screen.getByRole('button', { name: /Писмо.*Ћирилица/i })).toBeVisible();
-    expect(screen.getByRole('heading', { name: 'Словолов Породица' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Словолов Премиум' })).toBeVisible();
     expect(screen.getByRole('option', { name: 'Енглески' })).toBeVisible();
     expect(screen.getByRole('option', { name: 'Немачки' })).toBeVisible();
     expect(screen.getByRole('option', { name: 'Француски' })).toBeVisible();
@@ -152,17 +154,27 @@ describe('Slovolov glavni tok', () => {
     expect(screen.queryByText('Nauči slova')).not.toBeInTheDocument();
   });
 
-  it('zaključani sadržaj ne može da se zaobiđe iz liste slova ili brojeva', () => {
-    vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
+  it('u iOS Premium izdanju samo četvrta bajka vodi roditelja na otključavanje', () => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
+    vi.stubEnv('VITE_IOS_PREMIUM_ENABLED', 'true');
     render(<App />);
+
     fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'J j zaključano' }));
-    expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'J j' }));
+    expect(screen.getByRole('heading', { name: 'Slovo J j' })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
-    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–10/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
+    fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–100/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Piši broj' }));
     fireEvent.click(screen.getByRole('button', { name: 'Broj 11' }));
+    expect(screen.getByLabelText('Platno za pisanje slova 11')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
+    fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sledeća bajka' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sledeća bajka' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sledeća bajka' }));
     expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
   });
 
@@ -618,32 +630,29 @@ describe('Slovolov glavni tok', () => {
   });
 
   it('kupovina je samo u roditeljskom delu i web ne prikazuje lažan uspeh', async () => {
-    vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
+    vi.stubEnv('VITE_IOS_PREMIUM_ENABLED', 'true');
+    vi.stubGlobal('CdvPurchase', undefined);
     render(<App />);
-    expect(screen.queryByText('6,99 €')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
     unlockParentSettings();
 
-    expect(screen.getByRole('heading', { name: 'Slovolov Porodica' })).toBeVisible();
-    expect(screen.getByText(/jednokratno/i)).toBeVisible();
-    expect(screen.getByText(/Jedna kupovina/i)).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Slovolov Premium' })).toBeVisible();
+    expect(screen.getByText(/3,99 € mesečno/i)).toBeVisible();
+    expect(screen.getByText(/prvih 7 dana besplatno/i)).toBeVisible();
     expect(screen.getByText(/Bez reklama/i)).toBeVisible();
-    expect(screen.getByText(/Android\/iOS aplikaciji/i)).toBeVisible();
     expect(screen.getByRole('button', { name: /Vrati kupovinu/i })).toBeDisabled();
-    await waitFor(() => expect(
-      screen.getAllByText('Kupovina je dostupna u instaliranoj Android/iOS aplikaciji.')
-    ).toHaveLength(1));
+    await waitFor(() => expect(screen.getByText(/trenutno dostupan samo u iOS aplikaciji/i)).toBeVisible());
   });
 
-  it('potvrđeno porodično pravo prikazuje trajno otključan sadržaj', () => {
+  it('potvrđena Premium pretplata otključava biblioteku priča bez lažnog trajnog prava', () => {
     useProgressStore.getState().grantFamilyAccess('store');
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
     unlockParentSettings();
 
-    expect(screen.getByText('Otključano zauvek')).toBeVisible();
-    expect(screen.getByText(/dostupan svim profilima/i)).toBeVisible();
-    expect(screen.queryByRole('button', { name: /Otključaj celu aplikaciju/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Premium biblioteka bajki i priča je aktivna/i)).toBeVisible();
+    expect(screen.queryByRole('button', { name: /Pokreni 7 dana besplatno/i })).not.toBeInTheDocument();
   });
 
   it('roditelj bira i trajno čuva težinu zadataka', () => {

@@ -8,19 +8,19 @@ import {
   canAccessStory
 } from './access';
 
-describe('Slovolov Family granice', () => {
-  it('ostavlja prvih 7 slova besplatnim, a ostala otključava kupovina', () => {
-    expect(FREE_LETTER_COUNT).toBe(7);
-    expect(canAccessLetter(6, false)).toBe(true);
-    expect(canAccessLetter(7, false)).toBe(false);
-    expect(canAccessLetter(29, true)).toBe(true);
+describe('Slovolov Premium granice', () => {
+  it('ostavlja svih 30 slova besplatnim', () => {
+    expect(FREE_LETTER_COUNT).toBe(30);
+    expect(canAccessLetter(0, false)).toBe(true);
+    expect(canAccessLetter(29, false)).toBe(true);
+    expect(canAccessLetter(30, true)).toBe(false);
   });
 
-  it('besplatno daje brojeve 0–10 i prve tri priče', () => {
-    expect(FREE_NUMBER_MAX).toBe(10);
+  it('ostavlja brojeve 0–100 besplatnim, a zaključava tek četvrtu bajku/priču', () => {
+    expect(FREE_NUMBER_MAX).toBe(100);
     expect(FREE_STORY_COUNT).toBe(3);
-    expect(canAccessNumber(10, false)).toBe(true);
-    expect(canAccessNumber(11, false)).toBe(false);
+    expect(canAccessNumber(100, false)).toBe(true);
+    expect(canAccessNumber(101, true)).toBe(false);
     expect(canAccessStory(2, false)).toBe(true);
     expect(canAccessStory(3, false)).toBe(false);
   });

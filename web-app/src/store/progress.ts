@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { isCommerceEnabled } from '../config/commerce';
 import { recordLearningAttempt, type LearningStats } from '../domain/learning';
 
 export type AccessibilitySettings = {
@@ -68,6 +67,7 @@ type ProgressState = {
   toggleTheme: () => void;
   toggleScript: () => void;
   grantFamilyAccess: (source: 'store') => void;
+  setStoreSubscriptionAccess: (isUnlocked: boolean) => void;
   resetLearningProgress: () => void;
   reset: () => void;
 };
@@ -233,11 +233,7 @@ export const useProgressStore = create<ProgressState>()(
       setParentLanguage: (parentLanguage) => set({ parentLanguage }),
       addProfile: (name, avatar) => {
         const cleanName = name.trim().slice(0, 32);
-        if (!cleanName || (
-          isCommerceEnabled()
-          && get().profiles.length >= 1
-          && !get().familyAccess.isUnlocked
-        )) return false;
+        if (!cleanName) return false;
         set((state) => {
         const profile = { ...initialProfile, id: crypto.randomUUID(), name: cleanName, avatar };
         return { profiles: [...state.profiles, profile], activeProfileId: profile.id, profile };
@@ -272,6 +268,13 @@ export const useProgressStore = create<ProgressState>()(
           verifiedAt: new Date().toISOString()
         }
       }),
+      setStoreSubscriptionAccess: (isUnlocked) => set((state) => ({
+        familyAccess: isUnlocked
+          ? { isUnlocked: true, source: 'store', verifiedAt: new Date().toISOString() }
+          : state.familyAccess.source === 'store'
+            ? { isUnlocked: false, source: 'free' }
+            : state.familyAccess
+      })),
       resetLearningProgress: () => set((state) => ({
         ...initial,
         familyAccess: state.familyAccess

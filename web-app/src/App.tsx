@@ -2,7 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
 import { VoicePractice } from './components/VoicePractice';
-import { isCommerceEnabled } from './config/commerce';
+import {
+  PREMIUM_MONTHLY_PRICE,
+  PREMIUM_TRIAL_DAYS,
+  isCommerceEnabled
+} from './config/commerce';
 import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
@@ -1330,7 +1334,8 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
   const stories = fairyTales.filter((story) => story.age === age);
   const story = stories[storyIndex];
   const profile = useProgressStore((state) => state.profile);
-  const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
+  const purchasedPremium = useProgressStore((state) => state.familyAccess.isUnlocked);
+  const premiumActive = !isCommerceEnabled() || purchasedPremium;
   const completeReading = useProgressStore((state) => state.completeReading);
   const setStoryBookmark = useProgressStore((state) => state.setStoryBookmark);
   const [activeSentence, setActiveSentence] = useState(profile.storyBookmarks[story.id] ?? 0);
@@ -1365,7 +1370,8 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
     sessionRef.current?.stop();
     const nextStories = fairyTales.filter((item) => item.age === nextAge);
     const nextStory = nextStories[nextIndex];
-    if (!canAccessStory(nextIndex, familyUnlocked)) {
+    const catalogIndex = fairyTales.findIndex((item) => item.id === nextStory.id);
+    if (!canAccessStory(catalogIndex, premiumActive)) {
       onFamily();
       return;
     }
@@ -2033,8 +2039,8 @@ function Settings({ onBack }: { onBack: () => void }) {
   const [purchaseBusy, setPurchaseBusy] = useState(false);
   const [purchaseMessage, setPurchaseMessage] = useState('');
   const purchaseManager = useMemo(
-    () => createPurchaseManager(createDefaultPurchaseGateway(), store.grantFamilyAccess),
-    [store.grantFamilyAccess]
+    () => createPurchaseManager(createDefaultPurchaseGateway(), store.setStoreSubscriptionAccess),
+    [store.setStoreSubscriptionAccess]
   );
   const parentHelp = {
     sr: 'Dečji sadržaj ostaje na srpskom jeziku. Ovde roditelj podešava pristupačnost i nivo težine.',
@@ -2068,7 +2074,7 @@ function Settings({ onBack }: { onBack: () => void }) {
     try {
       const result = await purchaseManager.purchase();
       if (result.state === 'verified') {
-        setPurchaseMessage('Slovolov Porodica je uspešno otključan na ovom uređaju.');
+        setPurchaseMessage('Slovolov Premium je aktivan na ovom uređaju.');
       } else if (result.state === 'pending') {
         setPurchaseMessage('Kupovina čeka potvrdu prodavnice. Sadržaj još nije otključan.');
       } else if (result.state === 'cancelled') {
@@ -2089,8 +2095,8 @@ function Settings({ onBack }: { onBack: () => void }) {
     try {
       const result = await purchaseManager.restore();
       setPurchaseMessage(result.owned
-        ? 'Kupovina je pronađena i Slovolov Porodica je vraćen.'
-        : result.message ?? 'Kupovina nije pronađena na ovom nalogu.');
+        ? 'Aktivna Slovolov Premium pretplata je pronađena.'
+        : result.message ?? 'Aktivna pretplata nije pronađena na ovom nalogu.');
     } catch (error) {
       setPurchaseMessage(error instanceof Error ? error.message : 'Vraćanje kupovine nije uspelo.');
     } finally {
@@ -2158,46 +2164,51 @@ function Settings({ onBack }: { onBack: () => void }) {
       <main className="settings">
         <section className={`family-section ${store.familyAccess.isUnlocked || !commerceEnabled ? 'unlocked' : ''}`}>
           <div className="family-heading">
-            <span aria-hidden="true">{store.familyAccess.isUnlocked || !commerceEnabled ? '✨' : '👨‍👩‍👧‍👦'}</span>
+            <span aria-hidden="true">{store.familyAccess.isUnlocked || !commerceEnabled ? '✨' : '👑'}</span>
             <div>
-              <h2>Slovolov Porodica</h2>
+              <h2>Slovolov Premium</h2>
               <p>
                 {store.familyAccess.isUnlocked
-                  ? 'Otključano zauvek'
+                  ? 'Pretplata je aktivna'
                   : !commerceEnabled
-                    ? 'Sadržaj je dostupan tokom pripreme prodavnice'
-                    : `${purchaseOffer.price ?? '6,99 €'} · jednokratno`}
+                    ? 'Prve 3 bajke i priče su besplatne. Premium je dostupan samo u iOS aplikaciji.'
+                    : `${purchaseOffer.price ?? PREMIUM_MONTHLY_PRICE} mesečno · prvih ${PREMIUM_TRIAL_DAYS} dana besplatno`}
               </p>
             </div>
           </div>
           {!store.familyAccess.isUnlocked && commerceEnabled && (
             <div className="family-trust-row" aria-label="Prednosti porodičnog paketa">
-              <span>✓ Jedna kupovina</span>
+              <span>✓ 7 dana besplatno</span>
               <span>✓ Bez reklama</span>
-              <span>✓ Bez pretplate</span>
+              <span>✓ Otkazivanje u Apple nalogu</span>
             </div>
           )}
           <ul>
             <li>Svih 30 slova i brojevi 0–100</li>
-            <li>Sve kompletne bajke i buduća proširenja sadržaja</li>
+            <li>Prve 3 bajke i priče ostaju besplatne</li>
+            <li>Premium otključava ostatak biblioteke i buduće priče</li>
             <li>Više dečjih profila na istom uređaju</li>
           </ul>
           {commerceEnabled && !store.familyAccess.isUnlocked && (
             <div className="family-actions">
               <button className="primary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void buyFamily()}>
-                {purchaseBusy ? 'Proveravam…' : 'Otključaj celu aplikaciju'}
+                {purchaseBusy ? 'Proveravam…' : 'Pokreni 7 dana besplatno'}
               </button>
               <button className="secondary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void restoreFamily()}>
                 Vrati kupovinu
               </button>
             </div>
           )}
-          {(store.familyAccess.isUnlocked || !commerceEnabled) && <strong className="family-owned">✓ Porodični sadržaj je dostupan svim profilima.</strong>}
+          {store.familyAccess.isUnlocked && <strong className="family-owned">✓ Premium biblioteka bajki i priča je aktivna.</strong>}
           {commerceEnabled && !isNativePurchasePlatform() && !purchaseMessage && (
-            <p className="purchase-message">Kupovina je dostupna u instaliranoj Android/iOS aplikaciji.</p>
+            <p className="purchase-message">Slovolov Premium je dostupan samo u instaliranoj iOS aplikaciji.</p>
           )}
           {purchaseMessage && <p className="purchase-message" role="status">{purchaseMessage}</p>}
-          <small>Kupovinu potvrđuje roditelj. Nema reklama, pretplate ni automatskog obnavljanja.</small>
+          <small>
+            Kupovinu potvrđuje roditelj. Pretplata se automatski obnavlja dok je ne otkažete u Apple ID podešavanjima.
+            {' '}<a href="/terms.html" target="_blank" rel="noreferrer">Uslovi korišćenja</a>
+            {' · '}<a href="/privacy.html" target="_blank" rel="noreferrer">Politika privatnosti</a>
+          </small>
         </section>
         <label><span>🔊 Zvuk</span><input type="checkbox" checked={store.soundEnabled} onChange={store.toggleSound} /></label>
         <label><span>🌙 Tamni režim</span><input type="checkbox" checked={store.darkMode} onChange={store.toggleTheme} /></label>
@@ -2280,7 +2291,7 @@ function Settings({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </section>
-        {!addingProfile && (!commerceEnabled || store.familyAccess.isUnlocked) && (
+        {!addingProfile && (
           <button
             className="secondary"
             onClick={() => {
@@ -2291,9 +2302,6 @@ function Settings({ onBack }: { onBack: () => void }) {
           >
             + Dodaj profil
           </button>
-        )}
-        {commerceEnabled && !store.familyAccess.isUnlocked && (
-          <p className="parent-note">Slovolov Porodica omogućava više profila dece na istom uređaju.</p>
         )}
         {addingProfile && (
           <form className="profile-form new-profile-form" onSubmit={saveNewProfile}>

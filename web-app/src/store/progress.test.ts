@@ -67,11 +67,9 @@ describe('lokalni napredak', () => {
     expect(useProgressStore.getState().profile.name).toBe('Мила');
   });
 
-  it('ograničava drugi profil samo u store izdanju bez porodičnog prava', () => {
-    vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
-    expect(useProgressStore.getState().addProfile('Лука', '🐉')).toBe(false);
-    useProgressStore.getState().grantFamilyAccess('store');
+  it('dozvoljava drugi lokalni profil jer Premium otključava samo biblioteku priča', () => {
     expect(useProgressStore.getState().addProfile('Лука', '🐉')).toBe(true);
+    expect(useProgressStore.getState().profiles).toHaveLength(2);
   });
 
   it('lokalno pamti tačnost, vreme učenja i postavke pristupačnosti', () => {
@@ -121,5 +119,12 @@ describe('lokalni napredak', () => {
     });
     useProgressStore.getState().resetLearningProgress();
     expect(useProgressStore.getState().familyAccess.isUnlocked).toBe(true);
+  });
+
+  it('povlači samo store pristup kada App Store više ne potvrđuje aktivnu pretplatu', () => {
+    useProgressStore.getState().grantFamilyAccess('store');
+    expect(useProgressStore.getState().familyAccess.isUnlocked).toBe(true);
+    useProgressStore.getState().setStoreSubscriptionAccess(false);
+    expect(useProgressStore.getState().familyAccess).toEqual({ isUnlocked: false, source: 'free' });
   });
 });

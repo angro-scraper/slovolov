@@ -15,7 +15,7 @@ workflows:
         XCODE_WORKSPACE: "App.xcworkspace"
         XCODE_SCHEME: "App"
         VITE_STORE_SAFE_CONTENT: "true"
-        VITE_COMMERCE_ENABLED: "true"
+        VITE_IOS_PREMIUM_ENABLED: "true"
       node: 22
       xcode: latest
       cocoapods: default

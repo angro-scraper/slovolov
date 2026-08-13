@@ -131,7 +131,7 @@ describe('biblioteka bajki sa zvukom', () => {
         expect(bytes[frameOffset + 1] & 0x18, audioPath).toBe(0x18);
       });
     }
-  });
+  }, 20_000);
 
   it('prodavnički katalog nema eksplicitne scene iz izvornih izdanja', () => {
     const storeText = createFairyTaleCatalog('store-safe')

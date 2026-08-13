@@ -1,13 +1,15 @@
-export const FREE_LETTER_COUNT = 7;
-export const FREE_NUMBER_MAX = 10;
+export const FREE_LETTER_COUNT = 30;
+export const FREE_NUMBER_MAX = 100;
 export const FREE_STORY_COUNT = 3;
 
 export function canAccessLetter(index: number, familyUnlocked: boolean): boolean {
-  return familyUnlocked || (Number.isInteger(index) && index >= 0 && index < FREE_LETTER_COUNT);
+  void familyUnlocked;
+  return Number.isInteger(index) && index >= 0 && index < FREE_LETTER_COUNT;
 }
 
 export function canAccessNumber(value: number, familyUnlocked: boolean): boolean {
-  return familyUnlocked || (Number.isInteger(value) && value >= 0 && value <= FREE_NUMBER_MAX);
+  void familyUnlocked;
+  return Number.isInteger(value) && value >= 0 && value <= FREE_NUMBER_MAX;
 }
 
 export function canAccessStory(index: number, familyUnlocked: boolean): boolean {
@@ -15,5 +17,7 @@ export function canAccessStory(index: number, familyUnlocked: boolean): boolean 
 }
 
 export function canAddProfile(profileCount: number, familyUnlocked: boolean): boolean {
-  return familyUnlocked || profileCount < 1;
+  void profileCount;
+  void familyUnlocked;
+  return true;
 }

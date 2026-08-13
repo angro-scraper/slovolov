@@ -1,8 +1,8 @@
 import { Capacitor } from '@capacitor/core';
 import 'cordova-plugin-purchase';
-import { FAMILY_PRODUCT_ID, isCommerceEnabled } from '../config/commerce';
+import { IOS_PREMIUM_MONTHLY_PRODUCT_ID, isCommerceEnabled } from '../config/commerce';
 
-export { FAMILY_PRODUCT_ID };
+export { IOS_PREMIUM_MONTHLY_PRODUCT_ID };
 
 export type PurchaseOffer = {
   available: boolean;
@@ -29,29 +29,29 @@ export interface PurchaseGateway {
 
 export function createPurchaseManager(
   gateway: PurchaseGateway,
-  grantAccess: (source: 'store') => void
+  setSubscriptionAccess: (isUnlocked: boolean) => void
 ) {
   return {
     initialize: async () => {
       const offer = await gateway.initialize();
-      if (offer.owned) grantAccess('store');
+      setSubscriptionAccess(offer.owned);
       return offer;
     },
     purchase: async () => {
       const result = await gateway.purchase();
-      if (result.state === 'verified') grantAccess('store');
+      if (result.state === 'verified') setSubscriptionAccess(true);
       return result;
     },
     restore: async () => {
       const result = await gateway.restore();
-      if (result.owned) grantAccess('store');
+      setSubscriptionAccess(result.owned);
       return result;
     }
   };
 }
 
 function webGateway(): PurchaseGateway {
-  const reason = 'Kupovina je dostupna u instaliranoj Android/iOS aplikaciji.';
+  const reason = 'Slovolov Premium je trenutno dostupan samo u iOS aplikaciji.';
   return {
     initialize: async () => ({ available: false, owned: false, reason }),
     purchase: async () => ({ state: 'unavailable', message: reason }),
@@ -60,14 +60,12 @@ function webGateway(): PurchaseGateway {
 }
 
 function nativeGateway(): PurchaseGateway {
-  const platform = Capacitor.getPlatform() === 'ios'
-    ? CdvPurchase.Platform.APPLE_APPSTORE
-    : CdvPurchase.Platform.GOOGLE_PLAY;
+  const platform = CdvPurchase.Platform.APPLE_APPSTORE;
   const store = CdvPurchase.store;
   let initialized = false;
 
-  const product = () => store.get(FAMILY_PRODUCT_ID, platform);
-  const ownsProduct = () => store.owned({ id: FAMILY_PRODUCT_ID, platform });
+  const product = () => store.get(IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform);
+  const ownsProduct = () => store.owned({ id: IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform });
   const waitForOwnership = async (timeoutMs = 15_000): Promise<boolean> => {
     if (ownsProduct()) return true;
     return new Promise((resolve) => {
@@ -90,14 +88,14 @@ function nativeGateway(): PurchaseGateway {
   async function initialize(): Promise<PurchaseOffer> {
     if (!initialized) {
       store.register({
-        id: FAMILY_PRODUCT_ID,
-        type: CdvPurchase.ProductType.NON_CONSUMABLE,
+        id: IOS_PREMIUM_MONTHLY_PRODUCT_ID,
+        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
         platform
       });
       store.when().approved((transaction) => transaction.finish());
       const errors = await store.initialize([platform]);
       initialized = true;
-      const fatal = errors.find((error) => error.productId === FAMILY_PRODUCT_ID || error.platform === platform);
+      const fatal = errors.find((error) => error.productId === IOS_PREMIUM_MONTHLY_PRODUCT_ID || error.platform === platform);
       if (fatal) {
         return { available: false, owned: false, reason: fatal.message };
       }
@@ -110,7 +108,7 @@ function nativeGateway(): PurchaseGateway {
       available: Boolean(loaded?.getOffer()),
       owned: ownsProduct(),
       price: loaded?.pricing?.price,
-      reason: loaded ? undefined : 'Slovolov Family proizvod još nije podešen u prodavnici.'
+      reason: loaded ? undefined : 'Slovolov Premium pretplata još nije podešena u App Store-u.'
     };
   }
 
@@ -149,7 +147,7 @@ function nativeGateway(): PurchaseGateway {
 }
 
 export function createDefaultPurchaseGateway(): PurchaseGateway {
-  if (!isCommerceEnabled() || !Capacitor.isNativePlatform() || typeof CdvPurchase === 'undefined') return webGateway();
+  if (!isCommerceEnabled() || Capacitor.getPlatform() !== 'ios' || typeof CdvPurchase === 'undefined') return webGateway();
   return nativeGateway();
 }
 

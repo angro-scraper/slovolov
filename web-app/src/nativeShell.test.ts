@@ -28,7 +28,7 @@ describe('Slovolov paket za prodavnice', () => {
   it('mobilni omoti prikazuju istu javnu web aplikaciju 1 kroz 1', () => {
     const capacitorConfig = read('capacitor.config.ts');
     expect(capacitorConfig).toContain(
-      "url: 'https://slovolov-download.onrender.com'",
+      "url: 'https://slovolov-download.onrender.com/?slovolov-premium=ios'",
     );
     expect(capacitorConfig).toContain(
       "allowNavigation: ['slovolov-download.onrender.com']",
@@ -43,6 +43,8 @@ describe('Slovolov paket za prodavnice', () => {
     expect(privacy).toContain('ne šalje snimak glasa');
     expect(privacy).toContain('Google Play');
     expect(privacy).toContain('Apple App Store');
+    expect(privacy).toContain('pretplatu');
+    expect(read('public/terms.html')).toContain('Uslovi korišćenja');
   });
 
   it('release potpis koristi samo promenljive okruženja', () => {

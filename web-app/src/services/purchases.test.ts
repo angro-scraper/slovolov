@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  FAMILY_PRODUCT_ID,
+  IOS_PREMIUM_MONTHLY_PRODUCT_ID,
   createPurchaseManager,
   type PurchaseGateway
 } from './purchases';
@@ -14,47 +14,54 @@ function gateway(overrides: Partial<PurchaseGateway> = {}): PurchaseGateway {
   };
 }
 
-describe('Slovolov Family kupovina', () => {
-  it('koristi stabilan non-consumable product ID', () => {
-    expect(FAMILY_PRODUCT_ID).toBe('slovolov_family_unlock');
+describe('Slovolov Premium pretplata', () => {
+  it('koristi stabilan iOS subscription product ID', () => {
+    expect(IOS_PREMIUM_MONTHLY_PRODUCT_ID).toBe('rs.slovolov.app.premium.monthly');
   });
 
   it('ne otključava sadržaj kada je kupovina otkazana ili pending', async () => {
-    const grant = vi.fn();
-    const cancelled = createPurchaseManager(gateway(), grant);
+    const syncAccess = vi.fn();
+    const cancelled = createPurchaseManager(gateway(), syncAccess);
     expect(await cancelled.purchase()).toMatchObject({ state: 'cancelled' });
-    expect(grant).not.toHaveBeenCalled();
+    expect(syncAccess).not.toHaveBeenCalled();
 
     const pending = createPurchaseManager(
       gateway({ purchase: vi.fn().mockResolvedValue({ state: 'pending' }) }),
-      grant
+      syncAccess
     );
     expect(await pending.purchase()).toMatchObject({ state: 'pending' });
-    expect(grant).not.toHaveBeenCalled();
+    expect(syncAccess).not.toHaveBeenCalled();
   });
 
   it('otključava tek posle potvrđenog store vlasništva', async () => {
-    const grant = vi.fn();
+    const syncAccess = vi.fn();
     const manager = createPurchaseManager(
       gateway({ purchase: vi.fn().mockResolvedValue({ state: 'verified' }) }),
-      grant
+      syncAccess
     );
     await manager.purchase();
-    expect(grant).toHaveBeenCalledWith('store');
+    expect(syncAccess).toHaveBeenCalledWith(true);
   });
 
   it('restore vraća kupovinu, ali ne izmišlja uspeh kada proizvod nije kupljen', async () => {
-    const grant = vi.fn();
+    const syncAccess = vi.fn();
     const restored = createPurchaseManager(
       gateway({ restore: vi.fn().mockResolvedValue({ owned: true }) }),
-      grant
+      syncAccess
     );
     expect(await restored.restore()).toEqual({ owned: true });
-    expect(grant).toHaveBeenCalledWith('store');
+    expect(syncAccess).toHaveBeenCalledWith(true);
 
-    grant.mockClear();
-    const missing = createPurchaseManager(gateway(), grant);
+    syncAccess.mockClear();
+    const missing = createPurchaseManager(gateway(), syncAccess);
     expect(await missing.restore()).toEqual({ owned: false });
-    expect(grant).not.toHaveBeenCalled();
+    expect(syncAccess).toHaveBeenCalledWith(false);
+  });
+
+  it('ponovno proverava entitlement na otvaranju i povlači pristup kada je pretplata istekla', async () => {
+    const syncAccess = vi.fn();
+    const manager = createPurchaseManager(gateway({ initialize: vi.fn().mockResolvedValue({ available: true, owned: false }) }), syncAccess);
+    await manager.initialize();
+    expect(syncAccess).toHaveBeenCalledWith(false);
   });
 });

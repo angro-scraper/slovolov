@@ -15,13 +15,14 @@ describe('premium Slovolov vizuelni sistem', () => {
     expect(styles).not.toContain('fonts.googleapis.com');
   });
 
-  it('porodična ponuda jasno komunicira jednokratnu cenu i odsustvo reklama', () => {
+  it('iOS Premium jasno komunicira probni period, cenu, automatsko obnavljanje i odsustvo reklama', () => {
     const app = readFileSync(resolve('src/App.tsx'), 'utf8');
 
-    expect(app).toContain("purchaseOffer.price ?? '6,99 €'");
-    expect(app).toContain('Jedna kupovina');
+    expect(app).toContain('Slovolov Premium');
+    expect(app).toContain('Pokreni 7 dana besplatno');
+    expect(app).toContain('Pretplata se automatski obnavlja');
     expect(app).toContain('Bez reklama');
-    expect(app).toContain('Bez pretplate');
+    expect(app).toContain('Prve 3 bajke i priče ostaju besplatne');
   });
 
   it('Moja priča koristi prirodno skrolovanje umesto sabijanja sadržaja u jedan ekran', () => {
