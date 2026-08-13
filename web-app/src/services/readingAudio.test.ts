@@ -6,6 +6,7 @@ import {
   readingSyllableAudio,
   readingWordAudio
 } from './readingAudio';
+import { AUDIO_ASSET_VERSION } from './audioAssets';
 
 describe('lokalni Sophie audio za čitanje', () => {
   it('mapira rime, slogove, reči i priče na lokalne snimke', () => {
@@ -14,6 +15,14 @@ describe('lokalni Sophie audio za čitanje', () => {
     expect(readingWordAudio('СОВА')).toContain('/audio/reading/word-sova.mp3');
     expect(readingStorySentenceAudio('lana-cvet-6-8', 1))
       .toContain('/audio/reading/stories/lana-cvet-6-8-2.mp3');
+  });
+
+  it('uvek traži novi provereni Sophie paket, a ne stari keš uređaja', () => {
+    expect(AUDIO_ASSET_VERSION).toBe('sr-sophie-reading-v10-20260813');
+    expect(readingRhymeAudio('mak', 'prompt'))
+      .toContain('v=sr-sophie-reading-v10-20260813');
+    expect(readingWordAudio('СОВА'))
+      .toContain('v=sr-sophie-reading-v10-20260813');
   });
 
   it('avantura koristi naratorske instrukcije, ne mikrofon', () => {

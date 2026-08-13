@@ -4,7 +4,7 @@ import { resolveLetterAudio } from './letterAudio';
 
 describe('lokalni srpski izgovor slova', () => {
   it('menja URL paketa da tablet ne zadrži neispravan MP3 keš', () => {
-    expect(AUDIO_ASSET_VERSION).toBe('sr-sophie-tablet-v9-20260730');
+    expect(AUDIO_ASSET_VERSION).toBe('sr-sophie-reading-v10-20260813');
   });
 
   it.each([
