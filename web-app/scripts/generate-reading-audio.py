@@ -13,7 +13,10 @@ import edge_tts
 
 
 VOICE = "sr-RS-SophieNeural"
-RATE = "-18%"
+# Identican profil kao glavni narator audio-prica. Raniji sporiji profil je
+# zvucao drugacije iako je koristio isto ime glasa.
+RATE = "-8%"
+PITCH = "+2Hz"
 ROOT = Path(__file__).resolve().parents[1]
 AUDIO_ROOT = ROOT / "public" / "audio" / "reading"
 
@@ -128,7 +131,12 @@ def all_segments() -> list[tuple[Path, str]]:
 
 async def generate(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    await edge_tts.Communicate(text=text, voice=VOICE, rate=RATE).save(str(path))
+    await edge_tts.Communicate(
+        text=text,
+        voice=VOICE,
+        rate=RATE,
+        pitch=PITCH,
+    ).save(str(path))
 
 
 async def main() -> None:

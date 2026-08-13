@@ -17,9 +17,12 @@ function publicPath(source: string): string {
 }
 
 describe('stvarni lokalni audio za čitanje', () => {
-  it('generator koristi samo odobreni Sophie narator', () => {
+  it('generator koristi isti profil glavnog Sophie naratora kao audio-priče', () => {
     const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-audio.py'), 'utf8');
     expect(generator).toContain('VOICE = "sr-RS-SophieNeural"');
+    expect(generator).toContain('RATE = "-8%"');
+    expect(generator).toContain('PITCH = "+2Hz"');
+    expect(generator).toContain('pitch=PITCH');
     expect(generator).toContain('"Напиши велико слово А."');
     expect(generator).not.toContain('"Napiši veliko slovo A."');
     expect(generator).not.toContain('SpeechSynthesisUtterance');

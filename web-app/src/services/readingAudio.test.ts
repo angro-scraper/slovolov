@@ -18,11 +18,11 @@ describe('lokalni Sophie audio za čitanje', () => {
   });
 
   it('uvek traži novi provereni Sophie paket, a ne stari keš uređaja', () => {
-    expect(AUDIO_ASSET_VERSION).toBe('sr-sophie-reading-v10-20260813');
+    expect(AUDIO_ASSET_VERSION).toBe('sr-sophie-reading-v11-20260813');
     expect(readingRhymeAudio('mak', 'prompt'))
-      .toContain('v=sr-sophie-reading-v10-20260813');
+      .toContain('v=sr-sophie-reading-v11-20260813');
     expect(readingWordAudio('СОВА'))
-      .toContain('v=sr-sophie-reading-v10-20260813');
+      .toContain('v=sr-sophie-reading-v11-20260813');
   });
 
   it('avantura koristi naratorske instrukcije, ne mikrofon', () => {
