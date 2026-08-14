@@ -1,80 +1,71 @@
-"""Generiše odobrene lokalne Sophie snimke za module čitanja.
+"""Izvorni katalog za lokalne snimke modula Čitanje.
 
-Skript ne koristi glas telefona. Svi izlazi su statični MP3 resursi koji se
-isporučuju uz PWA/Capacitor aplikaciju.
+Ovaj fajl je namerno napisan ćirilicom zato što je ćirilica prikazani i
+izgovoreni sadržaj Slovolova. ``generate-reading-elevenlabs-audio.py`` ga
+učitava kao jedini izvor teksta za produkcijske MP3 snimke.
 """
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-
-import edge_tts
-
-
-VOICE = "sr-RS-SophieNeural"
-# Identican profil kao glavni narator audio-prica. Raniji sporiji profil je
-# zvucao drugacije iako je koristio isto ime glasa.
-RATE = "-8%"
-PITCH = "+2Hz"
 ROOT = Path(__file__).resolve().parents[1]
 AUDIO_ROOT = ROOT / "public" / "audio" / "reading"
 
 RHYME_ROUNDS = [
-    ("mak", "Koja reč se rimuje sa rečju mak?", "Mak i rak se rimuju."),
-    ("dan", "Koja reč se rimuje sa rečju dan?", "Dan i san se rimuju."),
-    ("cvet", "Koja reč se rimuje sa rečju cvet?", "Cvet i svet se rimuju."),
-    ("kosa", "Koja reč se rimuje sa rečju kosa?", "Kosa i rosa se rimuju."),
-    ("med", "Koja reč se rimuje sa rečju med?", "Med i led se rimuju."),
-    ("mis", "Koja reč se rimuje sa rečju miš?", "Miš i kiš se rimuju."),
-    ("zec", "Koja reč se rimuje sa rečju zec?", "Zec i mesec se rimuju."),
-    ("suma", "Koja reč se rimuje sa rečju šuma?", "Šuma i guma se rimuju."),
-    ("more", "Koja reč se rimuje sa rečju more?", "More i gore se rimuju."),
-    ("ptica", "Koja reč se rimuje sa rečju ptica?", "Ptica i žica se rimuju."),
+    ("mak", "Која реч се римује са речју мак?", "Мак и рак се римују."),
+    ("dan", "Која реч се римује са речју дан?", "Дан и сан се римују."),
+    ("cvet", "Која реч се римује са речју цвет?", "Цвет и свет се римују."),
+    ("kosa", "Која реч се римује са речју коса?", "Коса и роса се римују."),
+    ("med", "Која реч се римује са речју мед?", "Мед и лед се римују."),
+    ("mis", "Која реч се римује са речју миш?", "Миш и плиш се римују."),
+    ("zec", "Која реч се римује са речју зец?", "Зец и месец се римују."),
+    ("suma", "Која реч се римује са речју шума?", "Шума и гума се римују."),
+    ("more", "Која реч се римује са речју море?", "Море и горе се римују."),
+    ("ptica", "Која реч се римује са речју птица?", "Птица и жица се римују."),
 ]
 
 SYLLABLES = [
-    ("ma", "ma"), ("me", "me"), ("mi", "mi"), ("mo", "mo"), ("mu", "mu"),
-    ("sa", "sa"), ("se", "se"), ("si", "si"), ("so", "so"), ("su", "su"),
-    ("la", "la"), ("le", "le"), ("li", "li"), ("lo", "lo"), ("lu", "lu"),
-    ("ra", "ra"), ("re", "re"), ("ri", "ri"), ("ro", "ro"), ("ru", "ru"),
-    ("na", "na"), ("ne", "ne"), ("ni", "ni"), ("no", "no"), ("nu", "nu"),
+    ("ma", "ма"), ("me", "ме"), ("mi", "ми"), ("mo", "мо"), ("mu", "му"),
+    ("sa", "са"), ("se", "се"), ("si", "си"), ("so", "со"), ("su", "су"),
+    ("la", "ла"), ("le", "ле"), ("li", "ли"), ("lo", "ло"), ("lu", "лу"),
+    ("ra", "ра"), ("re", "ре"), ("ri", "ри"), ("ro", "ро"), ("ru", "ру"),
+    ("na", "на"), ("ne", "не"), ("ni", "ни"), ("no", "но"), ("nu", "ну"),
 ]
 
 WORDS = [
-    ("mama", "mama"), ("sova", "sova"), ("suma", "šuma"),
-    ("tata", "tata"), ("beba", "beba"), ("kuca", "kuća"),
-    ("meda", "meda"), ("riba", "riba"), ("patka", "patka"),
-    ("sunce", "sunce"), ("reka", "reka"), ("cvet", "cvet"),
-    ("hleb", "hleb"), ("sir", "sir"), ("jabuka", "jabuka"),
-    ("avion", "avion"), ("voz", "voz"), ("brod", "brod"),
-    ("lopta", "lopta"), ("lutka", "lutka"), ("zmaj", "zmaj"),
-    ("kisa", "kiša"), ("sneg", "sneg"), ("oblak", "oblak"),
-    ("pcela", "pčela"), ("leptir", "leptir"), ("puz", "puž"),
-    ("knjiga", "knjiga"), ("olovka", "olovka"), ("torba", "torba"),
+    ("mama", "мама"), ("sova", "сова"), ("suma", "шума"),
+    ("tata", "тата"), ("beba", "беба"), ("kuca", "кућа"),
+    ("meda", "меда"), ("riba", "риба"), ("patka", "патка"),
+    ("sunce", "сунце"), ("reka", "река"), ("cvet", "цвет"),
+    ("hleb", "хлеб"), ("sir", "сир"), ("jabuka", "јабука"),
+    ("avion", "авион"), ("voz", "воз"), ("brod", "брод"),
+    ("lopta", "лопта"), ("lutka", "лутка"), ("zmaj", "змај"),
+    ("kisa", "киша"), ("sneg", "снег"), ("oblak", "облак"),
+    ("pcela", "пчела"), ("leptir", "лептир"), ("puz", "пуж"),
+    ("knjiga", "књига"), ("olovka", "оловка"), ("torba", "торба"),
 ]
 
 ADVENTURES = [
-    ("lana-cvet", "Lana", "vrta", "crveni cvet"),
-    ("vuk-zmaj", "Vuk", "brda", "plavog zmaja"),
-    ("mila-sova", "Mila", "šume", "mudru sovu"),
-    ("luka-kljuc", "Luka", "starog hrasta", "mali ključ"),
-    ("ana-balon", "Ana", "parka", "žuti balon"),
-    ("bojan-brod", "Bojan", "reke", "drveni brod"),
-    ("iva-jez", "Iva", "livade", "malog ježa"),
-    ("marko-kompas", "Marko", "planine", "stari kompas"),
-    ("nina-zvono", "Nina", "seoskog trga", "srebrno zvono"),
-    ("ognjen-knjiga", "Ognjen", "biblioteke", "knjigu o zvezdama"),
-    ("petra-leptir", "Petra", "cvetne bašte", "šarenog leptira"),
-    ("rada-skoljka", "Rada", "morske obale", "belu školjku"),
-    ("sava-voz", "Sava", "železničke stanice", "crveni voz"),
-    ("tara-zvezda", "Tara", "tihe poljane", "sjajnu zvezdu"),
-    ("uros-fenjer", "Uroš", "stare kule", "zeleni fenjer"),
-    ("filip-robot", "Filip", "radionice", "malog robota"),
-    ("hana-mace", "Hana", "dvorišta", "belo mače"),
-    ("cana-kosara", "Cana", "voćnjaka", "korpu jabuka"),
-    ("ceda-camac", "Čeda", "mirnog jezera", "mali čamac"),
-    ("sana-lopta", "Šana", "školskog igrališta", "šarenu loptu"),
+    ("lana-cvet", "Лана", "врта", "црвени цвет"),
+    ("vuk-zmaj", "Вук", "брда", "плавог змаја"),
+    ("mila-sova", "Мила", "шуме", "мудру сову"),
+    ("luka-kljuc", "Лука", "старог храста", "мали кључ"),
+    ("ana-balon", "Ана", "парка", "жути балон"),
+    ("bojan-brod", "Бојан", "реке", "дрвени брод"),
+    ("iva-jez", "Ива", "ливаде", "малог јежа"),
+    ("marko-kompas", "Марко", "планине", "стари компас"),
+    ("nina-zvono", "Нина", "сеоског трга", "сребрно звоно"),
+    ("ognjen-knjiga", "Огњен", "библиотеке", "књигу о звездама"),
+    ("petra-leptir", "Петра", "цветне баште", "шареног лептира"),
+    ("rada-skoljka", "Рада", "морске обале", "белу шкољку"),
+    ("sava-voz", "Сава", "железничке станице", "црвени воз"),
+    ("tara-zvezda", "Тара", "тихе пољане", "сјајну звезду"),
+    ("uros-fenjer", "Урош", "старе куле", "зелени фењер"),
+    ("filip-robot", "Филип", "радионице", "малог робота"),
+    ("hana-mace", "Хана", "дворишта", "бело маче"),
+    ("cana-kosara", "Цана", "воћњака", "корпу јабука"),
+    ("ceda-camac", "Чеда", "мирног језера", "мали чамац"),
+    ("sana-lopta", "Сана", "школског игралишта", "шарену лопту"),
 ]
 
 LITERACY_PROMPTS = [
@@ -92,25 +83,24 @@ def story_segments() -> list[tuple[Path, str]]:
     for story_id, name, destination, object_accusative in ADVENTURES:
         stories = {
             "4-6": [
-                f"{name} ide do {destination}.",
-                f"Tamo vidi {object_accusative}.",
+                f"{name} иде до {destination}.",
+                f"Тамо види {object_accusative}.",
             ],
             "6-8": [
-                f"{name} kreće do {destination} u novu avanturu.",
-                f"Na stazi pronalazi {object_accusative}.",
-                "Kod kuće svima priča šta se dogodilo.",
+                f"{name} креће до {destination} у нову авантуру.",
+                f"На стази проналази {object_accusative}.",
+                "Код куће свима прича шта се догодило.",
             ],
             "8-10": [
-                f"Tokom puta do {destination}, {name} primećuje neobičan trag.",
-                f"Trag vodi do {object_accusative}, pažljivo sakrivenog pored staze.",
-                f"Na kraju {name} čuva nalaz i zapisuje celu pustolovinu.",
+                f"Током пута до {destination}, {name} примећује необичан траг.",
+                f"Пратећи траг, {name} проналази {object_accusative} поред стазе.",
+                f"На крају {name} чува налаз и записује целу пустоловину.",
             ],
         }
         for age, sentences in stories.items():
             for index, sentence in enumerate(sentences, start=1):
                 segments.append((AUDIO_ROOT / "stories" / f"{story_id}-{age}-{index}.mp3", sentence))
     return segments
-
 
 def all_segments() -> list[tuple[Path, str]]:
     segments: list[tuple[Path, str]] = []
@@ -127,34 +117,3 @@ def all_segments() -> list[tuple[Path, str]]:
         for index, prompt in enumerate(LITERACY_PROMPTS, start=1)
     )
     return segments
-
-
-async def generate(path: Path, text: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    await edge_tts.Communicate(
-        text=text,
-        voice=VOICE,
-        rate=RATE,
-        pitch=PITCH,
-    ).save(str(path))
-
-
-async def main() -> None:
-    segments = all_segments()
-    if len(segments) != 241:
-        raise RuntimeError(f"Očekivano je 241 segmenata, pronađeno {len(segments)}.")
-    semaphore = asyncio.Semaphore(6)
-
-    async def generate_one(index: int, path: Path, text: str) -> None:
-        async with semaphore:
-            await generate(path, text)
-            print(f"[{index:03d}/{len(segments)}] {path.relative_to(ROOT)}")
-
-    await asyncio.gather(*(
-        generate_one(index, path, text)
-        for index, (path, text) in enumerate(segments, start=1)
-    ))
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

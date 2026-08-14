@@ -22,7 +22,7 @@ export const rhymeRounds: RhymeRound[] = [
   { id: 'cvet', prompt: 'ЦВЕТ', options: ['СВЕТ', 'ГРАД', 'ПАС'], correct: 'СВЕТ' },
   { id: 'kosa', prompt: 'КОСА', options: ['РОСА', 'ВОДА', 'КУЋА'], correct: 'РОСА' },
   { id: 'med', prompt: 'МЕД', options: ['ЛЕД', 'СОК', 'СИР'], correct: 'ЛЕД' },
-  { id: 'mis', prompt: 'МИШ', options: ['КИШ', 'ЛАВ', 'ЗЕЦ'], correct: 'КИШ' },
+  { id: 'mis', prompt: 'МИШ', options: ['ПЛИШ', 'ЛАВ', 'ЗЕЦ'], correct: 'ПЛИШ' },
   { id: 'zec', prompt: 'ЗЕЦ', options: ['МЕСЕЦ', 'ВОЗ', 'БРОД'], correct: 'МЕСЕЦ' },
   { id: 'suma', prompt: 'ШУМА', options: ['ГУМА', 'МОРЕ', 'СЕЛО'], correct: 'ГУМА' },
   { id: 'more', prompt: 'МОРЕ', options: ['ГОРЕ', 'ПОЉЕ', 'РЕКА'], correct: 'ГОРЕ' },

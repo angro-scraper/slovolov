@@ -18,11 +18,11 @@ describe('lokalni Ana SRB audio za čitanje', () => {
   });
 
   it('uvek traži novi provereni Ana SRB paket, a ne stari keš uređaja', () => {
-    expect(AUDIO_ASSET_VERSION).toBe('sr-ana-reading-v12-20260814');
+    expect(AUDIO_ASSET_VERSION).toBe('sr-ana-reading-v14-latin-20260814');
     expect(readingRhymeAudio('mak', 'prompt'))
-      .toContain('v=sr-ana-reading-v12-20260814');
+      .toContain('v=sr-ana-reading-v14-latin-20260814');
     expect(readingWordAudio('СОВА'))
-      .toContain('v=sr-ana-reading-v12-20260814');
+      .toContain('v=sr-ana-reading-v14-latin-20260814');
   });
 
   it('avantura koristi naratorske instrukcije, ne mikrofon', () => {

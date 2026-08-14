@@ -10,3 +10,7 @@ build/
 .packages
 android/.gradle/
 ios/Pods/
+
+# Lokalni audio radni folderi; ne objavljuju se.
+web-app/.reading-audio-stage-*/
+web-app/.reading-pronunciation-preview/

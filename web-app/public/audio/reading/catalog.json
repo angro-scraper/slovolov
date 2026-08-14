@@ -1,0 +1,1249 @@
+{
+  "profile": {
+    "profileVersion": 1,
+    "purpose": "Lokalno generisani MP3 snimci iskljucivo za modul Citanje u Slovolovu.",
+    "scope": {
+      "include": [
+        "reading"
+      ],
+      "exclude": [
+        "letters",
+        "games",
+        "quiz",
+        "stories",
+        "numbers",
+        "feedback"
+      ]
+    },
+    "provider": "ElevenLabs",
+    "voice": {
+      "displayName": "Ana SRB - Call center voice",
+      "voiceIdEnvironmentVariable": "ELEVENLABS_READING_VOICE_ID"
+    },
+    "model": "eleven_multilingual_v2",
+    "settings": {
+      "speed": 0.81,
+      "stability": 1.0,
+      "similarityBoost": 0.27,
+      "style": 0.0,
+      "languageOverride": null,
+      "speakerBoost": true,
+      "outputFormat": "mp3_44100_128"
+    },
+    "safety": {
+      "apiKeyEnvironmentVariable": "ELEVENLABS_API_KEY",
+      "storeApiKeyInRepository": false,
+      "runtimeNetworkCalls": false,
+      "note": "Aplikacija isporucuje unapred generisane lokalne MP3 fajlove. ElevenLabs se koristi samo tokom kontrolisane izrade audio-resursa."
+    },
+    "approvedOn": "2026-08-14"
+  },
+  "fingerprint": "6edaedb912f412ab46b8b9d4fefa78c6ff5319ade81ff1637e489be32e287ef7",
+  "segments": [
+    {
+      "path": "rhyme-mak-prompt.mp3",
+      "displayText": "Која реч се римује са речју мак?",
+      "spokenText": "Koja reč se rimuje sa rečju mak?"
+    },
+    {
+      "path": "rhyme-mak-result.mp3",
+      "displayText": "Мак и рак се римују.",
+      "spokenText": "Mak i rak se rimuju."
+    },
+    {
+      "path": "rhyme-dan-prompt.mp3",
+      "displayText": "Која реч се римује са речју дан?",
+      "spokenText": "Koja reč se rimuje sa rečju dan?"
+    },
+    {
+      "path": "rhyme-dan-result.mp3",
+      "displayText": "Дан и сан се римују.",
+      "spokenText": "Dan i san se rimuju."
+    },
+    {
+      "path": "rhyme-cvet-prompt.mp3",
+      "displayText": "Која реч се римује са речју цвет?",
+      "spokenText": "Koja reč se rimuje sa rečju cvet?"
+    },
+    {
+      "path": "rhyme-cvet-result.mp3",
+      "displayText": "Цвет и свет се римују.",
+      "spokenText": "Cvet i svet se rimuju."
+    },
+    {
+      "path": "rhyme-kosa-prompt.mp3",
+      "displayText": "Која реч се римује са речју коса?",
+      "spokenText": "Koja reč se rimuje sa rečju kosa?"
+    },
+    {
+      "path": "rhyme-kosa-result.mp3",
+      "displayText": "Коса и роса се римују.",
+      "spokenText": "Kosa i rosa se rimuju."
+    },
+    {
+      "path": "rhyme-med-prompt.mp3",
+      "displayText": "Која реч се римује са речју мед?",
+      "spokenText": "Koja reč se rimuje sa rečju med?"
+    },
+    {
+      "path": "rhyme-med-result.mp3",
+      "displayText": "Мед и лед се римују.",
+      "spokenText": "Med i led se rimuju."
+    },
+    {
+      "path": "rhyme-mis-prompt.mp3",
+      "displayText": "Која реч се римује са речју миш?",
+      "spokenText": "Koja reč se rimuje sa rečju miš?"
+    },
+    {
+      "path": "rhyme-mis-result.mp3",
+      "displayText": "Миш и плиш се римују.",
+      "spokenText": "Miš i pliš se rimuju."
+    },
+    {
+      "path": "rhyme-zec-prompt.mp3",
+      "displayText": "Која реч се римује са речју зец?",
+      "spokenText": "Koja reč se rimuje sa rečju zec?"
+    },
+    {
+      "path": "rhyme-zec-result.mp3",
+      "displayText": "Зец и месец се римују.",
+      "spokenText": "Zec i mesec se rimuju."
+    },
+    {
+      "path": "rhyme-suma-prompt.mp3",
+      "displayText": "Која реч се римује са речју шума?",
+      "spokenText": "Koja reč se rimuje sa rečju šuma?"
+    },
+    {
+      "path": "rhyme-suma-result.mp3",
+      "displayText": "Шума и гума се римују.",
+      "spokenText": "Šuma i guma se rimuju."
+    },
+    {
+      "path": "rhyme-more-prompt.mp3",
+      "displayText": "Која реч се римује са речју море?",
+      "spokenText": "Koja reč se rimuje sa rečju more?"
+    },
+    {
+      "path": "rhyme-more-result.mp3",
+      "displayText": "Море и горе се римују.",
+      "spokenText": "More i gore se rimuju."
+    },
+    {
+      "path": "rhyme-ptica-prompt.mp3",
+      "displayText": "Која реч се римује са речју птица?",
+      "spokenText": "Koja reč se rimuje sa rečju ptica?"
+    },
+    {
+      "path": "rhyme-ptica-result.mp3",
+      "displayText": "Птица и жица се римују.",
+      "spokenText": "Ptica i žica se rimuju."
+    },
+    {
+      "path": "syllable-ma.mp3",
+      "displayText": "ма",
+      "spokenText": "ma"
+    },
+    {
+      "path": "syllable-me.mp3",
+      "displayText": "ме",
+      "spokenText": "me"
+    },
+    {
+      "path": "syllable-mi.mp3",
+      "displayText": "ми",
+      "spokenText": "mi"
+    },
+    {
+      "path": "syllable-mo.mp3",
+      "displayText": "мо",
+      "spokenText": "mo"
+    },
+    {
+      "path": "syllable-mu.mp3",
+      "displayText": "му",
+      "spokenText": "mu"
+    },
+    {
+      "path": "syllable-sa.mp3",
+      "displayText": "са",
+      "spokenText": "sa"
+    },
+    {
+      "path": "syllable-se.mp3",
+      "displayText": "се",
+      "spokenText": "se"
+    },
+    {
+      "path": "syllable-si.mp3",
+      "displayText": "си",
+      "spokenText": "si"
+    },
+    {
+      "path": "syllable-so.mp3",
+      "displayText": "со",
+      "spokenText": "so"
+    },
+    {
+      "path": "syllable-su.mp3",
+      "displayText": "су",
+      "spokenText": "su"
+    },
+    {
+      "path": "syllable-la.mp3",
+      "displayText": "ла",
+      "spokenText": "la"
+    },
+    {
+      "path": "syllable-le.mp3",
+      "displayText": "ле",
+      "spokenText": "le"
+    },
+    {
+      "path": "syllable-li.mp3",
+      "displayText": "ли",
+      "spokenText": "li"
+    },
+    {
+      "path": "syllable-lo.mp3",
+      "displayText": "ло",
+      "spokenText": "lo"
+    },
+    {
+      "path": "syllable-lu.mp3",
+      "displayText": "лу",
+      "spokenText": "lu"
+    },
+    {
+      "path": "syllable-ra.mp3",
+      "displayText": "ра",
+      "spokenText": "ra"
+    },
+    {
+      "path": "syllable-re.mp3",
+      "displayText": "ре",
+      "spokenText": "re"
+    },
+    {
+      "path": "syllable-ri.mp3",
+      "displayText": "ри",
+      "spokenText": "ri"
+    },
+    {
+      "path": "syllable-ro.mp3",
+      "displayText": "ро",
+      "spokenText": "ro"
+    },
+    {
+      "path": "syllable-ru.mp3",
+      "displayText": "ру",
+      "spokenText": "ru"
+    },
+    {
+      "path": "syllable-na.mp3",
+      "displayText": "на",
+      "spokenText": "na"
+    },
+    {
+      "path": "syllable-ne.mp3",
+      "displayText": "не",
+      "spokenText": "ne"
+    },
+    {
+      "path": "syllable-ni.mp3",
+      "displayText": "ни",
+      "spokenText": "ni"
+    },
+    {
+      "path": "syllable-no.mp3",
+      "displayText": "но",
+      "spokenText": "no"
+    },
+    {
+      "path": "syllable-nu.mp3",
+      "displayText": "ну",
+      "spokenText": "nu"
+    },
+    {
+      "path": "word-mama.mp3",
+      "displayText": "мама",
+      "spokenText": "mama"
+    },
+    {
+      "path": "word-sova.mp3",
+      "displayText": "сова",
+      "spokenText": "sova"
+    },
+    {
+      "path": "word-suma.mp3",
+      "displayText": "шума",
+      "spokenText": "šuma"
+    },
+    {
+      "path": "word-tata.mp3",
+      "displayText": "тата",
+      "spokenText": "tata"
+    },
+    {
+      "path": "word-beba.mp3",
+      "displayText": "беба",
+      "spokenText": "beba"
+    },
+    {
+      "path": "word-kuca.mp3",
+      "displayText": "кућа",
+      "spokenText": "kuća"
+    },
+    {
+      "path": "word-meda.mp3",
+      "displayText": "меда",
+      "spokenText": "meda"
+    },
+    {
+      "path": "word-riba.mp3",
+      "displayText": "риба",
+      "spokenText": "riba"
+    },
+    {
+      "path": "word-patka.mp3",
+      "displayText": "патка",
+      "spokenText": "patka"
+    },
+    {
+      "path": "word-sunce.mp3",
+      "displayText": "сунце",
+      "spokenText": "sunce"
+    },
+    {
+      "path": "word-reka.mp3",
+      "displayText": "река",
+      "spokenText": "reka"
+    },
+    {
+      "path": "word-cvet.mp3",
+      "displayText": "цвет",
+      "spokenText": "cvet"
+    },
+    {
+      "path": "word-hleb.mp3",
+      "displayText": "хлеб",
+      "spokenText": "hleb"
+    },
+    {
+      "path": "word-sir.mp3",
+      "displayText": "сир",
+      "spokenText": "sir"
+    },
+    {
+      "path": "word-jabuka.mp3",
+      "displayText": "јабука",
+      "spokenText": "jabuka"
+    },
+    {
+      "path": "word-avion.mp3",
+      "displayText": "авион",
+      "spokenText": "avion"
+    },
+    {
+      "path": "word-voz.mp3",
+      "displayText": "воз",
+      "spokenText": "voz"
+    },
+    {
+      "path": "word-brod.mp3",
+      "displayText": "брод",
+      "spokenText": "brod"
+    },
+    {
+      "path": "word-lopta.mp3",
+      "displayText": "лопта",
+      "spokenText": "lopta"
+    },
+    {
+      "path": "word-lutka.mp3",
+      "displayText": "лутка",
+      "spokenText": "lutka"
+    },
+    {
+      "path": "word-zmaj.mp3",
+      "displayText": "змај",
+      "spokenText": "zmaj"
+    },
+    {
+      "path": "word-kisa.mp3",
+      "displayText": "киша",
+      "spokenText": "kiša"
+    },
+    {
+      "path": "word-sneg.mp3",
+      "displayText": "снег",
+      "spokenText": "sneg"
+    },
+    {
+      "path": "word-oblak.mp3",
+      "displayText": "облак",
+      "spokenText": "oblak"
+    },
+    {
+      "path": "word-pcela.mp3",
+      "displayText": "пчела",
+      "spokenText": "pčela"
+    },
+    {
+      "path": "word-leptir.mp3",
+      "displayText": "лептир",
+      "spokenText": "leptir"
+    },
+    {
+      "path": "word-puz.mp3",
+      "displayText": "пуж",
+      "spokenText": "puž"
+    },
+    {
+      "path": "word-knjiga.mp3",
+      "displayText": "књига",
+      "spokenText": "knjiga"
+    },
+    {
+      "path": "word-olovka.mp3",
+      "displayText": "оловка",
+      "spokenText": "olovka"
+    },
+    {
+      "path": "word-torba.mp3",
+      "displayText": "торба",
+      "spokenText": "torba"
+    },
+    {
+      "path": "stories/lana-cvet-4-6-1.mp3",
+      "displayText": "Лана иде до врта.",
+      "spokenText": "Lana ide do vrta."
+    },
+    {
+      "path": "stories/lana-cvet-4-6-2.mp3",
+      "displayText": "Тамо види црвени цвет.",
+      "spokenText": "Tamo vidi crveni cvet."
+    },
+    {
+      "path": "stories/lana-cvet-6-8-1.mp3",
+      "displayText": "Лана креће до врта у нову авантуру.",
+      "spokenText": "Lana kreće do vrta u novu avanturu."
+    },
+    {
+      "path": "stories/lana-cvet-6-8-2.mp3",
+      "displayText": "На стази проналази црвени цвет.",
+      "spokenText": "Na stazi pronalazi crveni cvet."
+    },
+    {
+      "path": "stories/lana-cvet-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/lana-cvet-8-10-1.mp3",
+      "displayText": "Током пута до врта, Лана примећује необичан траг.",
+      "spokenText": "Tokom puta do vrta, Lana primećuje neobičan trag."
+    },
+    {
+      "path": "stories/lana-cvet-8-10-2.mp3",
+      "displayText": "Пратећи траг, Лана проналази црвени цвет поред стазе.",
+      "spokenText": "Prateći trag, Lana pronalazi crveni cvet pored staze."
+    },
+    {
+      "path": "stories/lana-cvet-8-10-3.mp3",
+      "displayText": "На крају Лана чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Lana čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/vuk-zmaj-4-6-1.mp3",
+      "displayText": "Вук иде до брда.",
+      "spokenText": "Vuk ide do brda."
+    },
+    {
+      "path": "stories/vuk-zmaj-4-6-2.mp3",
+      "displayText": "Тамо види плавог змаја.",
+      "spokenText": "Tamo vidi plavog zmaja."
+    },
+    {
+      "path": "stories/vuk-zmaj-6-8-1.mp3",
+      "displayText": "Вук креће до брда у нову авантуру.",
+      "spokenText": "Vuk kreće do brda u novu avanturu."
+    },
+    {
+      "path": "stories/vuk-zmaj-6-8-2.mp3",
+      "displayText": "На стази проналази плавог змаја.",
+      "spokenText": "Na stazi pronalazi plavog zmaja."
+    },
+    {
+      "path": "stories/vuk-zmaj-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/vuk-zmaj-8-10-1.mp3",
+      "displayText": "Током пута до брда, Вук примећује необичан траг.",
+      "spokenText": "Tokom puta do brda, Vuk primećuje neobičan trag."
+    },
+    {
+      "path": "stories/vuk-zmaj-8-10-2.mp3",
+      "displayText": "Пратећи траг, Вук проналази плавог змаја поред стазе.",
+      "spokenText": "Prateći trag, Vuk pronalazi plavog zmaja pored staze."
+    },
+    {
+      "path": "stories/vuk-zmaj-8-10-3.mp3",
+      "displayText": "На крају Вук чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Vuk čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/mila-sova-4-6-1.mp3",
+      "displayText": "Мила иде до шуме.",
+      "spokenText": "Mila ide do šume."
+    },
+    {
+      "path": "stories/mila-sova-4-6-2.mp3",
+      "displayText": "Тамо види мудру сову.",
+      "spokenText": "Tamo vidi mudru sovu."
+    },
+    {
+      "path": "stories/mila-sova-6-8-1.mp3",
+      "displayText": "Мила креће до шуме у нову авантуру.",
+      "spokenText": "Mila kreće do šume u novu avanturu."
+    },
+    {
+      "path": "stories/mila-sova-6-8-2.mp3",
+      "displayText": "На стази проналази мудру сову.",
+      "spokenText": "Na stazi pronalazi mudru sovu."
+    },
+    {
+      "path": "stories/mila-sova-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/mila-sova-8-10-1.mp3",
+      "displayText": "Током пута до шуме, Мила примећује необичан траг.",
+      "spokenText": "Tokom puta do šume, Mila primećuje neobičan trag."
+    },
+    {
+      "path": "stories/mila-sova-8-10-2.mp3",
+      "displayText": "Пратећи траг, Мила проналази мудру сову поред стазе.",
+      "spokenText": "Prateći trag, Mila pronalazi mudru sovu pored staze."
+    },
+    {
+      "path": "stories/mila-sova-8-10-3.mp3",
+      "displayText": "На крају Мила чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Mila čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/luka-kljuc-4-6-1.mp3",
+      "displayText": "Лука иде до старог храста.",
+      "spokenText": "Luka ide do starog hrasta."
+    },
+    {
+      "path": "stories/luka-kljuc-4-6-2.mp3",
+      "displayText": "Тамо види мали кључ.",
+      "spokenText": "Tamo vidi mali ključ."
+    },
+    {
+      "path": "stories/luka-kljuc-6-8-1.mp3",
+      "displayText": "Лука креће до старог храста у нову авантуру.",
+      "spokenText": "Luka kreće do starog hrasta u novu avanturu."
+    },
+    {
+      "path": "stories/luka-kljuc-6-8-2.mp3",
+      "displayText": "На стази проналази мали кључ.",
+      "spokenText": "Na stazi pronalazi mali ključ."
+    },
+    {
+      "path": "stories/luka-kljuc-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/luka-kljuc-8-10-1.mp3",
+      "displayText": "Током пута до старог храста, Лука примећује необичан траг.",
+      "spokenText": "Tokom puta do starog hrasta, Luka primećuje neobičan trag."
+    },
+    {
+      "path": "stories/luka-kljuc-8-10-2.mp3",
+      "displayText": "Пратећи траг, Лука проналази мали кључ поред стазе.",
+      "spokenText": "Prateći trag, Luka pronalazi mali ključ pored staze."
+    },
+    {
+      "path": "stories/luka-kljuc-8-10-3.mp3",
+      "displayText": "На крају Лука чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Luka čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/ana-balon-4-6-1.mp3",
+      "displayText": "Ана иде до парка.",
+      "spokenText": "Ana ide do parka."
+    },
+    {
+      "path": "stories/ana-balon-4-6-2.mp3",
+      "displayText": "Тамо види жути балон.",
+      "spokenText": "Tamo vidi žuti balon."
+    },
+    {
+      "path": "stories/ana-balon-6-8-1.mp3",
+      "displayText": "Ана креће до парка у нову авантуру.",
+      "spokenText": "Ana kreće do parka u novu avanturu."
+    },
+    {
+      "path": "stories/ana-balon-6-8-2.mp3",
+      "displayText": "На стази проналази жути балон.",
+      "spokenText": "Na stazi pronalazi žuti balon."
+    },
+    {
+      "path": "stories/ana-balon-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/ana-balon-8-10-1.mp3",
+      "displayText": "Током пута до парка, Ана примећује необичан траг.",
+      "spokenText": "Tokom puta do parka, Ana primećuje neobičan trag."
+    },
+    {
+      "path": "stories/ana-balon-8-10-2.mp3",
+      "displayText": "Пратећи траг, Ана проналази жути балон поред стазе.",
+      "spokenText": "Prateći trag, Ana pronalazi žuti balon pored staze."
+    },
+    {
+      "path": "stories/ana-balon-8-10-3.mp3",
+      "displayText": "На крају Ана чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Ana čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/bojan-brod-4-6-1.mp3",
+      "displayText": "Бојан иде до реке.",
+      "spokenText": "Bojan ide do reke."
+    },
+    {
+      "path": "stories/bojan-brod-4-6-2.mp3",
+      "displayText": "Тамо види дрвени брод.",
+      "spokenText": "Tamo vidi drveni brod."
+    },
+    {
+      "path": "stories/bojan-brod-6-8-1.mp3",
+      "displayText": "Бојан креће до реке у нову авантуру.",
+      "spokenText": "Bojan kreće do reke u novu avanturu."
+    },
+    {
+      "path": "stories/bojan-brod-6-8-2.mp3",
+      "displayText": "На стази проналази дрвени брод.",
+      "spokenText": "Na stazi pronalazi drveni brod."
+    },
+    {
+      "path": "stories/bojan-brod-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/bojan-brod-8-10-1.mp3",
+      "displayText": "Током пута до реке, Бојан примећује необичан траг.",
+      "spokenText": "Tokom puta do reke, Bojan primećuje neobičan trag."
+    },
+    {
+      "path": "stories/bojan-brod-8-10-2.mp3",
+      "displayText": "Пратећи траг, Бојан проналази дрвени брод поред стазе.",
+      "spokenText": "Prateći trag, Bojan pronalazi drveni brod pored staze."
+    },
+    {
+      "path": "stories/bojan-brod-8-10-3.mp3",
+      "displayText": "На крају Бојан чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Bojan čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/iva-jez-4-6-1.mp3",
+      "displayText": "Ива иде до ливаде.",
+      "spokenText": "Iva ide do livade."
+    },
+    {
+      "path": "stories/iva-jez-4-6-2.mp3",
+      "displayText": "Тамо види малог јежа.",
+      "spokenText": "Tamo vidi malog ježa."
+    },
+    {
+      "path": "stories/iva-jez-6-8-1.mp3",
+      "displayText": "Ива креће до ливаде у нову авантуру.",
+      "spokenText": "Iva kreće do livade u novu avanturu."
+    },
+    {
+      "path": "stories/iva-jez-6-8-2.mp3",
+      "displayText": "На стази проналази малог јежа.",
+      "spokenText": "Na stazi pronalazi malog ježa."
+    },
+    {
+      "path": "stories/iva-jez-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/iva-jez-8-10-1.mp3",
+      "displayText": "Током пута до ливаде, Ива примећује необичан траг.",
+      "spokenText": "Tokom puta do livade, Iva primećuje neobičan trag."
+    },
+    {
+      "path": "stories/iva-jez-8-10-2.mp3",
+      "displayText": "Пратећи траг, Ива проналази малог јежа поред стазе.",
+      "spokenText": "Prateći trag, Iva pronalazi malog ježa pored staze."
+    },
+    {
+      "path": "stories/iva-jez-8-10-3.mp3",
+      "displayText": "На крају Ива чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Iva čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/marko-kompas-4-6-1.mp3",
+      "displayText": "Марко иде до планине.",
+      "spokenText": "Marko ide do planine."
+    },
+    {
+      "path": "stories/marko-kompas-4-6-2.mp3",
+      "displayText": "Тамо види стари компас.",
+      "spokenText": "Tamo vidi stari kompas."
+    },
+    {
+      "path": "stories/marko-kompas-6-8-1.mp3",
+      "displayText": "Марко креће до планине у нову авантуру.",
+      "spokenText": "Marko kreće do planine u novu avanturu."
+    },
+    {
+      "path": "stories/marko-kompas-6-8-2.mp3",
+      "displayText": "На стази проналази стари компас.",
+      "spokenText": "Na stazi pronalazi stari kompas."
+    },
+    {
+      "path": "stories/marko-kompas-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/marko-kompas-8-10-1.mp3",
+      "displayText": "Током пута до планине, Марко примећује необичан траг.",
+      "spokenText": "Tokom puta do planine, Marko primećuje neobičan trag."
+    },
+    {
+      "path": "stories/marko-kompas-8-10-2.mp3",
+      "displayText": "Пратећи траг, Марко проналази стари компас поред стазе.",
+      "spokenText": "Prateći trag, Marko pronalazi stari kompas pored staze."
+    },
+    {
+      "path": "stories/marko-kompas-8-10-3.mp3",
+      "displayText": "На крају Марко чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Marko čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/nina-zvono-4-6-1.mp3",
+      "displayText": "Нина иде до сеоског трга.",
+      "spokenText": "Nina ide do seoskog trga."
+    },
+    {
+      "path": "stories/nina-zvono-4-6-2.mp3",
+      "displayText": "Тамо види сребрно звоно.",
+      "spokenText": "Tamo vidi srebrno zvono."
+    },
+    {
+      "path": "stories/nina-zvono-6-8-1.mp3",
+      "displayText": "Нина креће до сеоског трга у нову авантуру.",
+      "spokenText": "Nina kreće do seoskog trga u novu avanturu."
+    },
+    {
+      "path": "stories/nina-zvono-6-8-2.mp3",
+      "displayText": "На стази проналази сребрно звоно.",
+      "spokenText": "Na stazi pronalazi srebrno zvono."
+    },
+    {
+      "path": "stories/nina-zvono-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/nina-zvono-8-10-1.mp3",
+      "displayText": "Током пута до сеоског трга, Нина примећује необичан траг.",
+      "spokenText": "Tokom puta do seoskog trga, Nina primećuje neobičan trag."
+    },
+    {
+      "path": "stories/nina-zvono-8-10-2.mp3",
+      "displayText": "Пратећи траг, Нина проналази сребрно звоно поред стазе.",
+      "spokenText": "Prateći trag, Nina pronalazi srebrno zvono pored staze."
+    },
+    {
+      "path": "stories/nina-zvono-8-10-3.mp3",
+      "displayText": "На крају Нина чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Nina čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/ognjen-knjiga-4-6-1.mp3",
+      "displayText": "Огњен иде до библиотеке.",
+      "spokenText": "Ognjen ide do biblioteke."
+    },
+    {
+      "path": "stories/ognjen-knjiga-4-6-2.mp3",
+      "displayText": "Тамо види књигу о звездама.",
+      "spokenText": "Tamo vidi knjigu o zvezdama."
+    },
+    {
+      "path": "stories/ognjen-knjiga-6-8-1.mp3",
+      "displayText": "Огњен креће до библиотеке у нову авантуру.",
+      "spokenText": "Ognjen kreće do biblioteke u novu avanturu."
+    },
+    {
+      "path": "stories/ognjen-knjiga-6-8-2.mp3",
+      "displayText": "На стази проналази књигу о звездама.",
+      "spokenText": "Na stazi pronalazi knjigu o zvezdama."
+    },
+    {
+      "path": "stories/ognjen-knjiga-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/ognjen-knjiga-8-10-1.mp3",
+      "displayText": "Током пута до библиотеке, Огњен примећује необичан траг.",
+      "spokenText": "Tokom puta do biblioteke, Ognjen primećuje neobičan trag."
+    },
+    {
+      "path": "stories/ognjen-knjiga-8-10-2.mp3",
+      "displayText": "Пратећи траг, Огњен проналази књигу о звездама поред стазе.",
+      "spokenText": "Prateći trag, Ognjen pronalazi knjigu o zvezdama pored staze."
+    },
+    {
+      "path": "stories/ognjen-knjiga-8-10-3.mp3",
+      "displayText": "На крају Огњен чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Ognjen čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/petra-leptir-4-6-1.mp3",
+      "displayText": "Петра иде до цветне баште.",
+      "spokenText": "Petra ide do cvetne bašte."
+    },
+    {
+      "path": "stories/petra-leptir-4-6-2.mp3",
+      "displayText": "Тамо види шареног лептира.",
+      "spokenText": "Tamo vidi šarenog leptira."
+    },
+    {
+      "path": "stories/petra-leptir-6-8-1.mp3",
+      "displayText": "Петра креће до цветне баште у нову авантуру.",
+      "spokenText": "Petra kreće do cvetne bašte u novu avanturu."
+    },
+    {
+      "path": "stories/petra-leptir-6-8-2.mp3",
+      "displayText": "На стази проналази шареног лептира.",
+      "spokenText": "Na stazi pronalazi šarenog leptira."
+    },
+    {
+      "path": "stories/petra-leptir-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/petra-leptir-8-10-1.mp3",
+      "displayText": "Током пута до цветне баште, Петра примећује необичан траг.",
+      "spokenText": "Tokom puta do cvetne bašte, Petra primećuje neobičan trag."
+    },
+    {
+      "path": "stories/petra-leptir-8-10-2.mp3",
+      "displayText": "Пратећи траг, Петра проналази шареног лептира поред стазе.",
+      "spokenText": "Prateći trag, Petra pronalazi šarenog leptira pored staze."
+    },
+    {
+      "path": "stories/petra-leptir-8-10-3.mp3",
+      "displayText": "На крају Петра чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Petra čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/rada-skoljka-4-6-1.mp3",
+      "displayText": "Рада иде до морске обале.",
+      "spokenText": "Rada ide do morske obale."
+    },
+    {
+      "path": "stories/rada-skoljka-4-6-2.mp3",
+      "displayText": "Тамо види белу шкољку.",
+      "spokenText": "Tamo vidi belu školjku."
+    },
+    {
+      "path": "stories/rada-skoljka-6-8-1.mp3",
+      "displayText": "Рада креће до морске обале у нову авантуру.",
+      "spokenText": "Rada kreće do morske obale u novu avanturu."
+    },
+    {
+      "path": "stories/rada-skoljka-6-8-2.mp3",
+      "displayText": "На стази проналази белу шкољку.",
+      "spokenText": "Na stazi pronalazi belu školjku."
+    },
+    {
+      "path": "stories/rada-skoljka-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/rada-skoljka-8-10-1.mp3",
+      "displayText": "Током пута до морске обале, Рада примећује необичан траг.",
+      "spokenText": "Tokom puta do morske obale, Rada primećuje neobičan trag."
+    },
+    {
+      "path": "stories/rada-skoljka-8-10-2.mp3",
+      "displayText": "Пратећи траг, Рада проналази белу шкољку поред стазе.",
+      "spokenText": "Prateći trag, Rada pronalazi belu školjku pored staze."
+    },
+    {
+      "path": "stories/rada-skoljka-8-10-3.mp3",
+      "displayText": "На крају Рада чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Rada čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/sava-voz-4-6-1.mp3",
+      "displayText": "Сава иде до железничке станице.",
+      "spokenText": "Sava ide do železničke stanice."
+    },
+    {
+      "path": "stories/sava-voz-4-6-2.mp3",
+      "displayText": "Тамо види црвени воз.",
+      "spokenText": "Tamo vidi crveni voz."
+    },
+    {
+      "path": "stories/sava-voz-6-8-1.mp3",
+      "displayText": "Сава креће до железничке станице у нову авантуру.",
+      "spokenText": "Sava kreće do železničke stanice u novu avanturu."
+    },
+    {
+      "path": "stories/sava-voz-6-8-2.mp3",
+      "displayText": "На стази проналази црвени воз.",
+      "spokenText": "Na stazi pronalazi crveni voz."
+    },
+    {
+      "path": "stories/sava-voz-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/sava-voz-8-10-1.mp3",
+      "displayText": "Током пута до железничке станице, Сава примећује необичан траг.",
+      "spokenText": "Tokom puta do železničke stanice, Sava primećuje neobičan trag."
+    },
+    {
+      "path": "stories/sava-voz-8-10-2.mp3",
+      "displayText": "Пратећи траг, Сава проналази црвени воз поред стазе.",
+      "spokenText": "Prateći trag, Sava pronalazi crveni voz pored staze."
+    },
+    {
+      "path": "stories/sava-voz-8-10-3.mp3",
+      "displayText": "На крају Сава чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Sava čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/tara-zvezda-4-6-1.mp3",
+      "displayText": "Тара иде до тихе пољане.",
+      "spokenText": "Tara ide do tihe poljane."
+    },
+    {
+      "path": "stories/tara-zvezda-4-6-2.mp3",
+      "displayText": "Тамо види сјајну звезду.",
+      "spokenText": "Tamo vidi sjajnu zvezdu."
+    },
+    {
+      "path": "stories/tara-zvezda-6-8-1.mp3",
+      "displayText": "Тара креће до тихе пољане у нову авантуру.",
+      "spokenText": "Tara kreće do tihe poljane u novu avanturu."
+    },
+    {
+      "path": "stories/tara-zvezda-6-8-2.mp3",
+      "displayText": "На стази проналази сјајну звезду.",
+      "spokenText": "Na stazi pronalazi sjajnu zvezdu."
+    },
+    {
+      "path": "stories/tara-zvezda-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/tara-zvezda-8-10-1.mp3",
+      "displayText": "Током пута до тихе пољане, Тара примећује необичан траг.",
+      "spokenText": "Tokom puta do tihe poljane, Tara primećuje neobičan trag."
+    },
+    {
+      "path": "stories/tara-zvezda-8-10-2.mp3",
+      "displayText": "Пратећи траг, Тара проналази сјајну звезду поред стазе.",
+      "spokenText": "Prateći trag, Tara pronalazi sjajnu zvezdu pored staze."
+    },
+    {
+      "path": "stories/tara-zvezda-8-10-3.mp3",
+      "displayText": "На крају Тара чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Tara čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/uros-fenjer-4-6-1.mp3",
+      "displayText": "Урош иде до старе куле.",
+      "spokenText": "Uroš ide do stare kule."
+    },
+    {
+      "path": "stories/uros-fenjer-4-6-2.mp3",
+      "displayText": "Тамо види зелени фењер.",
+      "spokenText": "Tamo vidi zeleni fenjer."
+    },
+    {
+      "path": "stories/uros-fenjer-6-8-1.mp3",
+      "displayText": "Урош креће до старе куле у нову авантуру.",
+      "spokenText": "Uroš kreće do stare kule u novu avanturu."
+    },
+    {
+      "path": "stories/uros-fenjer-6-8-2.mp3",
+      "displayText": "На стази проналази зелени фењер.",
+      "spokenText": "Na stazi pronalazi zeleni fenjer."
+    },
+    {
+      "path": "stories/uros-fenjer-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/uros-fenjer-8-10-1.mp3",
+      "displayText": "Током пута до старе куле, Урош примећује необичан траг.",
+      "spokenText": "Tokom puta do stare kule, Uroš primećuje neobičan trag."
+    },
+    {
+      "path": "stories/uros-fenjer-8-10-2.mp3",
+      "displayText": "Пратећи траг, Урош проналази зелени фењер поред стазе.",
+      "spokenText": "Prateći trag, Uroš pronalazi zeleni fenjer pored staze."
+    },
+    {
+      "path": "stories/uros-fenjer-8-10-3.mp3",
+      "displayText": "На крају Урош чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Uroš čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/filip-robot-4-6-1.mp3",
+      "displayText": "Филип иде до радионице.",
+      "spokenText": "Filip ide do radionice."
+    },
+    {
+      "path": "stories/filip-robot-4-6-2.mp3",
+      "displayText": "Тамо види малог робота.",
+      "spokenText": "Tamo vidi malog robota."
+    },
+    {
+      "path": "stories/filip-robot-6-8-1.mp3",
+      "displayText": "Филип креће до радионице у нову авантуру.",
+      "spokenText": "Filip kreće do radionice u novu avanturu."
+    },
+    {
+      "path": "stories/filip-robot-6-8-2.mp3",
+      "displayText": "На стази проналази малог робота.",
+      "spokenText": "Na stazi pronalazi malog robota."
+    },
+    {
+      "path": "stories/filip-robot-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/filip-robot-8-10-1.mp3",
+      "displayText": "Током пута до радионице, Филип примећује необичан траг.",
+      "spokenText": "Tokom puta do radionice, Filip primećuje neobičan trag."
+    },
+    {
+      "path": "stories/filip-robot-8-10-2.mp3",
+      "displayText": "Пратећи траг, Филип проналази малог робота поред стазе.",
+      "spokenText": "Prateći trag, Filip pronalazi malog robota pored staze."
+    },
+    {
+      "path": "stories/filip-robot-8-10-3.mp3",
+      "displayText": "На крају Филип чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Filip čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/hana-mace-4-6-1.mp3",
+      "displayText": "Хана иде до дворишта.",
+      "spokenText": "Hana ide do dvorišta."
+    },
+    {
+      "path": "stories/hana-mace-4-6-2.mp3",
+      "displayText": "Тамо види бело маче.",
+      "spokenText": "Tamo vidi belo mače."
+    },
+    {
+      "path": "stories/hana-mace-6-8-1.mp3",
+      "displayText": "Хана креће до дворишта у нову авантуру.",
+      "spokenText": "Hana kreće do dvorišta u novu avanturu."
+    },
+    {
+      "path": "stories/hana-mace-6-8-2.mp3",
+      "displayText": "На стази проналази бело маче.",
+      "spokenText": "Na stazi pronalazi belo mače."
+    },
+    {
+      "path": "stories/hana-mace-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/hana-mace-8-10-1.mp3",
+      "displayText": "Током пута до дворишта, Хана примећује необичан траг.",
+      "spokenText": "Tokom puta do dvorišta, Hana primećuje neobičan trag."
+    },
+    {
+      "path": "stories/hana-mace-8-10-2.mp3",
+      "displayText": "Пратећи траг, Хана проналази бело маче поред стазе.",
+      "spokenText": "Prateći trag, Hana pronalazi belo mače pored staze."
+    },
+    {
+      "path": "stories/hana-mace-8-10-3.mp3",
+      "displayText": "На крају Хана чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Hana čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/cana-kosara-4-6-1.mp3",
+      "displayText": "Цана иде до воћњака.",
+      "spokenText": "Cana ide do voćnjaka."
+    },
+    {
+      "path": "stories/cana-kosara-4-6-2.mp3",
+      "displayText": "Тамо види корпу јабука.",
+      "spokenText": "Tamo vidi korpu jabuka."
+    },
+    {
+      "path": "stories/cana-kosara-6-8-1.mp3",
+      "displayText": "Цана креће до воћњака у нову авантуру.",
+      "spokenText": "Cana kreće do voćnjaka u novu avanturu."
+    },
+    {
+      "path": "stories/cana-kosara-6-8-2.mp3",
+      "displayText": "На стази проналази корпу јабука.",
+      "spokenText": "Na stazi pronalazi korpu jabuka."
+    },
+    {
+      "path": "stories/cana-kosara-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/cana-kosara-8-10-1.mp3",
+      "displayText": "Током пута до воћњака, Цана примећује необичан траг.",
+      "spokenText": "Tokom puta do voćnjaka, Cana primećuje neobičan trag."
+    },
+    {
+      "path": "stories/cana-kosara-8-10-2.mp3",
+      "displayText": "Пратећи траг, Цана проналази корпу јабука поред стазе.",
+      "spokenText": "Prateći trag, Cana pronalazi korpu jabuka pored staze."
+    },
+    {
+      "path": "stories/cana-kosara-8-10-3.mp3",
+      "displayText": "На крају Цана чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Cana čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/ceda-camac-4-6-1.mp3",
+      "displayText": "Чеда иде до мирног језера.",
+      "spokenText": "Čeda ide do mirnog jezera."
+    },
+    {
+      "path": "stories/ceda-camac-4-6-2.mp3",
+      "displayText": "Тамо види мали чамац.",
+      "spokenText": "Tamo vidi mali čamac."
+    },
+    {
+      "path": "stories/ceda-camac-6-8-1.mp3",
+      "displayText": "Чеда креће до мирног језера у нову авантуру.",
+      "spokenText": "Čeda kreće do mirnog jezera u novu avanturu."
+    },
+    {
+      "path": "stories/ceda-camac-6-8-2.mp3",
+      "displayText": "На стази проналази мали чамац.",
+      "spokenText": "Na stazi pronalazi mali čamac."
+    },
+    {
+      "path": "stories/ceda-camac-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/ceda-camac-8-10-1.mp3",
+      "displayText": "Током пута до мирног језера, Чеда примећује необичан траг.",
+      "spokenText": "Tokom puta do mirnog jezera, Čeda primećuje neobičan trag."
+    },
+    {
+      "path": "stories/ceda-camac-8-10-2.mp3",
+      "displayText": "Пратећи траг, Чеда проналази мали чамац поред стазе.",
+      "spokenText": "Prateći trag, Čeda pronalazi mali čamac pored staze."
+    },
+    {
+      "path": "stories/ceda-camac-8-10-3.mp3",
+      "displayText": "На крају Чеда чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Čeda čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "stories/sana-lopta-4-6-1.mp3",
+      "displayText": "Сана иде до школског игралишта.",
+      "spokenText": "Sana ide do školskog igrališta."
+    },
+    {
+      "path": "stories/sana-lopta-4-6-2.mp3",
+      "displayText": "Тамо види шарену лопту.",
+      "spokenText": "Tamo vidi šarenu loptu."
+    },
+    {
+      "path": "stories/sana-lopta-6-8-1.mp3",
+      "displayText": "Сана креће до школског игралишта у нову авантуру.",
+      "spokenText": "Sana kreće do školskog igrališta u novu avanturu."
+    },
+    {
+      "path": "stories/sana-lopta-6-8-2.mp3",
+      "displayText": "На стази проналази шарену лопту.",
+      "spokenText": "Na stazi pronalazi šarenu loptu."
+    },
+    {
+      "path": "stories/sana-lopta-6-8-3.mp3",
+      "displayText": "Код куће свима прича шта се догодило.",
+      "spokenText": "Kod kuće svima priča šta se dogodilo."
+    },
+    {
+      "path": "stories/sana-lopta-8-10-1.mp3",
+      "displayText": "Током пута до школског игралишта, Сана примећује необичан траг.",
+      "spokenText": "Tokom puta do školskog igrališta, Sana primećuje neobičan trag."
+    },
+    {
+      "path": "stories/sana-lopta-8-10-2.mp3",
+      "displayText": "Пратећи траг, Сана проналази шарену лопту поред стазе.",
+      "spokenText": "Prateći trag, Sana pronalazi šarenu loptu pored staze."
+    },
+    {
+      "path": "stories/sana-lopta-8-10-3.mp3",
+      "displayText": "На крају Сана чува налаз и записује целу пустоловину.",
+      "spokenText": "Na kraju Sana čuva nalaz i zapisuje celu pustolovinu."
+    },
+    {
+      "path": "adventure/literacy-1.mp3",
+      "displayText": "Напиши велико слово А.",
+      "spokenText": "Napiši veliko slovo A."
+    },
+    {
+      "path": "adventure/literacy-2.mp3",
+      "displayText": "Напиши реч авион.",
+      "spokenText": "Napiši reč avion."
+    },
+    {
+      "path": "adventure/literacy-3.mp3",
+      "displayText": "Додирни речи правилним редом и сложи: Сова лети.",
+      "spokenText": "Dodirni reči pravilnim redom i složi: Sova leti."
+    },
+    {
+      "path": "adventure/literacy-4.mp3",
+      "displayText": "Напиши реч љуљашка.",
+      "spokenText": "Napiši reč ljuljaška."
+    },
+    {
+      "path": "adventure/literacy-5.mp3",
+      "displayText": "Сложи речи правилним редом: Мала сова лети изнад шуме.",
+      "spokenText": "Složi reči pravilnim redom: Mala sova leti iznad šume."
+    },
+    {
+      "path": "adventure/literacy-6.mp3",
+      "displayText": "Сложи три реченице правилним редом и направи малу причу.",
+      "spokenText": "Složi tri rečenice pravilnim redom i napravi malu priču."
+    }
+  ]
+}

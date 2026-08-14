@@ -40,7 +40,7 @@ const adventures: AdventureSeed[] = [
   { id: 'hana-mace', name: 'Хана', destination: 'дворишта', objectAccusative: 'бело маче', answer: 'Маче', art: '🐈 🏠 💛' },
   { id: 'cana-kosara', name: 'Цана', destination: 'воћњака', objectAccusative: 'корпу јабука', answer: 'Корпу', art: '🍎 🧺 🌳' },
   { id: 'ceda-camac', name: 'Чеда', destination: 'мирног језера', objectAccusative: 'мали чамац', answer: 'Чамац', art: '🚣 🌊 🦆' },
-  { id: 'sana-lopta', name: 'Шана', destination: 'школског игралишта', objectAccusative: 'шарену лопту', answer: 'Лопту', art: '⚽ 🌈 🏫' }
+  { id: 'sana-lopta', name: 'Сана', destination: 'школског игралишта', objectAccusative: 'шарену лопту', answer: 'Лопту', art: '⚽ 🌈 🏫' }
 ];
 
 export const storyAges: ReadingAge[] = ['4–6', '6–8', '8–10'];
@@ -83,7 +83,7 @@ function makeStory(seed: AdventureSeed, age: ReadingAge, index: number): Reading
     title: `Велика тајна: ${seed.name}`,
     sentences: [
       `Током пута до ${seed.destination}, ${seed.name} примећује необичан траг.`,
-      `Траг води до ${seed.objectAccusative}, пажљиво сакривеног поред стазе.`,
+      `Пратећи траг, ${seed.name} проналази ${seed.objectAccusative} поред стазе.`,
       `На крају ${seed.name} чува налаз и записује целу пустоловину.`
     ]
   };
