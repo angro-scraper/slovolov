@@ -12,6 +12,7 @@ workflows:
       vars:
         BUNDLE_ID: "rs.slovolov.app"
         APP_STORE_APPLE_ID: "6795110827"
+        MARKETING_VERSION: "3.3.12"
         XCODE_WORKSPACE: "App.xcworkspace"
         XCODE_SCHEME: "App"
         VITE_STORE_SAFE_CONTENT: "true"
@@ -45,6 +46,7 @@ workflows:
       - name: Set iOS build number
         script: |
           cd "$CM_BUILD_DIR/web-app/ios/App"
+          agvtool new-marketing-version "$MARKETING_VERSION"
           LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || true)
           if [ -z "$LATEST_BUILD_NUMBER" ]; then
             LATEST_BUILD_NUMBER=0
