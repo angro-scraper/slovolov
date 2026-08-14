@@ -2,5 +2,7 @@ services:
   - type: web
     name: slovolov-download
     runtime: static
-    staticPublishPath: web-download
+    rootDir: web-app
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
     pullRequestPreviewsEnabled: false
