@@ -131,10 +131,9 @@ function nativeGateway(): PurchaseGateway {
         : { state: 'pending', message: 'Kupovina čeka potvrdu prodavnice.' };
     },
     restore: async () => {
-      const offerState = await initialize();
-      if (!offerState.available && !offerState.owned) {
-        return { owned: false, message: offerState.reason };
-      }
+      await initialize();
+      // Vraćanje mora biti dostupno i kada App Store još nije učitao trenutnu ponudu.
+      // Ranija aktivna pretplata može da postoji i tada.
       const error = await store.restorePurchases();
       if (error) return { owned: false, message: error.message };
       await store.update();

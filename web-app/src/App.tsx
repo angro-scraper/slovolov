@@ -2177,11 +2177,18 @@ function Settings({ onBack }: { onBack: () => void }) {
             </div>
           </div>
           {!store.familyAccess.isUnlocked && commerceEnabled && (
-            <div className="family-trust-row" aria-label="Prednosti porodičnog paketa">
-              <span>✓ 7 dana besplatno</span>
-              <span>✓ Bez reklama</span>
-              <span>✓ Otkazivanje u Apple nalogu</span>
-            </div>
+            <>
+              <div className="family-trust-row" aria-label="Prednosti porodičnog paketa">
+                <span>✓ 7 dana besplatno</span>
+                <span>✓ Bez reklama</span>
+                <span>✓ Otkazivanje u Apple nalogu</span>
+              </div>
+              <p className="premium-subscription-disclosure">
+                <strong>Slovolov Premium je auto-obnovljiva mesečna pretplata.</strong>{' '}
+                Cena je {purchaseOffer.price ?? PREMIUM_MONTHLY_PRICE} mesečno, uz prvih {PREMIUM_TRIAL_DAYS} dana besplatno.
+                Nakon probnog perioda Apple automatski obnavlja pretplatu svakog meseca, osim ako je roditelj otkaže najmanje 24 sata pre kraja tekućeg perioda.
+              </p>
+            </>
           )}
           <ul>
             <li>Svih 30 slova i brojevi 0–100</li>
@@ -2194,7 +2201,7 @@ function Settings({ onBack }: { onBack: () => void }) {
               <button className="primary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void buyFamily()}>
                 {purchaseBusy ? 'Proveravam…' : 'Pokreni 7 dana besplatno'}
               </button>
-              <button className="secondary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void restoreFamily()}>
+              <button className="secondary" disabled={purchaseBusy} onClick={() => void restoreFamily()}>
                 Vrati kupovinu
               </button>
             </div>
@@ -2205,9 +2212,9 @@ function Settings({ onBack }: { onBack: () => void }) {
           )}
           {purchaseMessage && <p className="purchase-message" role="status">{purchaseMessage}</p>}
           <small>
-            Kupovinu potvrđuje roditelj. Pretplata se automatski obnavlja dok je ne otkažete u Apple ID podešavanjima.
-            {' '}<a href="/terms.html" target="_blank" rel="noreferrer">Uslovi korišćenja</a>
-            {' · '}<a href="/privacy.html" target="_blank" rel="noreferrer">Politika privatnosti</a>
+            Kupovinu potvrđuje roditelj. Plaćanje se vrši preko Apple ID naloga; pretplatom se upravlja i ona se otkazuje u Apple ID podešavanjima → Pretplate.
+            {' '}<a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Uslovi korišćenja</a>
+            {' · '}<a href="https://slovolov-download.onrender.com/privacy.html" target="_blank" rel="noreferrer">Politika privatnosti</a>
           </small>
         </section>
         <label><span>🔊 Zvuk</span><input type="checkbox" checked={store.soundEnabled} onChange={store.toggleSound} /></label>

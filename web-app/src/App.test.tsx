@@ -638,11 +638,17 @@ describe('Slovolov glavni tok', () => {
     unlockParentSettings();
 
     expect(screen.getByRole('heading', { name: 'Slovolov Premium' })).toBeVisible();
-    expect(screen.getByText(/3,99 € mesečno/i)).toBeVisible();
-    expect(screen.getByText(/prvih 7 dana besplatno/i)).toBeVisible();
+    expect(screen.getAllByText(/3,99 € mesečno/i)).toHaveLength(2);
+    expect(screen.getAllByText(/prvih 7 dana besplatno/i)).toHaveLength(2);
+    const subscriptionDisclosure = screen.getByText(/auto-obnovljiva mesečna pretplata/i).parentElement;
+    expect(subscriptionDisclosure).toBeVisible();
+    expect(subscriptionDisclosure).toHaveTextContent(/Apple automatski obnavlja pretplatu svakog meseca/i);
+    expect(subscriptionDisclosure).toHaveTextContent(/najmanje 24 sata pre kraja tekućeg perioda/i);
     expect(screen.getByText(/Bez reklama/i)).toBeVisible();
-    expect(screen.getByRole('button', { name: /Vrati kupovinu/i })).toBeDisabled();
+    expect(screen.getByRole('link', { name: 'Uslovi korišćenja' })).toHaveAttribute('href', 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');
+    expect(screen.getAllByRole('link', { name: 'Politika privatnosti' }).find((link) => link.getAttribute('href') === 'https://slovolov-download.onrender.com/privacy.html')).toBeDefined();
     await waitFor(() => expect(screen.getByText(/trenutno dostupan samo u iOS aplikaciji/i)).toBeVisible());
+    expect(screen.getByRole('button', { name: /Vrati kupovinu/i })).toBeEnabled();
   });
 
   it('potvrđena Premium pretplata otključava biblioteku priča bez lažnog trajnog prava', () => {
