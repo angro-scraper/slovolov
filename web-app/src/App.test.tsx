@@ -642,7 +642,7 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getAllByText(/prvih 7 dana besplatno/i)).toHaveLength(2);
     const subscriptionDisclosure = screen.getByText(/auto-obnovljiva mesečna pretplata/i).parentElement;
     expect(subscriptionDisclosure).toBeVisible();
-    expect(subscriptionDisclosure).toHaveTextContent(/Apple automatski obnavlja pretplatu svakog meseca/i);
+    expect(subscriptionDisclosure).toHaveTextContent(/pretplata se automatski obnavlja svakog meseca preko Apple-a/i);
     expect(subscriptionDisclosure).toHaveTextContent(/najmanje 24 sata pre kraja tekućeg perioda/i);
     expect(screen.getByText(/Bez reklama/i)).toBeVisible();
     expect(screen.getByRole('link', { name: 'Uslovi korišćenja' })).toHaveAttribute('href', 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/');

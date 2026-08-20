@@ -2186,7 +2186,7 @@ function Settings({ onBack }: { onBack: () => void }) {
               <p className="premium-subscription-disclosure">
                 <strong>Slovolov Premium je auto-obnovljiva mesečna pretplata.</strong>{' '}
                 Cena je {purchaseOffer.price ?? PREMIUM_MONTHLY_PRICE} mesečno, uz prvih {PREMIUM_TRIAL_DAYS} dana besplatno.
-                Nakon probnog perioda Apple automatski obnavlja pretplatu svakog meseca, osim ako je roditelj otkaže najmanje 24 sata pre kraja tekućeg perioda.
+                Pretplata se automatski obnavlja svakog meseca preko Apple-a nakon probnog perioda, osim ako je roditelj otkaže najmanje 24 sata pre kraja tekućeg perioda.
               </p>
             </>
           )}
