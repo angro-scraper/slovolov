@@ -8,6 +8,7 @@ import {
   stopAppSpeech
 } from './speech';
 import * as nativeAudioSession from './nativeAudioSession';
+import * as nativeAudioPlayback from './nativeAudioPlayback';
 
 describe('isključivo lokalni govor aplikacije', () => {
   const synthSpeak = vi.fn();
@@ -22,6 +23,8 @@ describe('isključivo lokalni govor aplikacije', () => {
       .mockResolvedValue(true);
     vi.spyOn(nativeAudioSession, 'releaseNativeAudioSession')
       .mockResolvedValue();
+    vi.spyOn(nativeAudioPlayback, 'startNativeAudioPlayback')
+      .mockResolvedValue(null);
     created.length = 0;
     play.mockResolvedValue(undefined);
     Object.defineProperty(window, 'speechSynthesis', {
@@ -90,7 +93,7 @@ describe('isključivo lokalni govor aplikacije', () => {
     expect(secondFinished).toBe(false);
 
     await vi.waitFor(() => expect(nativeAudioSession.activateNativeAudioSession)
-      .toHaveBeenCalledTimes(3));
+      .toHaveBeenCalledTimes(4));
     created[1].onended?.();
     await expect(second).resolves.toBe(true);
     expect(synthSpeak).not.toHaveBeenCalled();
@@ -133,5 +136,26 @@ describe('isključivo lokalni govor aplikacije', () => {
 
     expect(play).toHaveBeenCalledOnce();
     expect(nativeAudioSession.activateNativeAudioSession).toHaveBeenCalledTimes(2);
+  });
+
+  it('na Android uređaju sva lokalna pitanja pušta nativno bez WebView-a', async () => {
+    const nativeHandle = {
+      pause: vi.fn().mockResolvedValue(undefined),
+      resume: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn().mockResolvedValue(undefined)
+    };
+    vi.mocked(nativeAudioPlayback.startNativeAudioPlayback)
+      .mockImplementationOnce(async (_source, callbacks) => {
+        callbacks.onStarted();
+        return nativeHandle;
+      });
+
+    await speakRecordedPrompt('Koje je prvo slovo?', '/audio/quiz/01.mp3');
+
+    expect(nativeAudioPlayback.startNativeAudioPlayback)
+      .toHaveBeenCalledWith('/audio/quiz/01.mp3', expect.any(Object));
+    expect(created).toHaveLength(0);
+    expect(play).not.toHaveBeenCalled();
+    expect(synthSpeak).not.toHaveBeenCalled();
   });
 });

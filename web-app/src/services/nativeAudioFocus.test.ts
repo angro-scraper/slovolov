@@ -27,6 +27,19 @@ describe('native prekid glasa telefona', () => {
     expect(source).toContain('stopAndReleasePlayer()');
   });
 
+  it('Android čita lokalne audio snimke direktno iz APK assets-a', () => {
+    const source = readFileSync(resolve(
+      'android/app/src/main/java/rs/slovolov/app/SlovolovAudioSessionPlugin.java'
+    ), 'utf8');
+
+    expect(source).toContain('getContext().getAssets().openFd(assetPath)');
+    expect(source).toContain('return "public/" + path');
+    expect(source).toContain('!path.startsWith("audio/")');
+    expect(source).toContain('path.contains("..")');
+    expect(source).toContain('private void prepareAudioEnvironment()');
+    expect(source.match(/prepareAudioEnvironment\(\);/g)).toHaveLength(2);
+  });
+
   it('iOS prekida druge spoken-audio sesije dok Slovolov govori', () => {
     const source = readFileSync(resolve('ios/App/App/AppDelegate.swift'), 'utf8');
 

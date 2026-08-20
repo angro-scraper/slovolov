@@ -73,11 +73,8 @@ export function narrateSentences(sentences: string[], options: NarrationOptions)
         markUnavailable();
         return;
       }
-      const absoluteSource = new URL(
-        versionAudioUrl(candidates[candidateIndex]),
-        window.location.href
-      ).href;
-      const handle = await startNativeAudioPlayback(absoluteSource, {
+      const bundledSource = versionAudioUrl(candidates[candidateIndex]);
+      const handle = await startNativeAudioPlayback(bundledSource, {
         onStarted: () => options.onSource?.('recorded'),
         onEnded: () => {
           if (stopped) return;

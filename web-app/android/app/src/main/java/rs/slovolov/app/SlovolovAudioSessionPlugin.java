@@ -1,6 +1,7 @@
 package rs.slovolov.app;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -28,19 +29,8 @@ public class SlovolovAudioSessionPlugin extends Plugin {
 
     @PluginMethod
     public void activate(PluginCall call) {
-        AccessibilityManager accessibilityManager = (AccessibilityManager)
-            getContext().getSystemService(Context.ACCESSIBILITY_SERVICE);
-        if (accessibilityManager != null && accessibilityManager.isEnabled()) {
-            // TalkBack i drugi accessibility servisi mogu nastaviti prethodnu
-            // najavu preko lokalnog kviz snimka. Androidov javni API traži da
-            // svi takvi servisi odmah prekinu trenutni govorni feedback.
-            accessibilityManager.interrupt();
-        }
-        getActivity().setVolumeControlStream(AudioManager.STREAM_MUSIC);
         getActivity().runOnUiThread(() -> {
-            getBridge().getWebView().setImportantForAccessibility(
-                View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
-            );
+            prepareAudioEnvironment();
             JSObject result = new JSObject();
             result.put("granted", true);
             call.resolve(result);
@@ -66,13 +56,9 @@ public class SlovolovAudioSessionPlugin extends Plugin {
             return;
         }
         Uri uri = Uri.parse(url);
-        String scheme = uri.getScheme();
-        if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
-            call.reject("Audio URL mora koristiti HTTP ili HTTPS.");
-            return;
-        }
 
         getActivity().runOnUiThread(() -> {
+            prepareAudioEnvironment();
             stopAndReleasePlayer();
             playbackToken = token;
             MediaPlayer player = new MediaPlayer();
@@ -115,7 +101,22 @@ public class SlovolovAudioSessionPlugin extends Plugin {
                 return true;
             });
             try {
-                player.setDataSource(url);
+                if (isBundledAudio(uri)) {
+                    String assetPath = bundledAssetPath(uri);
+                    try (AssetFileDescriptor descriptor = getContext().getAssets().openFd(assetPath)) {
+                        player.setDataSource(
+                            descriptor.getFileDescriptor(),
+                            descriptor.getStartOffset(),
+                            descriptor.getLength()
+                        );
+                    }
+                } else {
+                    String scheme = uri.getScheme();
+                    if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
+                        throw new IllegalArgumentException("Audio izvor nije dozvoljen.");
+                    }
+                    player.setDataSource(url);
+                }
                 player.prepareAsync();
             } catch (Exception error) {
                 stopAndReleasePlayer();
@@ -166,5 +167,37 @@ public class SlovolovAudioSessionPlugin extends Plugin {
         }
         player.reset();
         player.release();
+    }
+
+    private void prepareAudioEnvironment() {
+        AccessibilityManager accessibilityManager = (AccessibilityManager)
+            getContext().getSystemService(Context.ACCESSIBILITY_SERVICE);
+        if (accessibilityManager != null && accessibilityManager.isEnabled()) {
+            // TalkBack i drugi accessibility servisi mogu nastaviti prethodnu
+            // najavu preko lokalnog snimka. Prekid sprečava mešanje dva glasa.
+            accessibilityManager.interrupt();
+        }
+        getActivity().setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        getBridge().getWebView().setImportantForAccessibility(
+            View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        );
+    }
+
+    private boolean isBundledAudio(Uri uri) {
+        String scheme = uri.getScheme();
+        String host = uri.getHost();
+        return scheme == null
+            || (("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme))
+                && "localhost".equalsIgnoreCase(host));
+    }
+
+    private String bundledAssetPath(Uri uri) {
+        String path = uri.getPath();
+        if (path == null) throw new IllegalArgumentException("Nedostaje audio putanja.");
+        while (path.startsWith("/")) path = path.substring(1);
+        if (!path.startsWith("audio/") || path.contains("..") || path.contains("\\")) {
+            throw new IllegalArgumentException("Lokalna audio putanja nije dozvoljena.");
+        }
+        return "public/" + path;
     }
 }
