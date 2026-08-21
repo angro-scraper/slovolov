@@ -60,4 +60,16 @@ describe('Slovolov paket za prodavnice', () => {
     expect(gradle).not.toMatch(/storePassword\s+["'][^"']+["']/);
     expect(gradle).not.toMatch(/keyPassword\s+["'][^"']+["']/);
   });
+
+  it('Android nativni plejer zadrzava APK audio fajl do kraja reprodukcije', () => {
+    const plugin = read('android/app/src/main/java/rs/slovolov/app/SlovolovAudioSessionPlugin.java');
+    const activity = read('android/app/src/main/java/rs/slovolov/app/MainActivity.java');
+
+    expect(plugin).toContain('private AssetFileDescriptor activeAssetDescriptor;');
+    expect(plugin).toContain('closeAssetDescriptor();');
+    expect(plugin).toContain('requestPlaybackAudioFocus()');
+    expect(plugin).toContain('releasePlaybackAudioFocus()');
+    expect(plugin).not.toContain('try (AssetFileDescriptor descriptor');
+    expect(activity).not.toContain('requestExclusiveAudioFocus()');
+  });
 });

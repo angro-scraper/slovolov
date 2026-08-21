@@ -3,12 +3,15 @@ package rs.slovolov.app;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.view.View;
 import android.view.accessibility.AccessibilityManager;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.getcapacitor.JSObject;
@@ -18,14 +21,42 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 /**
- * WebView već preuzima Android audio fokus kada HTML snimak počne. Plugin zato
- * ne otvara drugi fokus-klijent koji bi pauzirao isti snimak, već potvrđuje da
- * fizička dugmad uređaja kontrolišu odgovarajući media kanal.
+ * Reprodukuje lokalne Slovolov snimke preko Android MediaPlayer-a.
+ *
+ * AssetFileDescriptor mora da ostane otvoren dok prepareAsync ne završi. Neki
+ * Android 13/tablet MediaPlayer-i ne mogu pouzdano da čitaju descriptor koji je
+ * zatvoren odmah nakon setDataSource, što je ranije ostavljalo aplikaciju bez
+ * zvuka. Audio fokus je vezan samo za aktivnu reprodukciju, ne za životni vek
+ * cele aktivnosti.
  */
 @CapacitorPlugin(name = "SlovolovAudioSession")
 public class SlovolovAudioSessionPlugin extends Plugin {
     private MediaPlayer mediaPlayer;
     private String playbackToken;
+    private AssetFileDescriptor activeAssetDescriptor;
+    private AudioManager audioManager;
+    private AudioFocusRequest audioFocusRequest;
+    private boolean resumeAfterFocusGain;
+
+    private final AudioManager.OnAudioFocusChangeListener audioFocusListener = focusChange -> {
+        MediaPlayer player = mediaPlayer;
+        if (player == null) return;
+        try {
+            if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
+                resumeAfterFocusGain = false;
+                stopAndReleasePlayer();
+            } else if (focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
+                    || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK) {
+                resumeAfterFocusGain = player.isPlaying();
+                if (player.isPlaying()) player.pause();
+            } else if (focusChange == AudioManager.AUDIOFOCUS_GAIN && resumeAfterFocusGain) {
+                resumeAfterFocusGain = false;
+                player.start();
+            }
+        } catch (IllegalStateException ignored) {
+            // Reprodukcija je u međuvremenu završena ili zaustavljena.
+        }
+    };
 
     @PluginMethod
     public void activate(PluginCall call) {
@@ -60,38 +91,50 @@ public class SlovolovAudioSessionPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             prepareAudioEnvironment();
             stopAndReleasePlayer();
+            if (!requestPlaybackAudioFocus()) {
+                JSObject result = new JSObject();
+                result.put("started", false);
+                call.resolve(result);
+                return;
+            }
+
             playbackToken = token;
             MediaPlayer player = new MediaPlayer();
             AtomicBoolean started = new AtomicBoolean(false);
             mediaPlayer = player;
-            player.setAudioAttributes(
-                new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                    .build()
-            );
+            player.setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build());
             player.setOnPreparedListener(prepared -> {
                 if (mediaPlayer != prepared) return;
-                prepared.start();
-                started.set(true);
-                JSObject result = new JSObject();
-                result.put("started", true);
-                call.resolve(result);
+                try {
+                    prepared.start();
+                    started.set(true);
+                    JSObject result = new JSObject();
+                    result.put("started", true);
+                    call.resolve(result);
+                } catch (IllegalStateException error) {
+                    notifyPlaybackError(playbackToken, "Android MediaPlayer nije pokrenuo snimak.");
+                    stopAndReleasePlayer();
+                }
             });
             player.setOnCompletionListener(completed -> {
                 if (mediaPlayer != completed) return;
-                JSObject event = new JSObject();
-                event.put("token", playbackToken);
-                notifyListeners("playbackEnded", event);
+                String completedToken = playbackToken;
                 stopAndReleasePlayer();
+                JSObject event = new JSObject();
+                event.put("token", completedToken);
+                notifyListeners("playbackEnded", event);
             });
             player.setOnErrorListener((failed, what, extra) -> {
                 if (mediaPlayer != failed) return true;
+                String failedToken = playbackToken;
                 if (started.get()) {
-                    JSObject event = new JSObject();
-                    event.put("token", playbackToken);
-                    event.put("message", "Android MediaPlayer greška " + what + "/" + extra);
-                    notifyListeners("playbackError", event);
+                    notifyPlaybackError(
+                        failedToken,
+                        "Android MediaPlayer greška " + what + "/" + extra
+                    );
                 } else {
                     JSObject result = new JSObject();
                     result.put("started", false);
@@ -103,13 +146,12 @@ public class SlovolovAudioSessionPlugin extends Plugin {
             try {
                 if (isBundledAudio(uri)) {
                     String assetPath = bundledAssetPath(uri);
-                    try (AssetFileDescriptor descriptor = getContext().getAssets().openFd(assetPath)) {
-                        player.setDataSource(
-                            descriptor.getFileDescriptor(),
-                            descriptor.getStartOffset(),
-                            descriptor.getLength()
-                        );
-                    }
+                    activeAssetDescriptor = getContext().getAssets().openFd(assetPath);
+                    player.setDataSource(
+                        activeAssetDescriptor.getFileDescriptor(),
+                        activeAssetDescriptor.getStartOffset(),
+                        activeAssetDescriptor.getLength()
+                    );
                 } else {
                     String scheme = uri.getScheme();
                     if (!"https".equalsIgnoreCase(scheme) && !"http".equalsIgnoreCase(scheme)) {
@@ -128,7 +170,11 @@ public class SlovolovAudioSessionPlugin extends Plugin {
     @PluginMethod
     public void pausePlayback(PluginCall call) {
         getActivity().runOnUiThread(() -> {
-            if (mediaPlayer != null && mediaPlayer.isPlaying()) mediaPlayer.pause();
+            try {
+                if (mediaPlayer != null && mediaPlayer.isPlaying()) mediaPlayer.pause();
+            } catch (IllegalStateException ignored) {
+                // Već je oslobođen.
+            }
             call.resolve();
         });
     }
@@ -136,7 +182,11 @@ public class SlovolovAudioSessionPlugin extends Plugin {
     @PluginMethod
     public void resumePlayback(PluginCall call) {
         getActivity().runOnUiThread(() -> {
-            if (mediaPlayer != null && !mediaPlayer.isPlaying()) mediaPlayer.start();
+            try {
+                if (mediaPlayer != null && !mediaPlayer.isPlaying()) mediaPlayer.start();
+            } catch (IllegalStateException ignored) {
+                // Već je oslobođen.
+            }
             call.resolve();
         });
     }
@@ -159,14 +209,75 @@ public class SlovolovAudioSessionPlugin extends Plugin {
         MediaPlayer player = mediaPlayer;
         mediaPlayer = null;
         playbackToken = null;
-        if (player == null) return;
-        try {
-            player.stop();
-        } catch (IllegalStateException ignored) {
-            // Player možda još nije završio prepareAsync.
+        resumeAfterFocusGain = false;
+        if (player != null) {
+            try {
+                player.stop();
+            } catch (IllegalStateException ignored) {
+                // Player možda još nije završio prepareAsync.
+            }
+            player.reset();
+            player.release();
         }
-        player.reset();
-        player.release();
+        closeAssetDescriptor();
+        releasePlaybackAudioFocus();
+    }
+
+    private void closeAssetDescriptor() {
+        AssetFileDescriptor descriptor = activeAssetDescriptor;
+        activeAssetDescriptor = null;
+        if (descriptor == null) return;
+        try {
+            descriptor.close();
+        } catch (IOException ignored) {
+            // Nema bezbedne akcije; plejer je već oslobođen.
+        }
+    }
+
+    private boolean requestPlaybackAudioFocus() {
+        if (audioManager == null) {
+            audioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        }
+        if (audioManager == null) return false;
+
+        int result;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            AudioAttributes attributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                .build();
+            audioFocusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT)
+                .setAudioAttributes(attributes)
+                .setAcceptsDelayedFocusGain(false)
+                .setWillPauseWhenDucked(true)
+                .setOnAudioFocusChangeListener(audioFocusListener)
+                .build();
+            result = audioManager.requestAudioFocus(audioFocusRequest);
+        } else {
+            result = audioManager.requestAudioFocus(
+                audioFocusListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT
+            );
+        }
+        return result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+    }
+
+    private void releasePlaybackAudioFocus() {
+        if (audioManager == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && audioFocusRequest != null) {
+            audioManager.abandonAudioFocusRequest(audioFocusRequest);
+            audioFocusRequest = null;
+        } else {
+            audioManager.abandonAudioFocus(audioFocusListener);
+        }
+    }
+
+    private void notifyPlaybackError(String token, String message) {
+        JSObject event = new JSObject();
+        event.put("token", token);
+        event.put("message", message);
+        notifyListeners("playbackError", event);
     }
 
     private void prepareAudioEnvironment() {
