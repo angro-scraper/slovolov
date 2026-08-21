@@ -130,8 +130,8 @@ function webGateway(): PurchaseGateway {
 function nativeGateway(): PurchaseGateway {
   const platform = CdvPurchase.Platform.APPLE_APPSTORE;
   const store = CdvPurchase.store;
-  let registered = false;
   let initialized = false;
+  let initializationPromise: Promise<CdvPurchase.IError[]> | null = null;
 
   const product = () => store.get(IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform);
   const ownsProduct = () => store.owned({ id: IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform });
@@ -164,19 +164,18 @@ function nativeGateway(): PurchaseGateway {
   };
 
   async function initialize(): Promise<PurchaseOffer> {
-    if (!registered) {
-      store.register({
-        id: IOS_PREMIUM_MONTHLY_PRODUCT_ID,
-        type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
-        platform
-      });
-      store.when().approved((transaction) => transaction.finish());
-      registered = true;
-    }
-
     let failureMessage: string | undefined;
     if (!initialized) {
-      const errors = await store.initialize([platform]);
+      if (!initializationPromise) {
+        store.register({
+          id: IOS_PREMIUM_MONTHLY_PRODUCT_ID,
+          type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
+          platform
+        });
+        store.when().approved((transaction) => transaction.finish());
+        initializationPromise = store.initialize([platform]);
+      }
+      const errors = await initializationPromise;
       initialized = true;
       const fatal = errors.find((error) => error.productId === IOS_PREMIUM_MONTHLY_PRODUCT_ID || error.platform === platform);
       failureMessage = fatal?.message;
@@ -222,9 +221,12 @@ function nativeGateway(): PurchaseGateway {
   };
 }
 
+let defaultNativeGateway: PurchaseGateway | null = null;
+
 export function createDefaultPurchaseGateway(): PurchaseGateway {
   if (!isCommerceEnabled() || Capacitor.getPlatform() !== 'ios' || typeof CdvPurchase === 'undefined') return webGateway();
-  return nativeGateway();
+  defaultNativeGateway ??= nativeGateway();
+  return defaultNativeGateway;
 }
 
 export function isNativePurchasePlatform(): boolean {

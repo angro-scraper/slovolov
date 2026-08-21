@@ -24,7 +24,8 @@ describe('premium Slovolov vizuelni sistem', () => {
     expect(app).toContain('Cena i eventualni probni period biće prikazani čim ih Apple potvrdi.');
     expect(app).toContain('Pretplata se automatski obnavlja');
     expect(app).toContain('Bez reklama');
-    expect(app).toContain('Prve 3 bajke i priče ostaju besplatne');
+    expect(app).toContain('Prvih 7 slova, brojevi 0–10 i prve 3 priče ostaju besplatni');
+    expect(app).toContain('Premium otključava svih 30 slova, brojeve 0–100, igre i Čitanje');
     expect(purchases).toContain('purchaseOfferFromProduct');
     expect(purchases).toContain('trialDaysFromBillingPeriod');
   });

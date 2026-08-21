@@ -11,7 +11,7 @@ import { familyMissions } from './data/familyMissions';
 import { logicChallenges } from './data/logicChallenges';
 import { cultureCards } from './data/serbianCulture';
 import { seededChoices } from './domain/choices';
-import { canAccessLetter, canAccessNumber, canAccessStory } from './domain/access';
+import { canAccessFeature, canAccessLetter, canAccessNumber, canAccessStory, canAddProfile } from './domain/access';
 import { nextLetterToPractice, summarizeLearning } from './domain/learning';
 import { displayLetter, letters, transliterate, type Letter, type LetterWord } from './domain/letters';
 import {
@@ -125,11 +125,12 @@ export function App() {
   const profile = useProgressStore((state) => state.profile);
   const accessibility = useProgressStore((state) => state.accessibility);
   const purchasedFamily = useProgressStore((state) => state.familyAccess.isUnlocked);
+  const setStoreSubscriptionAccess = useProgressStore((state) => state.setStoreSubscriptionAccess);
   const familyUnlocked = !isCommerceEnabled() || purchasedFamily;
   const navigate = useCallback((nextScreen: Screen) => {
     stopAppSpeech();
-    setScreen(nextScreen);
-  }, []);
+    setScreen(canAccessFeature(nextScreen, familyUnlocked) ? nextScreen : 'settings');
+  }, [familyUnlocked]);
   const openAdventureLevel = useCallback((level: AdventureLevel) => {
     setActiveAdventureLevel(level);
     navigate(level.route);
@@ -175,6 +176,20 @@ export function App() {
     return () => window.clearInterval(timer);
   }, [addLearningSeconds, screen]);
 
+  useEffect(() => {
+    if (!isCommerceEnabled() || !isNativePurchasePlatform()) return undefined;
+    let active = true;
+    const manager = createPurchaseManager(createDefaultPurchaseGateway(), (unlocked) => {
+      if (active) setStoreSubscriptionAccess(unlocked);
+    });
+    void manager.initialize().catch(() => {
+      // Mrežna/StoreKit greška ne sme lažno otključati Premium sadržaj.
+    });
+    return () => {
+      active = false;
+    };
+  }, [setStoreSubscriptionAccess]);
+
   const visibleLetter = (letter: Letter, requestedCase: 'upper' | 'lower' = 'upper') => {
     if (script === 'cyrillic') return requestedCase === 'upper' ? letter.upper : letter.lower;
     const latin = displayLetter(letter, script);
@@ -204,13 +219,21 @@ export function App() {
           <div className="hero-art" aria-hidden="true">🐉<span>А</span></div>
         </section>
         <main className="menu-grid">
-          {menus.map((item) => (
-            <button key={item.screen} className={`menu-card menu-${item.screen}`} onClick={() => navigate(item.screen)}>
-              <span className="menu-icon">{item.icon}</span>
-              <span><strong>{item.title}</strong><small>{item.subtitle}</small></span>
-              <b>›</b>
-            </button>
-          ))}
+          {menus.map((item) => {
+            const accessible = canAccessFeature(item.screen, familyUnlocked);
+            return (
+              <button
+                key={item.screen}
+                className={`menu-card menu-${item.screen} ${accessible ? '' : 'content-locked'}`}
+                onClick={() => navigate(item.screen)}
+                aria-label={accessible ? item.title : `${item.title} · Premium zaključano`}
+              >
+                <span className="menu-icon">{item.icon}</span>
+                <span><strong>{item.title}</strong><small>{accessible ? item.subtitle : 'Premium sadržaj'}</small></span>
+                <b aria-hidden="true">{accessible ? '›' : '🔒'}</b>
+              </button>
+            );
+          })}
         </main>
         <button className="settings-fab" onClick={() => navigate('settings')} aria-label="Podešavanja">⚙️</button>
       </>
@@ -2196,9 +2219,9 @@ function Settings({ onBack }: { onBack: () => void }) {
             </>
           )}
           <ul>
-            <li>Svih 30 slova i brojevi 0–100</li>
-            <li>Prve 3 bajke i priče ostaju besplatne</li>
-            <li>Premium otključava ostatak biblioteke i buduće priče</li>
+            <li>Prvih 7 slova, brojevi 0–10 i prve 3 priče ostaju besplatni</li>
+            <li>Premium otključava svih 30 slova, brojeve 0–100, igre i Čitanje</li>
+            <li>Celokupna biblioteka i sve buduće priče</li>
             <li>Više dečjih profila na istom uređaju</li>
           </ul>
           {commerceEnabled && !store.familyAccess.isUnlocked && (
@@ -2222,7 +2245,7 @@ function Settings({ onBack }: { onBack: () => void }) {
               )}
             </div>
           )}
-          {store.familyAccess.isUnlocked && <strong className="family-owned">✓ Premium biblioteka bajki i priča je aktivna.</strong>}
+          {store.familyAccess.isUnlocked && <strong className="family-owned">✓ Celokupan Premium sadržaj je aktivan.</strong>}
           {commerceEnabled && !isNativePurchasePlatform() && !purchaseMessage && (
             <p className="purchase-message">Slovolov Premium je dostupan samo u instaliranoj iOS aplikaciji.</p>
           )}
@@ -2314,7 +2337,7 @@ function Settings({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </section>
-        {!addingProfile && (
+        {!addingProfile && canAddProfile(store.profiles.length, store.familyAccess.isUnlocked || !commerceEnabled) && (
           <button
             className="secondary"
             onClick={() => {
@@ -2325,6 +2348,9 @@ function Settings({ onBack }: { onBack: () => void }) {
           >
             + Dodaj profil
           </button>
+        )}
+        {!addingProfile && !canAddProfile(store.profiles.length, store.familyAccess.isUnlocked || !commerceEnabled) && (
+          <p className="purchase-message">🔒 Dodatni dečji profili dostupni su kada pokrenete Premium.</p>
         )}
         {addingProfile && (
           <form className="profile-form new-profile-form" onSubmit={saveNewProfile}>

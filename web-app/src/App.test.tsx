@@ -154,27 +154,35 @@ describe('Slovolov glavni tok', () => {
     expect(screen.queryByText('Nauči slova')).not.toBeInTheDocument();
   });
 
-  it('u iOS Premium izdanju samo četvrta bajka vodi roditelja na otključavanje', () => {
+  it('u iOS izdanju zaključava sadržaj van ograničenog demo paketa', () => {
     vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
     vi.stubEnv('VITE_IOS_PREMIUM_ENABLED', 'true');
     render(<App />);
 
     fireEvent.click(screen.getByRole('button', { name: /Nauči slova/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'J j' }));
-    expect(screen.getByRole('heading', { name: 'Slovo J j' })).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Ž ž zaključano' }));
+    expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
     fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
     fireEvent.click(screen.getByRole('button', { name: /Brojevi 0–100/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Piši broj' }));
     fireEvent.click(screen.getByRole('button', { name: 'Broj 11' }));
-    expect(screen.getByLabelText('Platno za pisanje slova 11')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'Nazad' }));
     fireEvent.click(screen.getByRole('button', { name: /Bajke i priče/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Sledeća bajka' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sledeća bajka' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sledeća bajka' }));
+    expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
+  });
+
+  it('napredni iOS moduli ne rade besplatno bez pokretanja Apple probe', () => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
+    vi.stubEnv('VITE_IOS_PREMIUM_ENABLED', 'true');
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Igre.*Premium/i }));
     expect(screen.getByRole('heading', { name: 'Provera za roditelje' })).toBeVisible();
   });
 
@@ -661,7 +669,7 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Podešavanja' }));
     unlockParentSettings();
 
-    expect(screen.getByText(/Premium biblioteka bajki i priča je aktivna/i)).toBeVisible();
+    expect(screen.getByText(/Celokupan Premium sadržaj je aktivan/i)).toBeVisible();
     expect(screen.queryByRole('button', { name: /Pokreni 7 dana besplatno/i })).not.toBeInTheDocument();
   });
 
