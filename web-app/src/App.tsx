@@ -2,11 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
 import { VoicePractice } from './components/VoicePractice';
-import {
-  PREMIUM_MONTHLY_PRICE,
-  PREMIUM_TRIAL_DAYS,
-  isCommerceEnabled
-} from './config/commerce';
+import { isCommerceEnabled } from './config/commerce';
 import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
@@ -2049,24 +2045,29 @@ function Settings({ onBack }: { onBack: () => void }) {
     fr: 'Les leçons des enfants restent en serbe. Les parents règlent ici l’accessibilité et la difficulté.'
   }[store.parentLanguage];
 
-  useEffect(() => {
-    if (!parentUnlocked || !commerceEnabled) return undefined;
-    let active = true;
+  const refreshPurchaseOffer = useCallback(async () => {
+    if (!commerceEnabled) return;
     setPurchaseBusy(true);
-    purchaseManager.initialize()
-      .then((offer) => {
-        if (!active) return;
-        setPurchaseOffer(offer);
-        if (offer.reason) setPurchaseMessage(offer.reason);
-      })
-      .catch((error: unknown) => {
-        if (active) setPurchaseMessage(error instanceof Error ? error.message : 'Prodavnica trenutno nije dostupna.');
-      })
-      .finally(() => {
-        if (active) setPurchaseBusy(false);
-      });
-    return () => { active = false; };
-  }, [commerceEnabled, parentUnlocked, purchaseManager]);
+    setPurchaseMessage('Proveravam Apple ponudu…');
+    try {
+      const offer = await purchaseManager.initialize();
+      setPurchaseOffer(offer);
+      setPurchaseMessage(offer.reason ?? 'Apple ponuda je učitana.');
+    } catch (error: unknown) {
+      setPurchaseOffer((current) => ({ ...current, available: false, retryable: true }));
+      setPurchaseMessage(error instanceof Error ? error.message : 'Prodavnica trenutno nije dostupna.');
+    } finally {
+      setPurchaseBusy(false);
+    }
+  }, [commerceEnabled, purchaseManager]);
+
+  useEffect(() => {
+    if (!parentUnlocked || !commerceEnabled) return;
+    void refreshPurchaseOffer();
+  }, [commerceEnabled, parentUnlocked, refreshPurchaseOffer]);
+
+  const premiumPrice = purchaseOffer.price ?? '';
+  const verifiedTrialDays = purchaseOffer.trialDays;
 
   const buyFamily = async () => {
     setPurchaseBusy(true);
@@ -2172,21 +2173,25 @@ function Settings({ onBack }: { onBack: () => void }) {
                   ? 'Pretplata je aktivna'
                   : !commerceEnabled
                     ? 'Prve 3 bajke i priče su besplatne. Premium je dostupan samo u iOS aplikaciji.'
-                    : `${purchaseOffer.price ?? PREMIUM_MONTHLY_PRICE} mesečno · prvih ${PREMIUM_TRIAL_DAYS} dana besplatno`}
+                    : purchaseOffer.available
+                      ? `${premiumPrice} mesečno${verifiedTrialDays ? ` · prvih ${verifiedTrialDays} dana besplatno` : ''}`
+                      : 'Ponuda se bezbedno učitava iz App Store-a'}
               </p>
             </div>
           </div>
           {!store.familyAccess.isUnlocked && commerceEnabled && (
             <>
               <div className="family-trust-row" aria-label="Prednosti porodičnog paketa">
-                <span>✓ 7 dana besplatno</span>
+                {verifiedTrialDays && <span>✓ {verifiedTrialDays} dana besplatno</span>}
                 <span>✓ Bez reklama</span>
                 <span>✓ Otkazivanje u Apple nalogu</span>
               </div>
               <p className="premium-subscription-disclosure">
                 <strong>Slovolov Premium je auto-obnovljiva mesečna pretplata.</strong>{' '}
-                Cena je {purchaseOffer.price ?? PREMIUM_MONTHLY_PRICE} mesečno, uz prvih {PREMIUM_TRIAL_DAYS} dana besplatno.
-                Pretplata se automatski obnavlja svakog meseca preko Apple-a nakon probnog perioda, osim ako je roditelj otkaže najmanje 24 sata pre kraja tekućeg perioda.
+                {purchaseOffer.available
+                  ? <>Cena je {premiumPrice} mesečno{verifiedTrialDays ? `, uz prvih ${verifiedTrialDays} dana besplatno` : ''}.</>
+                  : <>Cena i eventualni probni period biće prikazani čim ih Apple potvrdi.</>}{' '}
+                Pretplata se automatski obnavlja svakog meseca preko Apple-a, osim ako je roditelj otkaže najmanje 24 sata pre kraja tekućeg perioda.
               </p>
             </>
           )}
@@ -2199,11 +2204,22 @@ function Settings({ onBack }: { onBack: () => void }) {
           {commerceEnabled && !store.familyAccess.isUnlocked && (
             <div className="family-actions">
               <button className="primary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void buyFamily()}>
-                {purchaseBusy ? 'Proveravam…' : 'Pokreni 7 dana besplatno'}
+                {purchaseBusy
+                  ? 'Proveravam…'
+                  : verifiedTrialDays
+                    ? `Pokreni ${verifiedTrialDays} dana besplatno`
+                    : purchaseOffer.available
+                      ? 'Pretplati se'
+                      : 'Ponuda nije učitana'}
               </button>
               <button className="secondary" disabled={purchaseBusy} onClick={() => void restoreFamily()}>
                 Vrati kupovinu
               </button>
+              {!purchaseOffer.available && (
+                <button className="secondary" disabled={purchaseBusy} onClick={() => void refreshPurchaseOffer()}>
+                  Ponovi proveru ponude
+                </button>
+              )}
             </div>
           )}
           {store.familyAccess.isUnlocked && <strong className="family-owned">✓ Premium biblioteka bajki i priča je aktivna.</strong>}

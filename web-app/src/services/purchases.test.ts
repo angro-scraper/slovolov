@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   IOS_PREMIUM_MONTHLY_PRODUCT_ID,
   createPurchaseManager,
+  friendlyStoreMessage,
+  purchaseOfferFromProduct,
   type PurchaseGateway
 } from './purchases';
 
@@ -17,6 +19,30 @@ function gateway(overrides: Partial<PurchaseGateway> = {}): PurchaseGateway {
 describe('Slovolov Premium pretplata', () => {
   it('koristi stabilan iOS subscription product ID', () => {
     expect(IOS_PREMIUM_MONTHLY_PRODUCT_ID).toBe('rs.slovolov.app.premium.monthly');
+  });
+  it('prikazuje samo cenu i probni period koje StoreKit stvarno vrati', () => {
+    expect(purchaseOfferFromProduct({
+      getOffer: () => ({
+        pricingPhases: [
+          { price: '0,00 €', billingPeriod: 'P1W', paymentMode: 'FreeTrial' },
+          { price: '3,99 €', billingPeriod: 'P1M', paymentMode: 'PayAsYouGo' }
+        ]
+      })
+    }, false)).toEqual({ available: true, owned: false, price: '3,99 €', trialDays: 7 });
+
+    expect(purchaseOfferFromProduct({
+      getOffer: () => ({
+        pricingPhases: [{ price: '3,99 €', billingPeriod: 'P1M', paymentMode: 'PayAsYouGo' }]
+      })
+    }, false)).toEqual({ available: true, owned: false, price: '3,99 €' });
+    expect(purchaseOfferFromProduct({
+      getOffer: () => ({ pricingPhases: [] })
+    }, false)).toMatchObject({ available: false, owned: false, retryable: true });
+  });
+
+  it('ne prikazuje sirovu App Store #400 grešku i dozvoljava novu proveru', () => {
+    expect(friendlyStoreMessage('Product not found in AppStore. #400')).toMatch(/Ponovite proveru/i);
+    expect(friendlyStoreMessage('Product not found in AppStore. #400')).not.toContain('#400');
   });
 
   it('ne otključava sadržaj kada je kupovina otkazana ili pending', async () => {

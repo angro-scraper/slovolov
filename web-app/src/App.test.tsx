@@ -638,8 +638,12 @@ describe('Slovolov glavni tok', () => {
     unlockParentSettings();
 
     expect(screen.getByRole('heading', { name: 'Slovolov Premium' })).toBeVisible();
-    expect(screen.getAllByText(/3,99 € mesečno/i)).toHaveLength(2);
-    expect(screen.getAllByText(/prvih 7 dana besplatno/i)).toHaveLength(2);
+    expect(screen.queryByText(/3,99 € mesečno/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/prvih 7 dana besplatno/i)).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /Ponuda nije učitana/i })).toBeDisabled(),
+    );
+    expect(screen.getByRole('button', { name: /Ponovi proveru ponude/i })).toBeEnabled();
     const subscriptionDisclosure = screen.getByText(/auto-obnovljiva mesečna pretplata/i).parentElement;
     expect(subscriptionDisclosure).toBeVisible();
     expect(subscriptionDisclosure).toHaveTextContent(/pretplata se automatski obnavlja svakog meseca preko Apple-a/i);
