@@ -85,11 +85,11 @@ describe('Slovolov Premium pretplata', () => {
     expect(syncAccess).toHaveBeenCalledWith(false);
   });
 
-  it('ponovno proverava entitlement na otvaranju i povlači pristup kada je pretplata istekla', async () => {
+  it('ne briše prethodno potvrđenu pretplatu zbog privremenog StoreKit owned=false pri pokretanju', async () => {
     const syncAccess = vi.fn();
     const manager = createPurchaseManager(gateway({ initialize: vi.fn().mockResolvedValue({ available: true, owned: false, ownershipChecked: true }) }), syncAccess);
     await manager.initialize();
-    expect(syncAccess).toHaveBeenCalledWith(false);
+    expect(syncAccess).not.toHaveBeenCalled();
   });
 
   it('ne briše sačuvanu pretplatu dok StoreKit još nije pouzdano proverio receipt', async () => {
@@ -119,6 +119,22 @@ describe('Slovolov Premium pretplata', () => {
     ownershipListener?.(true);
 
     expect(syncAccess).toHaveBeenCalledWith(true);
+  });
+
+  it('ne briše sačuvanu pretplatu kada receipt događaj privremeno prijavi false', () => {
+    const syncAccess = vi.fn();
+    let ownershipListener: ((owned: boolean) => void) | undefined;
+    const manager = createPurchaseManager(gateway({
+      subscribeOwnership: (listener) => {
+        ownershipListener = listener;
+        return () => undefined;
+      }
+    }), syncAccess);
+
+    manager.subscribeOwnership();
+    ownershipListener?.(false);
+
+    expect(syncAccess).not.toHaveBeenCalled();
   });
 
   it('čeka iOS deviceready umesto da trajno zapamti web gateway', async () => {

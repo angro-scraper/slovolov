@@ -110,7 +110,10 @@ export function createPurchaseManager(
   return {
     initialize: async () => {
       const offer = await gateway.initialize();
-      if (offer.owned || offer.ownershipChecked) setSubscriptionAccess(offer.owned);
+      // StoreKit može kratkotrajno vratiti `owned=false` dok se lokalni receipt
+      // još obnavlja posle pokretanja aplikacije. Takav negativan odgovor ne
+      // sme da obriše prethodno potvrđen entitlement sa uređaja.
+      if (offer.owned) setSubscriptionAccess(true);
       return offer;
     },
     purchase: async () => {
@@ -123,7 +126,9 @@ export function createPurchaseManager(
       if (result.owned || result.ownershipChecked) setSubscriptionAccess(result.owned);
       return result;
     },
-    subscribeOwnership: () => gateway.subscribeOwnership?.(setSubscriptionAccess) ?? (() => undefined)
+    subscribeOwnership: () => gateway.subscribeOwnership?.((owned) => {
+      if (owned) setSubscriptionAccess(true);
+    }) ?? (() => undefined)
   };
 }
 
