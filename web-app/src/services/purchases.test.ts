@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   IOS_PREMIUM_MONTHLY_PRODUCT_ID,
+  createNativePurchaseGatewayWhenReady,
   createPurchaseManager,
   friendlyStoreMessage,
   purchaseOfferFromProduct,
@@ -118,5 +119,63 @@ describe('Slovolov Premium pretplata', () => {
     ownershipListener?.(true);
 
     expect(syncAccess).toHaveBeenCalledWith(true);
+  });
+
+  it('čeka iOS deviceready umesto da trajno zapamti web gateway', async () => {
+    vi.stubGlobal('CdvPurchase', undefined);
+    let receiptsReady: (() => void) | undefined;
+    const product = {
+      pricing: { price: '3,99 €' },
+      getOffer: () => ({
+        pricingPhases: [
+          { price: '0,00 €', billingPeriod: 'P1W', paymentMode: 'FreeTrial' },
+          { price: '3,99 €', billingPeriod: 'P1M', paymentMode: 'PayAsYouGo' }
+        ]
+      })
+    };
+    const whenApi = {
+      receiptsReady: vi.fn((listener: () => void) => {
+        receiptsReady = listener;
+        return whenApi;
+      }),
+      receiptUpdated: vi.fn(() => whenApi),
+      approved: vi.fn(() => whenApi)
+    };
+    const store = {
+      register: vi.fn(),
+      initialize: vi.fn(async () => {
+        queueMicrotask(() => receiptsReady?.());
+        return [];
+      }),
+      update: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn(() => product),
+      owned: vi.fn(() => false),
+      when: vi.fn(() => whenApi),
+      off: vi.fn(),
+      order: vi.fn(),
+      restorePurchases: vi.fn(),
+      minTimeBetweenUpdates: 600_000
+    };
+
+    const gateway = createNativePurchaseGatewayWhenReady(1_000);
+    const initializing = gateway.initialize();
+    vi.stubGlobal('CdvPurchase', {
+      Platform: { APPLE_APPSTORE: 'ios-appstore' },
+      ProductType: { PAID_SUBSCRIPTION: 'paid subscription' },
+      ErrorCode: { PAYMENT_CANCELLED: 1 },
+      store
+    });
+    document.dispatchEvent(new Event('deviceready'));
+
+    await expect(initializing).resolves.toMatchObject({
+      available: true,
+      price: '3,99 €',
+      trialDays: 7
+    });
+    expect(store.initialize).toHaveBeenCalledTimes(1);
+    expect(store.register).toHaveBeenCalledWith(expect.objectContaining({
+      id: IOS_PREMIUM_MONTHLY_PRODUCT_ID
+    }));
+    vi.unstubAllGlobals();
   });
 });

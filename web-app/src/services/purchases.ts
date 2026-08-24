@@ -136,6 +136,94 @@ function webGateway(): PurchaseGateway {
   };
 }
 
+function hasNativePurchasePlugin(): boolean {
+  return typeof CdvPurchase !== 'undefined' && Boolean(CdvPurchase?.store);
+}
+
+/**
+ * Capacitor može da prikaže udaljeni web ekran pre nego što Cordova završi
+ * ubacivanje StoreKit mosta. Ne smemo tada trajno izabrati web gateway.
+ */
+async function waitForNativePurchasePlugin(timeoutMs: number): Promise<boolean> {
+  if (hasNativePurchasePlugin()) return true;
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (available: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      window.clearInterval(poll);
+      document.removeEventListener('deviceready', check);
+      resolve(available);
+    };
+    const check = () => {
+      if (hasNativePurchasePlugin()) finish(true);
+    };
+    const poll = window.setInterval(check, 50);
+    const timeout = window.setTimeout(() => finish(hasNativePurchasePlugin()), timeoutMs);
+    document.addEventListener('deviceready', check);
+    check();
+  });
+}
+
+export function createNativePurchaseGatewayWhenReady(pluginTimeoutMs = 10_000): PurchaseGateway {
+  let delegate: PurchaseGateway | null = null;
+  let resolving: Promise<PurchaseGateway | null> | null = null;
+  const unavailableReason = 'Apple kupovina se još povezuje sa aplikacijom. Sačekajte trenutak i ponovite proveru.';
+
+  const resolveDelegate = async (): Promise<PurchaseGateway | null> => {
+    if (delegate) return delegate;
+    resolving ??= waitForNativePurchasePlugin(pluginTimeoutMs).then((available) => {
+      resolving = null;
+      if (!available) return null;
+      delegate ??= nativeGateway();
+      return delegate;
+    });
+    return resolving;
+  };
+
+  return {
+    initialize: async () => {
+      const gateway = await resolveDelegate();
+      if (!gateway) {
+        return {
+          available: false,
+          owned: false,
+          ownershipChecked: false,
+          reason: unavailableReason,
+          retryable: true
+        };
+      }
+      return gateway.initialize();
+    },
+    purchase: async () => {
+      const gateway = await resolveDelegate();
+      return gateway
+        ? gateway.purchase()
+        : { state: 'unavailable', message: unavailableReason };
+    },
+    restore: async () => {
+      const gateway = await resolveDelegate();
+      return gateway
+        ? gateway.restore()
+        : { owned: false, ownershipChecked: false, message: unavailableReason };
+    },
+    subscribeOwnership: (listener) => {
+      let cancelled = false;
+      let unsubscribe: () => void = () => undefined;
+      void resolveDelegate().then((gateway) => {
+        if (!gateway || cancelled) return;
+        unsubscribe = gateway.subscribeOwnership?.(listener) ?? (() => undefined);
+      });
+      return () => {
+        cancelled = true;
+        unsubscribe();
+      };
+    }
+  };
+}
+
 function nativeGateway(): PurchaseGateway {
   const platform = CdvPurchase.Platform.APPLE_APPSTORE;
   const store = CdvPurchase.store;
@@ -273,8 +361,8 @@ function nativeGateway(): PurchaseGateway {
 let defaultNativeGateway: PurchaseGateway | null = null;
 
 export function createDefaultPurchaseGateway(): PurchaseGateway {
-  if (!isCommerceEnabled() || Capacitor.getPlatform() !== 'ios' || typeof CdvPurchase === 'undefined') return webGateway();
-  defaultNativeGateway ??= nativeGateway();
+  if (!isCommerceEnabled() || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') return webGateway();
+  defaultNativeGateway ??= createNativePurchaseGatewayWhenReady();
   return defaultNativeGateway;
 }
 
