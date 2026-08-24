@@ -9,9 +9,9 @@ import {
 
 function gateway(overrides: Partial<PurchaseGateway> = {}): PurchaseGateway {
   return {
-    initialize: vi.fn().mockResolvedValue({ available: true, owned: false, price: '4,99 €' }),
+    initialize: vi.fn().mockResolvedValue({ available: true, owned: false, ownershipChecked: true, price: '4,99 €' }),
     purchase: vi.fn().mockResolvedValue({ state: 'cancelled' }),
-    restore: vi.fn().mockResolvedValue({ owned: false }),
+    restore: vi.fn().mockResolvedValue({ owned: false, ownershipChecked: true }),
     ...overrides
   };
 }
@@ -28,13 +28,13 @@ describe('Slovolov Premium pretplata', () => {
           { price: '3,99 €', billingPeriod: 'P1M', paymentMode: 'PayAsYouGo' }
         ]
       })
-    }, false)).toEqual({ available: true, owned: false, price: '3,99 €', trialDays: 7 });
+    }, false)).toEqual({ available: true, owned: false, ownershipChecked: true, price: '3,99 €', trialDays: 7 });
 
     expect(purchaseOfferFromProduct({
       getOffer: () => ({
         pricingPhases: [{ price: '3,99 €', billingPeriod: 'P1M', paymentMode: 'PayAsYouGo' }]
       })
-    }, false)).toEqual({ available: true, owned: false, price: '3,99 €' });
+    }, false)).toEqual({ available: true, owned: false, ownershipChecked: true, price: '3,99 €' });
     expect(purchaseOfferFromProduct({
       getOffer: () => ({ pricingPhases: [] })
     }, false)).toMatchObject({ available: false, owned: false, retryable: true });
@@ -72,22 +72,51 @@ describe('Slovolov Premium pretplata', () => {
   it('restore vraća kupovinu, ali ne izmišlja uspeh kada proizvod nije kupljen', async () => {
     const syncAccess = vi.fn();
     const restored = createPurchaseManager(
-      gateway({ restore: vi.fn().mockResolvedValue({ owned: true }) }),
+      gateway({ restore: vi.fn().mockResolvedValue({ owned: true, ownershipChecked: true }) }),
       syncAccess
     );
-    expect(await restored.restore()).toEqual({ owned: true });
+    expect(await restored.restore()).toEqual({ owned: true, ownershipChecked: true });
     expect(syncAccess).toHaveBeenCalledWith(true);
 
     syncAccess.mockClear();
     const missing = createPurchaseManager(gateway(), syncAccess);
-    expect(await missing.restore()).toEqual({ owned: false });
+    expect(await missing.restore()).toEqual({ owned: false, ownershipChecked: true });
     expect(syncAccess).toHaveBeenCalledWith(false);
   });
 
   it('ponovno proverava entitlement na otvaranju i povlači pristup kada je pretplata istekla', async () => {
     const syncAccess = vi.fn();
-    const manager = createPurchaseManager(gateway({ initialize: vi.fn().mockResolvedValue({ available: true, owned: false }) }), syncAccess);
+    const manager = createPurchaseManager(gateway({ initialize: vi.fn().mockResolvedValue({ available: true, owned: false, ownershipChecked: true }) }), syncAccess);
     await manager.initialize();
     expect(syncAccess).toHaveBeenCalledWith(false);
+  });
+
+  it('ne briše sačuvanu pretplatu dok StoreKit još nije pouzdano proverio receipt', async () => {
+    const syncAccess = vi.fn();
+    const manager = createPurchaseManager(gateway({
+      initialize: vi.fn().mockResolvedValue({ available: false, owned: false, ownershipChecked: false }),
+      restore: vi.fn().mockResolvedValue({ owned: false, ownershipChecked: false, message: 'Privremena greška' })
+    }), syncAccess);
+
+    await manager.initialize();
+    await manager.restore();
+
+    expect(syncAccess).not.toHaveBeenCalled();
+  });
+
+  it('sinhronizuje potvrđeno StoreKit vlasništvo čim stigne receipt događaj', () => {
+    const syncAccess = vi.fn();
+    let ownershipListener: ((owned: boolean) => void) | undefined;
+    const manager = createPurchaseManager(gateway({
+      subscribeOwnership: (listener) => {
+        ownershipListener = listener;
+        return () => undefined;
+      }
+    }), syncAccess);
+
+    manager.subscribeOwnership();
+    ownershipListener?.(true);
+
+    expect(syncAccess).toHaveBeenCalledWith(true);
   });
 });

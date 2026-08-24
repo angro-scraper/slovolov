@@ -7,6 +7,8 @@ export { IOS_PREMIUM_MONTHLY_PRODUCT_ID };
 export type PurchaseOffer = {
   available: boolean;
   owned: boolean;
+  /** True tek kada je StoreKit učitao lokalni receipt i vlasništvo je pouzdano provereno. */
+  ownershipChecked?: boolean;
   price?: string;
   trialDays?: number;
   reason?: string;
@@ -20,6 +22,7 @@ export type PurchaseResult = {
 
 export type RestoreResult = {
   owned: boolean;
+  ownershipChecked?: boolean;
   message?: string;
 };
 
@@ -27,6 +30,7 @@ export interface PurchaseGateway {
   initialize(): Promise<PurchaseOffer>;
   purchase(): Promise<PurchaseResult>;
   restore(): Promise<RestoreResult>;
+  subscribeOwnership?(listener: (owned: boolean) => void): () => void;
 }
 
 type PricingPhaseLike = {
@@ -60,13 +64,15 @@ export function friendlyStoreMessage(message?: string): string {
 export function purchaseOfferFromProduct(
   product: StoreProductLike | undefined,
   owned: boolean,
-  unavailableReason?: string
+  unavailableReason?: string,
+  ownershipChecked = true
 ): PurchaseOffer {
   const offer = product?.getOffer();
   if (!offer) {
     return {
       available: false,
       owned,
+      ownershipChecked,
       reason: friendlyStoreMessage(unavailableReason || 'Slovolov Premium ponuda još nije učitana iz App Store-a.'),
       retryable: true
     };
@@ -82,6 +88,7 @@ export function purchaseOfferFromProduct(
     return {
       available: false,
       owned,
+      ownershipChecked,
       reason: 'Apple ponuda još nema potvrđenu cenu. Ponovite proveru ponude.',
       retryable: true
     };
@@ -90,6 +97,7 @@ export function purchaseOfferFromProduct(
   return {
     available: true,
     owned,
+    ownershipChecked,
     price,
     ...(trialDays ? { trialDays } : {})
   };
@@ -102,7 +110,7 @@ export function createPurchaseManager(
   return {
     initialize: async () => {
       const offer = await gateway.initialize();
-      setSubscriptionAccess(offer.owned);
+      if (offer.owned || offer.ownershipChecked) setSubscriptionAccess(offer.owned);
       return offer;
     },
     purchase: async () => {
@@ -112,18 +120,19 @@ export function createPurchaseManager(
     },
     restore: async () => {
       const result = await gateway.restore();
-      setSubscriptionAccess(result.owned);
+      if (result.owned || result.ownershipChecked) setSubscriptionAccess(result.owned);
       return result;
-    }
+    },
+    subscribeOwnership: () => gateway.subscribeOwnership?.(setSubscriptionAccess) ?? (() => undefined)
   };
 }
 
 function webGateway(): PurchaseGateway {
   const reason = 'Slovolov Premium je trenutno dostupan samo u iOS aplikaciji.';
   return {
-    initialize: async () => ({ available: false, owned: false, reason }),
+    initialize: async () => ({ available: false, owned: false, ownershipChecked: false, reason }),
     purchase: async () => ({ state: 'unavailable', message: reason }),
-    restore: async () => ({ owned: false, message: reason })
+    restore: async () => ({ owned: false, ownershipChecked: false, message: reason })
   };
 }
 
@@ -132,9 +141,38 @@ function nativeGateway(): PurchaseGateway {
   const store = CdvPurchase.store;
   let initialized = false;
   let initializationPromise: Promise<CdvPurchase.IError[]> | null = null;
+  let receiptsReady = false;
+  let resolveReceiptsReady: (() => void) | undefined;
+  const receiptsReadyPromise = new Promise<void>((resolve) => {
+    resolveReceiptsReady = resolve;
+  });
+  const ownershipListeners = new Set<(owned: boolean) => void>();
 
   const product = () => store.get(IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform);
   const ownsProduct = () => store.owned({ id: IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform });
+  const notifyOwnership = () => {
+    const owned = ownsProduct();
+    ownershipListeners.forEach((listener) => listener(owned));
+  };
+  store.when().receiptsReady(() => {
+    receiptsReady = true;
+    resolveReceiptsReady?.();
+    notifyOwnership();
+  });
+  store.when().receiptUpdated(() => {
+    if (receiptsReady) notifyOwnership();
+  });
+  const waitForReceiptsReady = async (timeoutMs = 10_000): Promise<boolean> => {
+    if (receiptsReady) return true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<false>((resolve) => {
+      timer = setTimeout(() => resolve(false), timeoutMs);
+    });
+    const ready = receiptsReadyPromise.then(() => true as const);
+    const result = await Promise.race([ready, timeout]);
+    if (timer) clearTimeout(timer);
+    return result;
+  };
   const forceStoreUpdate = async () => {
     const previousMinimum = store.minTimeBetweenUpdates;
     store.minTimeBetweenUpdates = 0;
@@ -177,15 +215,20 @@ function nativeGateway(): PurchaseGateway {
       }
       const errors = await initializationPromise;
       initialized = true;
+      const ownershipChecked = await waitForReceiptsReady();
       const fatal = errors.find((error) => error.productId === IOS_PREMIUM_MONTHLY_PRODUCT_ID || error.platform === platform);
       failureMessage = fatal?.message;
+      if (fatal) {
+        return purchaseOfferFromProduct(undefined, ownsProduct(), fatal.message, ownershipChecked);
+      }
     } else {
       // Biblioteka inače preskače StoreKit pozive do deset minuta. Korisnički
       // retry mora zaista ponovo da proveri Apple ponudu odmah.
       await forceStoreUpdate();
     }
 
-    return purchaseOfferFromProduct(product(), ownsProduct(), failureMessage);
+    const ownershipChecked = receiptsReady || await waitForReceiptsReady();
+    return purchaseOfferFromProduct(product(), ownsProduct(), failureMessage, ownershipChecked);
   }
 
   return {
@@ -211,12 +254,18 @@ function nativeGateway(): PurchaseGateway {
       // Vraćanje mora biti dostupno i kada App Store još nije učitao trenutnu ponudu.
       // Ranija aktivna pretplata može da postoji i tada.
       const error = await store.restorePurchases();
-      if (error) return { owned: false, message: error.message };
+      if (error) return { owned: ownsProduct(), ownershipChecked: false, message: error.message };
       await forceStoreUpdate();
       return {
         owned: ownsProduct(),
+        ownershipChecked: true,
         message: ownsProduct() ? undefined : 'Kupovina nije pronađena na ovom nalogu.'
       };
+    },
+    subscribeOwnership: (listener) => {
+      ownershipListeners.add(listener);
+      if (receiptsReady) queueMicrotask(() => listener(ownsProduct()));
+      return () => ownershipListeners.delete(listener);
     }
   };
 }
@@ -230,5 +279,5 @@ export function createDefaultPurchaseGateway(): PurchaseGateway {
 }
 
 export function isNativePurchasePlatform(): boolean {
-  return Capacitor.isNativePlatform();
+  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
 }

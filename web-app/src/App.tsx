@@ -179,14 +179,33 @@ export function App() {
   useEffect(() => {
     if (!isCommerceEnabled() || !isNativePurchasePlatform()) return undefined;
     let active = true;
+    let refreshPromise: Promise<unknown> | null = null;
     const manager = createPurchaseManager(createDefaultPurchaseGateway(), (unlocked) => {
       if (active) setStoreSubscriptionAccess(unlocked);
     });
-    void manager.initialize().catch(() => {
-      // Mrežna/StoreKit greška ne sme lažno otključati Premium sadržaj.
-    });
+    const stopOwnershipUpdates = manager.subscribeOwnership();
+    const refreshEntitlement = () => {
+      if (!active || refreshPromise) return;
+      refreshPromise = manager.initialize().catch(() => {
+        // Mrežna/StoreKit greška ne sme obrisati poslednje potvrđeno vlasništvo.
+      }).finally(() => {
+        refreshPromise = null;
+      });
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshEntitlement();
+    };
+
+    refreshEntitlement();
+    window.addEventListener('focus', refreshEntitlement);
+    window.addEventListener('pageshow', refreshEntitlement);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
       active = false;
+      stopOwnershipUpdates();
+      window.removeEventListener('focus', refreshEntitlement);
+      window.removeEventListener('pageshow', refreshEntitlement);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, [setStoreSubscriptionAccess]);
 
