@@ -86,7 +86,7 @@ const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: stri
 function WordIllustration({ word, className = '' }: { word: LetterWord; className?: string }) {
   return word.image
     ? <img className={`word-illustration ${className}`} src={word.image} alt="" />
-    : <span>{word.emoji}</span>;
+    : <span className={`word-illustration word-illustration-emoji ${className}`}>{word.emoji}</span>;
 }
 
 function Back({ onClick }: { onClick: () => void }) {
@@ -819,8 +819,9 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
               {index === step && index === 1 && (
                 <div className="adaptive-choices" aria-label={`Izaberi sliku za slovo ${displayedLetter}`}>
                   {wordChoices.map((word) => (
-                    <button key={word.word} onClick={() => answerStep(1, word.word === example.word, word.word)}>
-                      <WordIllustration word={word} /><span>{displayWord(word)}</span>
+                    <button className="adaptive-picture-choice" key={word.word} onClick={() => answerStep(1, word.word === example.word, word.word)}>
+                      <span className="adaptive-picture-art"><WordIllustration word={word} /></span>
+                      <strong>{displayWord(word)}</strong>
                     </button>
                   ))}
                 </div>
@@ -859,6 +860,13 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
   const secondLogic = logicChallenges[(daySeed + logicStart + 3) % logicChallenges.length];
   const displayText = (value: string) => script === 'latin' ? transliterate(value) : value;
   const rhymeExplanation = `${displayText(rhyme.prompt)} i ${displayText(rhyme.correct)} se završavaju sličnim glasom.`;
+  const playRhymePrompt = () => {
+    void speakRecordedPrompt(
+      rhyme.prompt,
+      readingRhymeAudio(rhyme.id, 'prompt'),
+      sound
+    );
+  };
 
   const mark = (step: number, phrase: string) => {
     setCompleted((current) => current.includes(step) ? current : [...current, step]);
@@ -884,18 +892,22 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
       <main className="daily-challenge">
         <div className="daily-hero"><span>🌞</span><div><h2>Tri mala koraka</h2><p>Težina: {difficulty === 'easy' ? 'lako' : difficulty === 'challenge' ? 'izazovno' : 'standardno'}</p></div></div>
         <section className={completed.includes(1) ? 'daily-step done' : 'daily-step'}>
-          <b>Korak 1 · Rima</b><span>Koja reč se rimuje sa: <strong>{displayText(rhyme.prompt)}</strong>?</span><strong>{completed.includes(1) ? '✓' : '🎵'}</strong>
+          <div className="daily-step-heading"><b>Korak 1</b><strong>🎵 Rima</strong></div>
+          <p className="daily-prompt">Koja reč se rimuje sa: <strong>{displayText(rhyme.prompt)}</strong>?</p>
+          {!completed.includes(1) && <button className="daily-listen" onClick={playRhymePrompt}>🔊 Poslušaj zadatak</button>}
           {!completed.includes(1) && <div className="daily-choices">{seededChoices(rhyme.options, daySeed).map((option) => <button key={option} onClick={() => answer(1, option === rhyme.correct, option)}>{displayText(option)}</button>)}</div>}
           {completed.includes(1) && <p className="daily-explanation">💡 {rhymeExplanation}</p>}
         </section>
         <section className={completed.includes(2) ? 'daily-step done' : 'daily-step'}>
-          <b>Korak 2 · Logika</b><span>{firstLogic.prompt}</span><strong>{completed.includes(2) ? '✓' : firstLogic.icon}</strong>
+          <div className="daily-step-heading"><b>Korak 2</b><strong>{completed.includes(2) ? '✓' : firstLogic.icon} Logika</strong></div>
+          <p className="daily-prompt">{firstLogic.prompt}</p>
           {!completed.includes(1) && !completed.includes(2) && <p className="daily-locked">🔒 Prvo reši zadatak sa rimom.</p>}
           {completed.includes(1) && !completed.includes(2) && <><div className="daily-visual" aria-label="Prikaz logičkog zadatka">{firstLogic.visual}</div><div className="daily-choices">{seededChoices(firstLogic.answers, daySeed + 1).map((option) => <button key={option} onClick={() => answer(2, option === firstLogic.correct, option)}>{option}</button>)}</div></>}
           {completed.includes(2) && <p className="daily-explanation">💡 {firstLogic.explanation}</p>}
         </section>
         <section className={completed.includes(3) ? 'daily-step done' : 'daily-step'}>
-          <b>Korak 3 · Mozgalica</b><span>{secondLogic.prompt}</span><strong>{completed.includes(3) ? '✓' : secondLogic.icon}</strong>
+          <div className="daily-step-heading"><b>Korak 3</b><strong>{completed.includes(3) ? '✓' : secondLogic.icon} Mozgalica</strong></div>
+          <p className="daily-prompt">{secondLogic.prompt}</p>
           {!completed.includes(2) && !completed.includes(3) && <p className="daily-locked">🔒 Prvo reši logički zadatak.</p>}
           {completed.includes(2) && !completed.includes(3) && <><div className="daily-visual" aria-label="Prikaz mozgalice">{secondLogic.visual}</div><div className="daily-choices">{seededChoices(secondLogic.answers, daySeed + 2).map((option) => <button key={option} onClick={() => answer(3, option === secondLogic.correct, option)}>{option}</button>)}</div></>}
           {completed.includes(3) && <p className="daily-explanation">💡 {secondLogic.explanation}</p>}

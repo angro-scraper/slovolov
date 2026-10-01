@@ -618,6 +618,18 @@ describe('Slovolov glavni tok', () => {
     vi.useRealTimers();
   });
 
+  it('dnevni izazov ima Ida dugme za slušanje rime', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue();
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Dnevni izazov/i }));
+    fireEvent.click(screen.getByRole('button', { name: '🔊 Poslušaj zadatak' }));
+
+    await waitFor(() => expect(play.mock.instances.some(
+      (instance) => (instance as HTMLMediaElement).src.includes('/audio/reading/rhyme-')
+    )).toBe(true));
+  });
+
   it('Moja lekcija ne završava korak dok dete ne izabere tačan odgovor', () => {
     useProgressStore.getState().recordSkillAttempt('letter:А', false);
     render(<App />);
@@ -630,6 +642,7 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(within(screen.getByLabelText('Izaberi slovo koje čuješ')).getByRole('button', { name: 'A' }));
 
     const pictureChoices = within(screen.getByLabelText('Izaberi sliku za slovo A'));
+    expect(pictureChoices.getByRole('button', { name: /Avion/i }).querySelector('.adaptive-picture-art')).not.toBeNull();
     fireEvent.click(pictureChoices.getByRole('button', { name: /Žirafa/i }));
     expect(screen.getByRole('status')).toHaveTextContent(/Pokušaj ponovo/i);
     expect(screen.getByLabelText('Izaberi sliku za slovo A')).toBeVisible();
