@@ -438,6 +438,41 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/Bravo/i);
   });
 
+  it('kod duge rečenice zadržava vidljivu potvrdu da je zadatak urađen', () => {
+    ['voice-1', 'voice-2', 'voice-3', 'voice-4'].forEach((id) =>
+      useProgressStore.getState().completeLearningPath(id)
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Nivo 5: Duža rečenica/i }));
+
+    ['MALA', 'SOVA', 'LETI', 'IZNAD', 'ŠUME'].forEach((word) =>
+      fireEvent.click(screen.getByRole('button', { name: word }))
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Proveri/i }));
+
+    expect(screen.getByText('Složeno: 5/5')).toBeVisible();
+    expect(screen.getByRole('button', { name: /(Označi|Означи) (kao|као) (urađeno|урађено)/i })).toBeVisible();
+  });
+
+  it('kod male priče traži jasnu potvrdu pre završetka nivoa', () => {
+    adventureWorlds.flatMap((world) => world.levels).slice(0, 9).forEach((level) =>
+      useProgressStore.getState().completeLearningPath(level.id)
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja avantura/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Nivo 10: Mala priča/i }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cvet' }));
+
+    expect(screen.getByText(/Označi je kao urađenu kada si spreman/i)).toBeVisible();
+    const complete = screen.getByRole('button', { name: /Označi priču kao urađenu/i });
+    expect(complete).toBeVisible();
+    fireEvent.click(complete);
+
+    expect(screen.getByRole('heading', { name: /Moja avantura/i })).toBeVisible();
+  });
+
   it('priče se biraju prema uzrastu deteta', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Čitanje/i }));

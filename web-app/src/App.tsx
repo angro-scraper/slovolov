@@ -527,6 +527,7 @@ function VoiceQuest({
   const task = tasks[Math.min(tasks.length - 1, difficulty - 1)];
   const [answer, setAnswer] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
+  const [checkedCorrect, setCheckedCorrect] = useState(false);
   const [message, setMessage] = useState('Послушај Совицу и реши задатак.');
   const normalized = (value: string) => transliterate(value).toLocaleUpperCase('sr').replace(/[.!?]/g, '').replace(/\s+/g, ' ').trim();
   const assembled = selected.join(task.kind === 'sentences' ? '|' : ' ');
@@ -535,14 +536,20 @@ function VoiceQuest({
     : normalized(assembled.replace(/\|/g, '|')) === normalized(task.target.replace(/\|/g, '|'));
 
   useEffect(() => {
+    setAnswer('');
+    setSelected([]);
+    setCheckedCorrect(false);
+    setMessage('Послушај Совицу и реши задатак.');
     void speakRecordedPrompt(task.label, adventureLiteracyAudio(difficulty), sound);
   }, [difficulty, sound, task.label]);
 
   const check = () => {
     if (!correct) {
+      setCheckedCorrect(false);
       setMessage('Покушај поново. Погледај редослед и пажљиво напиши.');
       return;
     }
+    setCheckedCorrect(true);
     setMessage('Браво! Тачно си написао и освојио звездицу. ⭐');
     void speak('Bravo! Tačan odgovor!', sound);
   };
@@ -561,27 +568,37 @@ function VoiceQuest({
         >
           🔊 Poslušaj Sovicu
         </button>
-        <div className="voice-phrase"><small>{task.label}</small><strong>{task.kind === 'input' ? task.hint : selected.join(' ') || 'ДОДИРНИ РЕЧИ'}</strong></div>
+        <div className={`voice-phrase ${task.kind === 'sentences' ? 'voice-phrase-story' : ''}`}>
+          <small>{task.label}</small>
+          <strong>{task.kind === 'input' ? task.hint : selected.join(task.kind === 'sentences' ? ' · ' : ' ') || 'ДОДИРНИ РЕЧИ'}</strong>
+          {task.kind !== 'input' && <span>Сложено: {selected.length}/{task.tiles.length}</span>}
+        </div>
         {task.kind === 'input' ? (
           <input
             className="literacy-input"
             aria-label={task.label}
             value={answer}
-            onChange={(event) => setAnswer(event.target.value)}
+            onChange={(event) => { setAnswer(event.target.value); setCheckedCorrect(false); }}
             autoCapitalize="characters"
             autoComplete="off"
           />
         ) : (
-          <div className="literacy-tiles">
+          <div className={`literacy-tiles ${task.kind === 'sentences' ? 'literacy-tiles-story' : ''}`}>
             {task.tiles.map((tile) => (
-              <button key={tile} disabled={selected.includes(tile)} onClick={() => setSelected((current) => [...current, tile])}>{tile}</button>
+              <button key={tile} disabled={selected.includes(tile)} onClick={() => {
+                setSelected((current) => [...current, tile]);
+                setCheckedCorrect(false);
+              }}>{tile}</button>
             ))}
-            {selected.length > 0 && <button onClick={() => setSelected([])}>Почни поново</button>}
+            {selected.length > 0 && <button className="literacy-reset" onClick={() => {
+              setSelected([]);
+              setCheckedCorrect(false);
+            }}>Почни поново</button>}
           </div>
         )}
         <p role="status" aria-live="off">{message}</p>
         <button className="secondary" onClick={check}>Провери</button>
-        {correct && message.startsWith('Браво') && <button className="primary" onClick={onComplete}>Настави авантуру ⭐</button>}
+        {checkedCorrect && <button className="primary adventure-complete-action" onClick={onComplete}>Означи као урађено ⭐</button>}
       </main>
     </div>
   );
@@ -1232,6 +1249,7 @@ function Reading({
   const [rhymeIndex, setRhymeIndex] = useState(0);
   const [syllableSetIndex, setSyllableSetIndex] = useState(0);
   const [wordRoundIndex, setWordRoundIndex] = useState(0);
+  const [storySolved, setStorySolved] = useState(false);
   const [message, setMessage] = useState('Slušaj, pa pročitaj naglas.');
   const completeReading = useProgressStore((state) => state.completeReading);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
@@ -1244,6 +1262,7 @@ function Reading({
   const selectStory = (nextIndex: number) => {
     setStoryIndex(nextIndex);
     setActive(0);
+    setStorySolved(false);
     setMessage('Slušaj, pa pročitaj naglas.');
   };
   return (
@@ -1295,7 +1314,7 @@ function Reading({
             </div>
             <p>Dodirni svaki slog, poslušaj ga i ponovi naglas.</p>
             <button className="secondary" onClick={() => { setSyllableSetIndex((value) => (value + 1) % syllableSets.length); setMessage('Nova grupa slogova je spremna.'); }}>Sledeći slogovi</button>
-            {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam slogove ⭐</button>}
+            {onLevelComplete && <button className="primary adventure-complete-action" onClick={onLevelComplete}>Označi kao urađeno ⭐</button>}
           </section>
         )}
         {level === 'words' && (
@@ -1313,7 +1332,7 @@ function Reading({
             </div>
             <p>Prvo pročitaj samostalno, zatim dodirni reč za proveru.</p>
             <button className="secondary" onClick={() => { setWordRoundIndex((value) => (value + 1) % wordReadingRounds.length); setMessage('Nova grupa reči je spremna.'); }}>Sledeće reči</button>
-            {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam čitanje ⭐</button>}
+            {onLevelComplete && <button className="primary adventure-complete-action" onClick={onLevelComplete}>Označi kao urađeno ⭐</button>}
           </section>
         )}
         {level === 'story' && (
@@ -1343,21 +1362,24 @@ function Reading({
             <p className="reading-question">{story.question}</p>
             <div className="reading-answers">
               {story.answers.map((answer) => (
-                <button key={answer} onClick={() => {
+                <button key={answer} disabled={storySolved} onClick={() => {
                   if (answer !== story.correct) {
                     recordSkillAttempt(`reading:${story.id}`, false);
                     setMessage('Pokušaj ponovo. Pročitaj prvu rečenicu.');
                     return;
                   }
                   recordSkillAttempt(`reading:${story.id}`, true);
-                  completeReading(story.id);
-                  setMessage('Bravo! Razumeo si priču i osvojio zvezdicu! ⭐');
+                  setStorySolved(true);
+                  setMessage('Bravo! Razumeo si priču. Označi je kao urađenu kada si spreman. ⭐');
                   void speak('Bravo! Razumeo si priču.', sound);
-                  onLevelComplete?.();
                 }}>{answer}</button>
               ))}
             </div>
             <button className="primary" onClick={() => { setMessage(`Slušaš rečenicu ${active + 1}.`); void speakRecordedPrompt(sentences[active], readingStorySentenceAudio(story.id, active), sound); }}>🔊 Pročitaj rečenicu</button>
+            {storySolved && <button className="primary adventure-complete-action" onClick={() => {
+              completeReading(story.id);
+              onLevelComplete?.();
+            }}>Označi priču kao urađenu ⭐</button>}
           </section>
         )}
         <p className="reading-feedback" role="status" aria-live="off">{message}</p>
