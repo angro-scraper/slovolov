@@ -49,4 +49,11 @@ describe('premium Slovolov vizuelni sistem', () => {
     expect(styles).toContain('.adaptive-choices:not(.syllables) { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
     expect(styles).toContain('.adaptive-picture-choice:nth-child(3):last-child { grid-column: 1 / -1; }');
   });
+
+  it('Današnja avantura na telefonu slaže sadržaj koraka u jednu čitljivu kolonu', () => {
+    const styles = readFileSync(resolve('src/styles.css'), 'utf8');
+
+    expect(styles).toContain('.daily-step { min-height: 70px; grid-template-columns: minmax(0, 1fr); padding: 12px; }');
+    expect(styles).toContain('.daily-listen { width: 100%; justify-self: stretch; }');
+  });
 });

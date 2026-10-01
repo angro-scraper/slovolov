@@ -389,7 +389,10 @@ body {
   .word-card { padding: 6px 3px; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .lesson-actions { grid-template-columns: 1fr; gap: 7px; }
-  .daily-step { min-height: 70px; grid-template-columns: 68px 1fr auto; padding: 9px 11px; }
+  .daily-step { min-height: 70px; grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  .daily-step-heading { align-items: center; }
+  .daily-step-heading strong, .daily-prompt { min-width: 0; overflow-wrap: anywhere; }
+  .daily-listen { width: 100%; justify-self: stretch; }
   .memory-grid { gap: 9px; }
   .primary, .secondary { min-height: 46px; }
   .fairy-card { padding: 7px; border-radius: 22px; }
