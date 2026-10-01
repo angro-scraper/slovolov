@@ -17,6 +17,12 @@ function publicPath(source: string): string {
 }
 
 type CatalogEntry = { path: string; displayText: string; spokenText: string };
+type CatalogProfile = {
+  provider: string;
+  voice: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  model?: string;
+};
 
 const serbianLatin: Record<string, string> = {
   А: 'A', Б: 'B', В: 'V', Г: 'G', Д: 'D', Ђ: 'Đ', Е: 'E', Ж: 'Ž', З: 'Z',
@@ -32,10 +38,10 @@ function expectedSerbianTts(displayText: string): string {
   return Array.from(displayText, (letter) => serbianLatin[letter] ?? letter).join('');
 }
 
-function readingCatalog(): { profile: { provider: string; voice: { voice: string }; settings: { rate: string } }; segments: Map<string, CatalogEntry> } {
+function readingCatalog(): { profile: CatalogProfile; segments: Map<string, CatalogEntry> } {
   const catalogPath = resolve(process.cwd(), 'public', 'audio', 'reading', 'catalog.json');
   const parsed = JSON.parse(readFileSync(catalogPath, 'utf8')) as {
-    profile: { provider: string; voice: { voice: string }; settings: { rate: string } };
+    profile: CatalogProfile;
     segments: CatalogEntry[];
   };
   return { profile: parsed.profile, segments: new Map(parsed.segments.map((entry) => [entry.path, entry])) };
@@ -86,9 +92,13 @@ describe('stvarni lokalni audio za čitanje', () => {
   it('trenutni katalog prikazuje ćirilicu, ali je za izgovor čuva u srpskoj latinici', () => {
     const catalog = readingCatalog();
     expect(catalog.profile).toMatchObject({
-      provider: 'Microsoft Edge TTS',
-      voice: { voice: 'sr-RS-SophieNeural' },
-      settings: { rate: '-18%' }
+      provider: 'ElevenLabs',
+      voice: {
+        displayName: 'Ida - Clear, Confident Serbian',
+        voiceId: 'd3l4f3HgkE3P6Fo91lYA'
+      },
+      model: 'eleven_v3',
+      settings: { languageCode: 'sr', speed: 0.76 }
     });
     expect(catalog.segments).toHaveLength(241);
     for (const entry of catalog.segments.values()) {

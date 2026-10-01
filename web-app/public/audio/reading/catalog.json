@@ -1,11 +1,10 @@
 {
   "profile": {
-    "profileVersion": 1,
-    "purpose": "Lokalno generisani MP3 snimci za modul Citanje i Moju avanturu u Slovolovu.",
+    "profileVersion": 2,
+    "purpose": "Lokalno generisani MP3 snimci iskljucivo za modul Citanje u Slovolovu.",
     "scope": {
       "include": [
-        "reading",
-        "adventure"
+        "reading"
       ],
       "exclude": [
         "letters",
@@ -16,23 +15,30 @@
         "feedback"
       ]
     },
-    "provider": "Microsoft Edge TTS",
+    "provider": "ElevenLabs",
     "voice": {
-      "displayName": "Sophie",
-      "voice": "sr-RS-SophieNeural"
+      "displayName": "Ida - Clear, Confident Serbian",
+      "voiceId": "d3l4f3HgkE3P6Fo91lYA"
     },
+    "model": "eleven_v3",
     "settings": {
-      "rate": "-18%",
-      "outputFormat": "audio-24khz-48kbitrate-mono-mp3"
+      "speed": 0.76,
+      "stability": 0.55,
+      "similarityBoost": 0.65,
+      "style": 0.0,
+      "languageCode": "sr",
+      "speakerBoost": true,
+      "outputFormat": "mp3_44100_128"
     },
     "safety": {
-      "requiresApiKey": false,
+      "apiKeyEnvironmentVariable": "ELEVENLABS_API_KEY",
+      "storeApiKeyInRepository": false,
       "runtimeNetworkCalls": false,
-      "note": "Aplikacija isporucuje unapred generisane lokalne MP3 fajlove. Generisanje se izvrsava samo lokalno tokom izrade audio-resursa."
+      "note": "Aplikacija isporucuje unapred generisane lokalne MP3 fajlove. ElevenLabs se koristi samo tokom kontrolisane izrade audio-resursa."
     },
     "approvedOn": "2026-10-01"
   },
-  "fingerprint": "55d55a58088d018a543b8ab536a3301ba45f6aae9e2a164d914725487519732e",
+  "fingerprint": "a7ff507f8032da0c1f1584361a6d52653259b428ee32e967231b17503910e37b",
   "segments": [
     {
       "path": "rhyme-mak-prompt.mp3",
