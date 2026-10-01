@@ -14,6 +14,10 @@ try {
     }
     [Environment]::SetEnvironmentVariable('ELEVENLABS_API_KEY', $plainKey, 'User')
     [Environment]::SetEnvironmentVariable('ELEVENLABS_READING_VOICE_ID', $VoiceId, 'User')
+    # Osveži i trenutni PowerShell proces. Bez ovoga bi terminal otvoren pre
+    # izmene nastavio da koristi stari ključ do ponovnog pokretanja.
+    $env:ELEVENLABS_API_KEY = $plainKey
+    $env:ELEVENLABS_READING_VOICE_ID = $VoiceId
     Write-Host 'Podaci su lokalno sacuvani za generisanje. Kljuc nije prikazan niti upisan u repozitorijum.' -ForegroundColor Green
 }
 finally {
