@@ -50,6 +50,7 @@ import {
 } from './services/speech';
 import {
   adventureLiteracyAudio,
+  dailyLogicAudio,
   readingRhymeAudio,
   readingStorySentenceAudio,
   readingSyllableAudio,
@@ -867,12 +868,37 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
       sound
     );
   };
+  const playLogicPrompt = (challenge: typeof firstLogic) => {
+    void speakRecordedPrompt(
+      challenge.prompt,
+      dailyLogicAudio(challenge.id),
+      sound
+    );
+  };
+
+  useEffect(() => {
+    void speakRecordedPrompt(
+      rhyme.prompt,
+      readingRhymeAudio(rhyme.id, 'prompt'),
+      sound
+    );
+  }, [rhyme.id, rhyme.prompt, sound]);
 
   const mark = (step: number, phrase: string) => {
     setCompleted((current) => current.includes(step) ? current : [...current, step]);
     recordSkillAttempt(`daily:${dateKey}:${step}`, true);
     setMessage(step === 3 ? 'Sva tri odgovora su tačna! Preuzmi zvezdice.' : 'Bravo! Reši sledeći zadatak.');
-    void speak(phrase, sound);
+    const nextNarration = step === 1
+      ? { text: firstLogic.prompt, source: dailyLogicAudio(firstLogic.id) }
+      : step === 2
+        ? { text: secondLogic.prompt, source: dailyLogicAudio(secondLogic.id) }
+        : null;
+    void (async () => {
+      await speakAndWait(phrase, sound);
+      if (nextNarration) {
+        await speakRecordedPrompt(nextNarration.text, nextNarration.source, sound);
+      }
+    })();
   };
 
   const answer = (step: number, correct: boolean, phrase: string) => {
@@ -902,14 +928,14 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
           <div className="daily-step-heading"><b>Korak 2</b><strong>{completed.includes(2) ? '✓' : firstLogic.icon} Logika</strong></div>
           <p className="daily-prompt">{firstLogic.prompt}</p>
           {!completed.includes(1) && !completed.includes(2) && <p className="daily-locked">🔒 Prvo reši zadatak sa rimom.</p>}
-          {completed.includes(1) && !completed.includes(2) && <><div className="daily-visual" aria-label="Prikaz logičkog zadatka">{firstLogic.visual}</div><div className="daily-choices">{seededChoices(firstLogic.answers, daySeed + 1).map((option) => <button key={option} onClick={() => answer(2, option === firstLogic.correct, option)}>{option}</button>)}</div></>}
+          {completed.includes(1) && !completed.includes(2) && <><button className="daily-listen" onClick={() => playLogicPrompt(firstLogic)}>🔊 Poslušaj zadatak</button><div className="daily-visual" aria-label="Prikaz logičkog zadatka">{firstLogic.visual}</div><div className="daily-choices">{seededChoices(firstLogic.answers, daySeed + 1).map((option) => <button key={option} onClick={() => answer(2, option === firstLogic.correct, option)}>{option}</button>)}</div></>}
           {completed.includes(2) && <p className="daily-explanation">💡 {firstLogic.explanation}</p>}
         </section>
         <section className={completed.includes(3) ? 'daily-step done' : 'daily-step'}>
           <div className="daily-step-heading"><b>Korak 3</b><strong>{completed.includes(3) ? '✓' : secondLogic.icon} Mozgalica</strong></div>
           <p className="daily-prompt">{secondLogic.prompt}</p>
           {!completed.includes(2) && !completed.includes(3) && <p className="daily-locked">🔒 Prvo reši logički zadatak.</p>}
-          {completed.includes(2) && !completed.includes(3) && <><div className="daily-visual" aria-label="Prikaz mozgalice">{secondLogic.visual}</div><div className="daily-choices">{seededChoices(secondLogic.answers, daySeed + 2).map((option) => <button key={option} onClick={() => answer(3, option === secondLogic.correct, option)}>{option}</button>)}</div></>}
+          {completed.includes(2) && !completed.includes(3) && <><button className="daily-listen" onClick={() => playLogicPrompt(secondLogic)}>🔊 Poslušaj zadatak</button><div className="daily-visual" aria-label="Prikaz mozgalice">{secondLogic.visual}</div><div className="daily-choices">{seededChoices(secondLogic.answers, daySeed + 2).map((option) => <button key={option} onClick={() => answer(3, option === secondLogic.correct, option)}>{option}</button>)}</div></>}
           {completed.includes(3) && <p className="daily-explanation">💡 {secondLogic.explanation}</p>}
         </section>
         <p className="daily-status" role="status">{message}</p>

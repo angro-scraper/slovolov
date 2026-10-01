@@ -77,6 +77,17 @@ LITERACY_PROMPTS = [
     "Сложи три реченице правилним редом и направи малу причу.",
 ]
 
+DAILY_LOGIC_PROMPTS = [
+    ("add-1", "Koliko je zvezdica ukupno?"),
+    ("sub-1", "Tri jabuke, jednu smo pojeli. Koliko je ostalo?"),
+    ("compare-1", "Na kojoj strani ima više?"),
+    ("sequence-1", "Šta dolazi sledeće?"),
+    ("shape-1", "Koji oblik ima tri stranice?"),
+    ("time-1", "Mala kazaljka je na tri, velika na dvanaest. Koliko je sati?"),
+    ("money-1", "Imaš dva novčića od 5. Koliko je ukupno?"),
+    ("logic-1", "Ana je viša od Ive. Iva je viša od Mie. Ko je najviši?"),
+]
+
 
 def story_segments() -> list[tuple[Path, str]]:
     segments: list[tuple[Path, str]] = []
@@ -115,5 +126,9 @@ def all_segments() -> list[tuple[Path, str]]:
     segments.extend(
         (AUDIO_ROOT / "adventure" / f"literacy-{index}.mp3", prompt)
         for index, prompt in enumerate(LITERACY_PROMPTS, start=1)
+    )
+    segments.extend(
+        (AUDIO_ROOT / "daily" / f"logic-{challenge_id}.mp3", prompt)
+        for challenge_id, prompt in DAILY_LOGIC_PROMPTS
     )
     return segments

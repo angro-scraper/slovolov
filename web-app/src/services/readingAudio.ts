@@ -35,3 +35,7 @@ export function adventureLiteracyAudio(difficulty: number): string {
   const safeDifficulty = Math.min(6, Math.max(1, Math.round(difficulty)));
   return versionAudioUrl(`/audio/reading/adventure/literacy-${safeDifficulty}.mp3`);
 }
+
+export function dailyLogicAudio(challengeId: string): string {
+  return versionAudioUrl(`/audio/reading/daily/logic-${encodeURIComponent(challengeId)}.mp3`);
+}

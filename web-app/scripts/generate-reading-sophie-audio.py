@@ -25,7 +25,7 @@ PROFILE_PATH = Path(__file__).with_name("reading-sophie-profile.json")
 PUBLIC_ROOT = ROOT / "public" / "audio" / "reading"
 PUBLIC_CATALOG_PATH = PUBLIC_ROOT / "catalog.json"
 STAGE_ROOT = ROOT / ".reading-audio-stage-v15-sophie"
-EXPECTED_COUNT = 241
+EXPECTED_COUNT = 249
 VOICE = "sr-RS-SophieNeural"
 RATE = "-18%"
 

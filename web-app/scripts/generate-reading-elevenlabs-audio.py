@@ -6,7 +6,7 @@ ID glasa moraju postojati samo u procesu koji vlasnik lokalno pokrene:
   $env:ELEVENLABS_API_KEY = '...'
   python scripts/generate-reading-elevenlabs-audio.py --generate --promote
 
-Najpre pravi komplet u izolovanom staging folderu. Tek kada svih 241 MP3
+Najpre pravi komplet u izolovanom staging folderu. Tek kada svih 249 MP3
 fajlova prođe proveru, --promote ih kopira u javne putanje aplikacije.
 """
 
@@ -38,7 +38,7 @@ STAGE_ROOT = ROOT / ".reading-audio-stage-v16-elevenlabs"
 PUBLIC_ROOT = ROOT / "public" / "audio" / "reading"
 PUBLIC_CATALOG_PATH = PUBLIC_ROOT / "catalog.json"
 PREVIEW_ROOT = ROOT / ".reading-pronunciation-preview"
-EXPECTED_COUNT = 241
+EXPECTED_COUNT = 249
 
 # Kratki izolovani zapisi moraju biti prosleđeni u prirodnom srpskom obliku.
 # Velika slova ElevenLabs povremeno tumači kao skraćenice i zato daju

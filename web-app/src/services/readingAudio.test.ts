@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   adventureLiteracyAudio,
+  dailyLogicAudio,
   readingRhymeAudio,
   readingStorySentenceAudio,
   readingSyllableAudio,
@@ -29,5 +30,11 @@ describe('lokalni Ida audio za čitanje', () => {
     expect(adventureLiteracyAudio(1)).toContain('/audio/reading/adventure/literacy-1.mp3');
     expect(adventureLiteracyAudio(6)).toContain('/audio/reading/adventure/literacy-6.mp3');
     expect(adventureLiteracyAudio(1)).toContain('v=sr-ida-reading-v16-20261001');
+  });
+
+  it('Dnevni izazov mapira svako logičko pitanje na poseban Ida snimak', () => {
+    expect(dailyLogicAudio('add-1')).toContain('/audio/reading/daily/logic-add-1.mp3');
+    expect(dailyLogicAudio('logic-1')).toContain('/audio/reading/daily/logic-logic-1.mp3');
+    expect(dailyLogicAudio('time-1')).toContain('v=sr-ida-reading-v16-20261001');
   });
 });
