@@ -38,7 +38,7 @@
     },
     "approvedOn": "2026-10-01"
   },
-  "fingerprint": "a7ff507f8032da0c1f1584361a6d52653259b428ee32e967231b17503910e37b",
+  "fingerprint": "6a623836cddc108efb24a5525d83798f8230f5f9377494582410327542fe9ece",
   "segments": [
     {
       "path": "rhyme-mak-prompt.mp3",
@@ -1244,6 +1244,46 @@
       "path": "adventure/literacy-6.mp3",
       "displayText": "Сложи три реченице правилним редом и направи малу причу.",
       "spokenText": "Složi tri rečenice pravilnim redom i napravi malu priču."
+    },
+    {
+      "path": "daily/logic-add-1.mp3",
+      "displayText": "Koliko je zvezdica ukupno?",
+      "spokenText": "Koliko je zvezdica ukupno?"
+    },
+    {
+      "path": "daily/logic-sub-1.mp3",
+      "displayText": "Tri jabuke, jednu smo pojeli. Koliko je ostalo?",
+      "spokenText": "Tri jabuke, jednu smo pojeli. Koliko je ostalo?"
+    },
+    {
+      "path": "daily/logic-compare-1.mp3",
+      "displayText": "Na kojoj strani ima više?",
+      "spokenText": "Na kojoj strani ima više?"
+    },
+    {
+      "path": "daily/logic-sequence-1.mp3",
+      "displayText": "Šta dolazi sledeće?",
+      "spokenText": "Šta dolazi sledeće?"
+    },
+    {
+      "path": "daily/logic-shape-1.mp3",
+      "displayText": "Koji oblik ima tri stranice?",
+      "spokenText": "Koji oblik ima tri stranice?"
+    },
+    {
+      "path": "daily/logic-time-1.mp3",
+      "displayText": "Mala kazaljka je na tri, velika na dvanaest. Koliko je sati?",
+      "spokenText": "Mala kazaljka je na tri, velika na dvanaest. Koliko je sati?"
+    },
+    {
+      "path": "daily/logic-money-1.mp3",
+      "displayText": "Imaš dva novčića od 5. Koliko je ukupno?",
+      "spokenText": "Imaš dva novčića od 5. Koliko je ukupno?"
+    },
+    {
+      "path": "daily/logic-logic-1.mp3",
+      "displayText": "Ana je viša od Ive. Iva je viša od Mie. Ko je najviši?",
+      "spokenText": "Ana je viša od Ive. Iva je viša od Mie. Ko je najviši?"
     }
   ]
 }
