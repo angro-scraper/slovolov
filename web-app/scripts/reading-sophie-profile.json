@@ -1,0 +1,23 @@
+{
+  "profileVersion": 1,
+  "purpose": "Lokalno generisani MP3 snimci za modul Citanje i Moju avanturu u Slovolovu.",
+  "scope": {
+    "include": ["reading", "adventure"],
+    "exclude": ["letters", "games", "quiz", "stories", "numbers", "feedback"]
+  },
+  "provider": "Microsoft Edge TTS",
+  "voice": {
+    "displayName": "Sophie",
+    "voice": "sr-RS-SophieNeural"
+  },
+  "settings": {
+    "rate": "-18%",
+    "outputFormat": "audio-24khz-48kbitrate-mono-mp3"
+  },
+  "safety": {
+    "requiresApiKey": false,
+    "runtimeNetworkCalls": false,
+    "note": "Aplikacija isporucuje unapred generisane lokalne MP3 fajlove. Generisanje se izvrsava samo lokalno tokom izrade audio-resursa."
+  },
+  "approvedOn": "2026-10-01"
+}

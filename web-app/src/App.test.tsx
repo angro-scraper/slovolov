@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -591,14 +591,18 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Pronađen par');
   });
 
-  it('dnevni izazov prikazuje tri kratka zadatka i nagradu', () => {
+  it('dnevni izazov traži odgovore pre nagrade', () => {
     render(<App />);
     fireEvent.click(screen.getByRole('button', { name: /Dnevni izazov/i }));
     expect(screen.getByRole('heading', { name: 'Današnja avantura' })).toBeVisible();
     expect(screen.getAllByText(/Korak/)).toHaveLength(3);
+    expect(screen.getByText(/Koje je slovo/i)).toBeVisible();
+    expect(screen.getByText(/Koja slika počinje/i)).toBeVisible();
+    expect(screen.getByText(/Prebroj/i)).toBeVisible();
+    expect(screen.getByRole('button', { name: /Preuzmi 3 zvezdice/i })).toBeDisabled();
   });
 
-  it('otvara adaptivnu lekciju i prikazuje stvarno preporučeno slovo', () => {
+  it('Moja lekcija ne završava korak dok dete ne izabere tačan odgovor', () => {
     useProgressStore.getState().recordSkillAttempt('letter:А', false);
     render(<App />);
 
@@ -606,7 +610,19 @@ describe('Slovolov glavni tok', () => {
 
     expect(screen.getByRole('heading', { name: 'Moja pametna lekcija' })).toBeVisible();
     expect(screen.getByText(/Danas ponavljamo slovo A/i)).toBeVisible();
-    expect(screen.getByText(/3 kratka koraka/i)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: /Poslušaj slovo A/i }));
+
+    const pictureChoices = within(screen.getByLabelText('Izaberi sliku za slovo A'));
+    fireEvent.click(pictureChoices.getByRole('button', { name: /Žirafa/i }));
+    expect(screen.getByRole('status')).toHaveTextContent(/Pokušaj ponovo/i);
+    expect(screen.getByLabelText('Izaberi sliku za slovo A')).toBeVisible();
+
+    fireEvent.click(pictureChoices.getByRole('button', { name: /Avion/i }));
+    const syllableChoices = within(screen.getByLabelText('Izaberi slog MA'));
+    fireEvent.click(syllableChoices.getByRole('button', { name: 'AO' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/Pokušaj ponovo/i);
+    fireEvent.click(syllableChoices.getByRole('button', { name: 'MA' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/lekcija je završena/i);
   });
 
   it('igre sadrže slušni zadatak i slaganje reči', () => {

@@ -8,7 +8,7 @@ import {
 } from './readingAudio';
 import { AUDIO_ASSET_VERSION } from './audioAssets';
 
-describe('lokalni Ana SRB audio za čitanje', () => {
+describe('lokalni Sophie audio za čitanje', () => {
   it('mapira rime, slogove, reči i priče na lokalne snimke', () => {
     expect(readingRhymeAudio('mak', 'prompt')).toContain('/audio/reading/rhyme-mak-prompt.mp3');
     expect(readingSyllableAudio('МА')).toContain('/audio/reading/syllable-ma.mp3');
@@ -17,12 +17,12 @@ describe('lokalni Ana SRB audio za čitanje', () => {
       .toContain('/audio/reading/stories/lana-cvet-6-8-2.mp3');
   });
 
-  it('uvek traži novi provereni Ana SRB paket, a ne stari keš uređaja', () => {
-    expect(AUDIO_ASSET_VERSION).toBe('sr-ana-reading-v14-latin-20260814');
+  it('uvek traži novi provereni Sophie paket, a ne stari keš uređaja', () => {
+    expect(AUDIO_ASSET_VERSION).toBe('sr-sophie-reading-v15-20261001');
     expect(readingRhymeAudio('mak', 'prompt'))
-      .toContain('v=sr-ana-reading-v14-latin-20260814');
+      .toContain('v=sr-sophie-reading-v15-20261001');
     expect(readingWordAudio('СОВА'))
-      .toContain('v=sr-ana-reading-v14-latin-20260814');
+      .toContain('v=sr-sophie-reading-v15-20261001');
   });
 
   it('avantura koristi naratorske instrukcije, ne mikrofon', () => {

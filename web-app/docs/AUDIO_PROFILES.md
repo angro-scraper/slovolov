@@ -1,35 +1,33 @@
 # Audio profili
 
-## Citanje: Ana SRB
+## Citanje i Moja avantura: Sophie
 
-Modul **Citanje** koristi samo profil iz
-`scripts/reading-elevenlabs-profile.json`.
+Moduli **Citanje** i **Moja avantura** koriste samo profil iz
+`scripts/reading-sophie-profile.json` i generator
+`scripts/generate-reading-sophie-audio.py`.
 
-Dogovoreni glas je **Ana SRB - Call center voice** u ElevenLabs nalogu vlasnika.
-Stvarne vrednosti koje su potvrdene 14. avgusta 2026. su:
+Dogovoreni glas je **Sophie** (`sr-RS-SophieNeural`), isti glas koji govori
+**„Bravo! Tačan odgovor!”**. Podešavanja su namerno ista kao u
+`scripts/generate-letter-audio.py` za pohvale:
 
-- model: `eleven_multilingual_v2`;
-- brzina: `0.81`;
-- stabilnost: `1.00`;
-- slicnost: `0.27`;
-- stil: `0.00`;
-- Speaker Boost: ukljucen;
-- izlaz: `MP3 44.1 kHz / 128 kbps`.
+- glas: `sr-RS-SophieNeural`;
+- brzina: `-18%`;
+- izlaz: `audio-24khz-48kbitrate-mono-mp3`.
 
 Ovaj profil ne menja zvukove za slova, igre, kvizove, brojeve, pohvale ili
-bajke. Za izradu novog paketa snimaka potrebni su lokalno postavljeni
-`ELEVENLABS_API_KEY` i `ELEVENLABS_READING_VOICE_ID`; te vrednosti nikada ne
-idu u Git, aplikaciju ili Render okruzenje. Krajnja aplikacija reprodukuje samo
-lokalne MP3 fajlove i ne salje decje podatke ElevenLabs-u.
+bajke, jer oni već koriste Sophie ili sopstveni snimljeni naratorski paket.
+Krajnja aplikacija reprodukuje samo lokalne MP3 fajlove i ne šalje dečje
+podatke bilo kom TTS servisu.
 
 ## Bezbedno jednokratno lokalno podesavanje
 
-API kljuc ostaje samo kod vlasnika. Nakon sto ga vlasnik napravi u ElevenLabs
-Developer/API Keys delu, lokalno moze jednom da pokrene:
+Za izradu paketa nije potreban ElevenLabs ključ. Nakon instalacije paketa
+`edge-tts`, lokalno se pokreće:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\set-elevenlabs-reading-credentials.ps1 -VoiceId "OVDE_ID_GLASA"
+py -m pip install edge-tts
+py .\scripts\generate-reading-sophie-audio.py --generate --promote
 ```
 
-Skripta trazi kljuc skrivenim unosom, cuva ga samo u korisnickom Windows
-okruzenju i ne prikazuje ga. ID glasa se moze kopirati iz menija glasa Ana SRB.
+Skripta prvo pravi 241 snimak u izolovanom staging direktorijumu i menja javni
+paket tek kada su svi MP3 fajlovi provereni.

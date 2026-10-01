@@ -32,10 +32,13 @@ function expectedSerbianTts(displayText: string): string {
   return Array.from(displayText, (letter) => serbianLatin[letter] ?? letter).join('');
 }
 
-function readingCatalog(): Map<string, CatalogEntry> {
+function readingCatalog(): { profile: { provider: string; voice: { voice: string }; settings: { rate: string } }; segments: Map<string, CatalogEntry> } {
   const catalogPath = resolve(process.cwd(), 'public', 'audio', 'reading', 'catalog.json');
-  const parsed = JSON.parse(readFileSync(catalogPath, 'utf8')) as { segments: CatalogEntry[] };
-  return new Map(parsed.segments.map((entry) => [entry.path, entry]));
+  const parsed = JSON.parse(readFileSync(catalogPath, 'utf8')) as {
+    profile: { provider: string; voice: { voice: string }; settings: { rate: string } };
+    segments: CatalogEntry[];
+  };
+  return { profile: parsed.profile, segments: new Map(parsed.segments.map((entry) => [entry.path, entry])) };
 }
 
 function audioPath(source: string): string {
@@ -43,22 +46,18 @@ function audioPath(source: string): string {
 }
 
 describe('stvarni lokalni audio za čitanje', () => {
-  it('generator čitanja koristi zaključan Ana SRB ElevenLabs profil, bez ključa u repozitorijumu', () => {
-    const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-elevenlabs-audio.py'), 'utf8');
-    const profile = readFileSync(resolve(process.cwd(), 'scripts', 'reading-elevenlabs-profile.json'), 'utf8');
-    expect(generator).toContain('ELEVENLABS_API_KEY');
-    expect(generator).toContain('ELEVENLABS_READING_VOICE_ID');
-    expect(profile).toContain('"outputFormat": "mp3_44100_128"');
-    expect(generator).toContain('synthesize');
-    expect(profile).toContain('Ana SRB - Call center voice');
-    expect(profile).toContain('"speed": 0.81');
-    expect(profile).toContain('"similarityBoost": 0.27');
-    expect(profile).toContain('"stability": 1.0');
-    expect(generator).toContain('apply_text_normalization');
+  it('generator čitanja koristi Sophie profil jednak glasu za Bravo, bez ključa u repozitorijumu', () => {
+    const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-sophie-audio.py'), 'utf8');
+    const profile = readFileSync(resolve(process.cwd(), 'scripts', 'reading-sophie-profile.json'), 'utf8');
+    expect(generator).toContain('sr-RS-SophieNeural');
+    expect(generator).toContain('RATE = "-18%"');
+    expect(profile).toContain('"displayName": "Sophie"');
+    expect(profile).toContain('"rate": "-18%"');
+    expect(generator).toContain('STAGE_ROOT');
     expect(generator).toContain('PUBLIC_CATALOG_PATH');
     expect(generator).toContain('sys.stdout.reconfigure');
     expect(generator).not.toContain('SpeechSynthesisUtterance');
-    expect(generator).not.toContain('xi-api-key:');
+    expect(generator).not.toContain('API_KEY');
   });
 
   it('svaki prikazani primer ima svoj lokalni MP3', () => {
@@ -79,18 +78,23 @@ describe('stvarni lokalni audio za čitanje', () => {
     expect(sources.every((source) => existsSync(publicPath(source)))).toBe(true);
   });
 
-  it('katalog prikazuje ćirilicu, ali Ani šalje tačnu srpsku latinicu', () => {
+  it('katalog prikazuje ćirilicu, ali Sophie šalje tačnu srpsku latinicu', () => {
     const catalog = readingCatalog();
-    expect(catalog).toHaveLength(241);
-    for (const entry of catalog.values()) {
+    expect(catalog.profile).toMatchObject({
+      provider: 'Microsoft Edge TTS',
+      voice: { voice: 'sr-RS-SophieNeural' },
+      settings: { rate: '-18%' }
+    });
+    expect(catalog.segments).toHaveLength(241);
+    for (const entry of catalog.segments.values()) {
       expect(entry.displayText).not.toMatch(/[A-Za-z]/);
       expect(entry.spokenText).not.toMatch(/[А-Ша-ш]/);
       expect(entry.spokenText).toBe(expectedSerbianTts(entry.displayText));
     }
 
     for (const round of rhymeRounds) {
-      const prompt = catalog.get(audioPath(readingRhymeAudio(round.id, 'prompt')));
-      const result = catalog.get(audioPath(readingRhymeAudio(round.id, 'result')));
+      const prompt = catalog.segments.get(audioPath(readingRhymeAudio(round.id, 'prompt')));
+      const result = catalog.segments.get(audioPath(readingRhymeAudio(round.id, 'result')));
       expect(prompt?.displayText.toLocaleLowerCase('sr')).toContain(
         round.prompt.toLocaleLowerCase('sr')
       );
@@ -99,19 +103,19 @@ describe('stvarni lokalni audio za čitanje', () => {
       );
     }
     for (const syllable of syllableSets.flatMap((set) => set.syllables)) {
-      expect(catalog.get(audioPath(readingSyllableAudio(syllable)))?.displayText).toBe(
+      expect(catalog.segments.get(audioPath(readingSyllableAudio(syllable)))?.displayText).toBe(
         syllable.toLocaleLowerCase('sr')
       );
     }
     for (const word of wordReadingRounds.flatMap((round) => round.words.map((item) => item.word))) {
-      expect(catalog.get(audioPath(readingWordAudio(word)))?.displayText).toBe(
+      expect(catalog.segments.get(audioPath(readingWordAudio(word)))?.displayText).toBe(
         word.toLocaleLowerCase('sr')
       );
     }
     for (const story of readingStories) {
       story.sentences.forEach((sentence, index) => {
         expect(
-          catalog.get(audioPath(readingStorySentenceAudio(story.id, index)))?.displayText
+          catalog.segments.get(audioPath(readingStorySentenceAudio(story.id, index)))?.displayText
         ).toBe(sentence);
       });
     }

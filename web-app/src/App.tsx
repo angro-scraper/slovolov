@@ -717,6 +717,7 @@ function CultureExplorer({
 
 function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const profile = useProgressStore((state) => state.profile);
+  const script = useProgressStore((state) => state.script);
   const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const completeLearningPath = useProgressStore((state) => state.completeLearningPath);
@@ -726,22 +727,35 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
     profile.skillStats
   );
   const recommended = letters.find((letter) => letter.upper === recommendedUpper) ?? letters[0];
+  const recommendedIndex = letters.indexOf(recommended);
   const [step, setStep] = useState(0);
   const [message, setMessage] = useState('3 kratka koraka · oko 5 minuta');
   const lessonId = `adaptive-${new Date().toISOString().slice(0, 10)}-${recommended.upper}`;
   const lessonSyllable = 'АЕИОУ'.includes(recommended.upper) ? `М${recommended.upper}` : `${recommended.upper}А`;
+  const displayedLetter = script === 'latin' ? transliterate(recommended.upper) : recommended.upper;
+  const displayedSyllable = script === 'latin' ? transliterate(lessonSyllable) : lessonSyllable;
+  const displayWord = (word: LetterWord) => script === 'latin' ? transliterate(word.word) : word.word;
+  const example = recommended.words[0];
+  const wordChoices = seededChoices([
+    example,
+    letters[(recommendedIndex + 7) % letters.length].words[0],
+    letters[(recommendedIndex + 13) % letters.length].words[0]
+  ], recommendedIndex);
+  const syllableChoices = seededChoices([
+    lessonSyllable,
+    `М${recommended.upper}`,
+    `${recommended.upper}О`
+  ].filter((value, index, values) => values.indexOf(value) === index), recommendedIndex + 1);
   const tasks = [
-    { title: `Poslušaj slovo ${recommended.upper}`, icon: '🔊' },
-    { title: `Pronađi ${recommended.words[0].word}`, icon: recommended.words[0].emoji },
-    { title: `Pročitaj slog ${lessonSyllable}`, icon: '📖' }
+    { title: `Poslušaj slovo ${displayedLetter}`, icon: '🔊' },
+    { title: `Pronađi sliku za slovo ${displayedLetter}`, icon: example.emoji },
+    { title: `Izaberi slog ${displayedSyllable}`, icon: '📖' }
   ];
 
-  const completeStep = (index: number) => {
+  const completeStep = (index: number, phrase: string) => {
     if (index !== step) return;
     recordSkillAttempt(`adaptive:${recommended.upper}:${index + 1}`, true);
-    if (index === 0) void speak(recommended.upper, sound);
-    if (index === 1) void speak(recommended.words[0].word, sound);
-    if (index === 2) void speak(lessonSyllable, sound);
+    void speak(phrase, sound);
     const nextStep = step + 1;
     setStep(nextStep);
     if (nextStep === tasks.length) {
@@ -753,6 +767,17 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
     }
   };
 
+  const answerStep = (index: number, correct: boolean, phrase: string) => {
+    if (index !== step) return;
+    if (!correct) {
+      recordSkillAttempt(`adaptive:${recommended.upper}:${index + 1}`, false);
+      setMessage('Nije to još to. Pogledaj pažljivo i pokušaj ponovo.');
+      void speak('Pokušaj ponovo.', sound);
+      return;
+    }
+    completeStep(index, phrase);
+  };
+
   return (
     <div className="single-screen">
       <Header title="Moja pametna lekcija" onBack={onBack} />
@@ -761,24 +786,43 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
           <span>{recommended.words[0].emoji}</span>
           <div>
             <small>PREPORUKA ZA DANAS</small>
-            <h2>Danas ponavljamo slovo {recommended.upper}</h2>
+            <h2>Danas ponavljamo slovo {displayedLetter}</h2>
             <p>{profile.skillStats[`letter:${recommended.upper}`] ? 'Ovo slovo vežbamo još malo.' : 'Ovo je tvoje sledeće novo slovo.'}</p>
           </div>
         </section>
-        <div className="adaptive-steps">
+        <ol className="adaptive-steps" aria-label="Koraci moje lekcije">
           {tasks.map((task, index) => (
-            <button
-              key={task.title}
-              className={`${index < step ? 'done' : ''}${index === step ? ' active' : ''}`}
-              disabled={index > step}
-              onClick={() => completeStep(index)}
-            >
-              <span>{index < step ? '✓' : task.icon}</span>
-              <strong>{task.title}</strong>
-              <small>{index < step ? 'Završeno' : index === step ? 'Dodirni da počneš' : 'Sledeći korak'}</small>
-            </button>
+            <li key={task.title} className={`${index < step ? 'done' : ''}${index === step ? ' active' : ''}`}>
+              <div className="adaptive-step-title">
+                <span>{index < step ? '✓' : task.icon}</span>
+                <div><strong>Korak {index + 1}: {task.title}</strong><small>{index < step ? 'Završeno' : index === step ? 'Reši zadatak' : 'Sledeći korak'}</small></div>
+              </div>
+              {index === step && index === 0 && (
+                <button className="adaptive-listen" onClick={() => completeStep(0, recommended.upper)}>
+                  🔊 Poslušaj slovo {displayedLetter}
+                </button>
+              )}
+              {index === step && index === 1 && (
+                <div className="adaptive-choices" aria-label={`Izaberi sliku za slovo ${displayedLetter}`}>
+                  {wordChoices.map((word) => (
+                    <button key={word.word} onClick={() => answerStep(1, word.word === example.word, word.word)}>
+                      <WordIllustration word={word} /><span>{displayWord(word)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {index === step && index === 2 && (
+                <div className="adaptive-choices syllables" aria-label={`Izaberi slog ${displayedSyllable}`}>
+                  {syllableChoices.map((syllable) => (
+                    <button key={syllable} onClick={() => answerStep(2, syllable === lessonSyllable, syllable)}>
+                      {script === 'latin' ? transliterate(syllable) : syllable}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </li>
           ))}
-        </div>
+        </ol>
         <p className="adaptive-status" role="status">{message}</p>
       </main>
     </div>
@@ -789,15 +833,51 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
   const dateKey = new Date().toISOString().slice(0, 10);
   const daySeed = Array.from(dateKey).reduce((sum, character) => sum + character.charCodeAt(0), 0);
   const dailyLetter = letters[daySeed % letters.length];
-  const dailyNumber = numberLessons[daySeed % numberLessons.length];
+  const dailyLetterIndex = letters.indexOf(dailyLetter);
+  const dailyCount = 2 + (daySeed % 6);
+  const dailyNumber = numberLessons[dailyCount];
+  const script = useProgressStore((state) => state.script);
   const [completed, setCompleted] = useState<number[]>([]);
+  const [message, setMessage] = useState('Reši tri mala zadatka i osvoji zvezdice.');
   const completeDailyChallenge = useProgressStore((state) => state.completeDailyChallenge);
+  const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const alreadyCompleted = useProgressStore((state) => state.profile.completedDailyChallenges.includes(dateKey));
   const difficulty = useProgressStore((state) => state.profile.difficulty);
+  const example = dailyLetter.words[0];
+  const displayedLetter = script === 'latin' ? transliterate(dailyLetter.upper) : dailyLetter.upper;
+  const displayWord = (word: LetterWord) => script === 'latin' ? transliterate(word.word) : word.word;
+  const wordChoices = seededChoices([
+    example,
+    letters[(dailyLetterIndex + 5) % letters.length].words[0],
+    letters[(dailyLetterIndex + 11) % letters.length].words[0]
+  ], daySeed);
+  const letterChoices = seededChoices([
+    dailyLetter.upper,
+    letters[(dailyLetterIndex + 4) % letters.length].upper,
+    letters[(dailyLetterIndex + 9) % letters.length].upper
+  ], daySeed + 1);
+  const countChoices = seededChoices([
+    dailyCount,
+    dailyCount === 2 ? 4 : dailyCount - 1,
+    dailyCount >= 7 ? 5 : dailyCount + 1
+  ], daySeed + 2);
 
   const mark = (step: number, phrase: string) => {
     setCompleted((current) => current.includes(step) ? current : [...current, step]);
+    recordSkillAttempt(`daily:${dateKey}:${step}`, true);
+    setMessage(step === 3 ? 'Sva tri odgovora su tačna! Preuzmi zvezdice.' : 'Bravo! Reši sledeći zadatak.');
     void speak(phrase, sound);
+  };
+
+  const answer = (step: number, correct: boolean, phrase: string) => {
+    if (completed.includes(step) || (step > 1 && !completed.includes(step - 1))) return;
+    if (!correct) {
+      recordSkillAttempt(`daily:${dateKey}:${step}`, false);
+      setMessage('Pokušaj ponovo. Nije svaki odgovor tačan.');
+      void speak('Pokušaj ponovo.', sound);
+      return;
+    }
+    mark(step, phrase);
   };
 
   return (
@@ -805,15 +885,19 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
       <Header title="Današnja avantura" onBack={onBack} />
       <main className="daily-challenge">
         <div className="daily-hero"><span>🌞</span><div><h2>Tri mala koraka</h2><p>Težina: {difficulty === 'easy' ? 'lako' : difficulty === 'challenge' ? 'izazovno' : 'standardno'}</p></div></div>
-        <button className={completed.includes(1) ? 'daily-step done' : 'daily-step'} onClick={() => mark(1, dailyLetter.upper)}>
-          <b>Korak 1</b><span>Izgovori slovo {dailyLetter.upper}</span><strong>{completed.includes(1) ? '✓' : '🔊'}</strong>
-        </button>
-        <button className={completed.includes(2) ? 'daily-step done' : 'daily-step'} onClick={() => mark(2, dailyLetter.words[0].word)}>
-          <b>Korak 2</b><span>Pronađi i izgovori: {dailyLetter.words[0].emoji} {dailyLetter.words[0].word}</span><strong>{completed.includes(2) ? '✓' : '👀'}</strong>
-        </button>
-        <button className={completed.includes(3) ? 'daily-step done' : 'daily-step'} onClick={() => mark(3, dailyNumber.word)}>
-          <b>Korak 3</b><span>Prebroj do {dailyNumber.value}</span><strong>{completed.includes(3) ? '✓' : '🔢'}</strong>
-        </button>
+        <section className={completed.includes(1) ? 'daily-step done' : 'daily-step'}>
+          <b>Korak 1</b><span>Koje je slovo {displayedLetter}?</span><strong>{completed.includes(1) ? '✓' : '🔤'}</strong>
+          {!completed.includes(1) && <div className="daily-choices">{letterChoices.map((letter) => <button key={letter} onClick={() => answer(1, letter === dailyLetter.upper, dailyLetter.upper)}>{script === 'latin' ? transliterate(letter) : letter}</button>)}</div>}
+        </section>
+        <section className={completed.includes(2) ? 'daily-step done' : 'daily-step'}>
+          <b>Korak 2</b><span>Koja slika počinje slovom {displayedLetter}?</span><strong>{completed.includes(2) ? '✓' : '👀'}</strong>
+          {!completed.includes(2) && <div className="daily-choices pictures">{wordChoices.map((word) => <button key={word.word} onClick={() => answer(2, word.word === example.word, word.word)}><WordIllustration word={word} /><small>{displayWord(word)}</small></button>)}</div>}
+        </section>
+        <section className={completed.includes(3) ? 'daily-step done' : 'daily-step'}>
+          <b>Korak 3</b><span>Prebroj: {Array.from({ length: dailyCount }, () => dailyNumber.emoji).join(' ')}</span><strong>{completed.includes(3) ? '✓' : '🔢'}</strong>
+          {!completed.includes(3) && <div className="daily-choices">{countChoices.map((value) => <button key={value} onClick={() => answer(3, value === dailyCount, dailyNumber.word)}>{value}</button>)}</div>}
+        </section>
+        <p className="daily-status" role="status">{message}</p>
         <button
           className="primary daily-reward"
           disabled={completed.length < 3 || alreadyCompleted}

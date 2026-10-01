@@ -182,6 +182,11 @@ body {
 .daily-step { width: 100%; min-height: 78px; display: grid; grid-template-columns: 80px 1fr auto; align-items: center; gap: 10px; padding: 12px 15px; border: 2px solid #e8eaf5; border-radius: 21px; background: var(--surface); text-align: left; }
 .daily-step b { color: var(--purple); }.daily-step span { font-weight: 800; }.daily-step strong { font-size: 1.4rem; }
 .daily-step.done { border-color: #86efac; background: #f0fdf4; }
+.daily-choices { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.daily-choices button { min-width: 58px; min-height: 46px; border: 0; border-radius: 16px; background: #eef2ff; color: var(--purple); font: 900 1.35rem var(--font-family); box-shadow: 0 4px 0 #d7d5ff; }
+.daily-choices.pictures button { display: grid; min-width: 74px; padding: 7px; place-items: center; gap: 3px; font-size: 1.7rem; }
+.daily-choices.pictures .word-illustration { width: 2.4rem; height: 2.4rem; }.daily-choices.pictures small { font-size: .68rem; font-weight: 900; }
+.daily-status { min-height: 22px; margin: 0; color: var(--purple); font-weight: 900; text-align: center; }
 .daily-reward:disabled { filter: grayscale(.7); opacity: .55; cursor: not-allowed; }
 .game-tabs, .number-mode, .age-tabs { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 4px; border-radius: 17px; background: #eef2ff; }
 .game-tabs button, .number-mode button, .age-tabs button { min-height: 40px; border: 0; border-radius: 13px; background: transparent; color: var(--purple); font-weight: 900; }
@@ -489,14 +494,11 @@ body {
 .adaptive-hero small { color: #fde68a; font-weight: 900; letter-spacing: .1em; }
 .adaptive-hero h2 { margin: 4px 0; font: 900 clamp(1.25rem, 5vw, 1.9rem) var(--font-family); }
 .adaptive-hero p { margin: 0; color: #ede9fe; font-weight: 800; }
-.adaptive-steps { display: grid; gap: 9px; }
-.adaptive-steps button {
+.adaptive-steps { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.adaptive-steps li {
   min-height: 76px;
   display: grid;
-  grid-template-columns: 52px 1fr;
-  grid-template-rows: 1fr 1fr;
-  align-items: center;
-  column-gap: 12px;
+  gap: 10px;
   padding: 11px 15px;
   border: 2px solid #e5e7f6;
   border-radius: 22px;
@@ -504,11 +506,10 @@ body {
   color: inherit;
   text-align: left;
 }
-.adaptive-steps button > span { grid-row: 1 / 3; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 17px; background: #eef2ff; font-size: 1.55rem; }
-.adaptive-steps button strong { align-self: end; font-size: 1rem; }.adaptive-steps button small { align-self: start; color: #6b7280; font-weight: 800; }
-.adaptive-steps button.active { border-color: #6366f1; box-shadow: 0 8px 24px rgba(79,70,229,.12); }
-.adaptive-steps button.done { border-color: #86efac; background: #f0fdf4; }.adaptive-steps button.done > span { background: #dcfce7; color: #15803d; }
-.adaptive-steps button:disabled { opacity: .58; }
+.adaptive-step-title { display: grid; grid-template-columns: 52px 1fr; align-items: center; column-gap: 12px; }.adaptive-step-title > span { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 17px; background: #eef2ff; font-size: 1.55rem; }.adaptive-step-title strong { display: block; font-size: 1rem; }.adaptive-step-title small { color: #6b7280; font-weight: 800; }
+.adaptive-steps li.active { border-color: #6366f1; box-shadow: 0 8px 24px rgba(79,70,229,.12); }.adaptive-steps li.done { border-color: #86efac; background: #f0fdf4; }.adaptive-steps li.done .adaptive-step-title > span { background: #dcfce7; color: #15803d; }
+.adaptive-listen { min-height: 46px; border: 0; border-radius: 16px; background: #6366f1; color: white; font-weight: 900; }
+.adaptive-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }.adaptive-choices button { min-height: 62px; border: 0; border-radius: 16px; background: #eef2ff; color: var(--purple); font-weight: 900; }.adaptive-choices button > span { display: block; font-size: 1.8rem; }.adaptive-choices .word-illustration { width: 2.4rem; height: 2.4rem; }.adaptive-choices.syllables button { font-size: 1.2rem; }
 .adaptive-status, .creative-status { min-height: 24px; margin: 0; color: var(--purple); font-weight: 900; text-align: center; }
 
 .game-tabs { grid-template-columns: repeat(4, 1fr); }
