@@ -12,9 +12,9 @@ glasova `lj`, `nj`, `dž`, `đ`, `č`, `ć` i `ž` ostao prirodan.
 
 - model: `eleven_v3` (srpski je podržan jezik);
 - jezik zahteva: `sr`;
-- brzina: `0.84`;
-- stabilnost: `1.00`;
-- sličnost: `0.42`;
+- brzina: `0.76`;
+- stabilnost: `0.55`;
+- sličnost: `0.65`;
 - stil: `0`;
 - Speaker Boost: uključen;
 - izlaz: `mp3_44100_128`.

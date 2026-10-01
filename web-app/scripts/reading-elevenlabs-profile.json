@@ -12,9 +12,9 @@
   },
   "model": "eleven_v3",
   "settings": {
-    "speed": 0.84,
-    "stability": 1.0,
-    "similarityBoost": 0.42,
+    "speed": 0.76,
+    "stability": 0.55,
+    "similarityBoost": 0.65,
     "style": 0.0,
     "languageCode": "sr",
     "speakerBoost": true,
