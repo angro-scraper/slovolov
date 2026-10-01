@@ -110,10 +110,11 @@ export function createPurchaseManager(
   return {
     initialize: async () => {
       const offer = await gateway.initialize();
-      // StoreKit može kratkotrajno vratiti `owned=false` dok se lokalni receipt
-      // još obnavlja posle pokretanja aplikacije. Takav negativan odgovor ne
-      // sme da obriše prethodno potvrđen entitlement sa uređaja.
-      if (offer.owned) setSubscriptionAccess(true);
+      // Negativno vlasništvo sme da zaključa Premium samo nakon pouzdano
+      // učitanog StoreKit receipt-a. Tako prekid mreže ne zaključava aktivnog
+      // roditelja, ali istekla ili otkazana pretplata više ne ostaje trajno
+      // otvorena na uređaju.
+      if (offer.ownershipChecked) setSubscriptionAccess(offer.owned);
       return offer;
     },
     purchase: async () => {
@@ -127,7 +128,9 @@ export function createPurchaseManager(
       return result;
     },
     subscribeOwnership: () => gateway.subscribeOwnership?.((owned) => {
-      if (owned) setSubscriptionAccess(true);
+      // Native gateway šalje ovaj događaj tek pošto su receipt-i spremni.
+      // Zato je i `false` pouzdana potvrda da je pravo isteklo.
+      setSubscriptionAccess(owned);
     }) ?? (() => undefined)
   };
 }
