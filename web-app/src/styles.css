@@ -849,6 +849,8 @@ body {
 @media (max-width: 540px) {
   .adaptive-hero { grid-template-columns: 72px 1fr; padding: 14px; }
   .adaptive-hero > span { font-size: 3.5rem; }
+  .adaptive-choices:not(.syllables) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .adaptive-picture-choice:nth-child(3):last-child { grid-column: 1 / -1; }
   .game-tabs, .reading-levels { grid-template-columns: 1fr 1fr; }
   .creative-cover { grid-template-columns: 58px 1fr; gap: 8px; }
   .creative-cover > span { font-size: 3.2rem; }

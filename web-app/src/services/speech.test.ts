@@ -153,7 +153,10 @@ describe('isključivo lokalni govor aplikacije', () => {
     await speakRecordedPrompt('Koje je prvo slovo?', '/audio/quiz/01.mp3');
 
     expect(nativeAudioPlayback.startNativeAudioPlayback)
-      .toHaveBeenCalledWith('/audio/quiz/01.mp3', expect.any(Object));
+      .toHaveBeenCalledWith(
+        new URL(`/audio/quiz/01.mp3?v=${AUDIO_ASSET_VERSION}`, window.location.href).href,
+        expect.any(Object)
+      );
     expect(created).toHaveLength(0);
     expect(play).not.toHaveBeenCalled();
     expect(synthSpeak).not.toHaveBeenCalled();

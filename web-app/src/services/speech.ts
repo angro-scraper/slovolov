@@ -18,6 +18,18 @@ let activeNativePlayback: NativeAudioPlaybackHandle | null = null;
 let activeCompletion: ((completed: boolean) => void) | null = null;
 let playbackGeneration = 0;
 
+function nativePlaybackSource(localSource: string): string {
+  const versionedSource = versionAudioUrl(localSource);
+  // Kada Android WebView učitava aplikaciju sa Rendera, relativna adresa bi u
+  // native dodatku izgledala kao lokalni APK asset. Apsolutna adresa čuva
+  // localhost kao lokalni razvojni slučaj, a javni host preuzima svež snimak.
+  try {
+    return new URL(versionedSource, window.location.href).href;
+  } catch {
+    return versionedSource;
+  }
+}
+
 function stopOtherVoices(releaseSession = true): void {
   playbackGeneration += 1;
   const previousAudio = activeAudio;
@@ -84,7 +96,7 @@ async function playSource(
   // kada je aplikacija instalirana kao Capacitor omot. Zato Android lokalne
   // snimke prvo pušta kroz MediaPlayer koji čita direktno iz APK assets-a.
   // U browseru i na iOS-u ovaj poziv vraća null i ostaje postojeći HTML tok.
-  const nativePlayback = await startNativeAudioPlayback(localSource, {
+  const nativePlayback = await startNativeAudioPlayback(nativePlaybackSource(localSource), {
     onStarted: () => undefined,
     onEnded: () => finishPlayback(true),
     onError: () => finishPlayback(false)

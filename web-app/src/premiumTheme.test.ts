@@ -42,4 +42,11 @@ describe('premium Slovolov vizuelni sistem', () => {
     expect(styles).toContain('.creative-screen .creative-story-pages { overflow: visible; }');
     expect(styles).toContain('.creative-screen .creative-options { max-height: none; overflow: visible; }');
   });
+
+  it('Korak sa slikama u Mojoj pametnoj lekciji se na telefonu ne seče', () => {
+    const styles = readFileSync(resolve('src/styles.css'), 'utf8');
+
+    expect(styles).toContain('.adaptive-choices:not(.syllables) { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
+    expect(styles).toContain('.adaptive-picture-choice:nth-child(3):last-child { grid-column: 1 / -1; }');
+  });
 });
