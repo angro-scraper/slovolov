@@ -49,7 +49,7 @@ describe('stvarni lokalni audio za čitanje', () => {
   it('sledeći paket čitanja koristi odobreni ElevenLabs glas i ne čuva ključ u repozitorijumu', () => {
     const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-elevenlabs-audio.py'), 'utf8');
     const profile = readFileSync(resolve(process.cwd(), 'scripts', 'reading-elevenlabs-profile.json'), 'utf8');
-    expect(profile).toContain('"voiceId": "0jvpZ98RZwx5FBOSZAc3"');
+    expect(profile).toContain('"voiceId": "d3l4f3HgkE3P6Fo91lYA"');
     expect(profile).toContain('"model": "eleven_v3"');
     expect(profile).toContain('"languageCode": "sr"');
     expect(generator).toContain('"language_code": settings["languageCode"]');

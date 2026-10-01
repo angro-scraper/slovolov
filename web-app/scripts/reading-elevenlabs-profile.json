@@ -7,8 +7,8 @@
   },
   "provider": "ElevenLabs",
   "voice": {
-    "displayName": "Slovolov dečji glas",
-    "voiceId": "0jvpZ98RZwx5FBOSZAc3"
+    "displayName": "Ida - Clear, Confident Serbian",
+    "voiceId": "d3l4f3HgkE3P6Fo91lYA"
   },
   "model": "eleven_v3",
   "settings": {
