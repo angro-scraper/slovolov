@@ -1,5 +1,5 @@
 {
-  "profileVersion": 1,
+  "profileVersion": 2,
   "purpose": "Lokalno generisani MP3 snimci iskljucivo za modul Citanje u Slovolovu.",
   "scope": {
     "include": ["reading"],
@@ -7,14 +7,14 @@
   },
   "provider": "ElevenLabs",
   "voice": {
-    "displayName": "Ana SRB - Call center voice",
-    "voiceIdEnvironmentVariable": "ELEVENLABS_READING_VOICE_ID"
+    "displayName": "Slovolov dečji glas",
+    "voiceId": "0jvpZ98RZwx5FBOSZAc3"
   },
   "model": "eleven_multilingual_v2",
   "settings": {
-    "speed": 0.81,
+    "speed": 0.84,
     "stability": 1.0,
-    "similarityBoost": 0.27,
+    "similarityBoost": 0.42,
     "style": 0.0,
     "languageOverride": null,
     "speakerBoost": true,
@@ -26,5 +26,5 @@
     "runtimeNetworkCalls": false,
     "note": "Aplikacija isporucuje unapred generisane lokalne MP3 fajlove. ElevenLabs se koristi samo tokom kontrolisane izrade audio-resursa."
   },
-  "approvedOn": "2026-08-14"
+  "approvedOn": "2026-10-01"
 }

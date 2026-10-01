@@ -729,11 +729,10 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
   const recommended = letters.find((letter) => letter.upper === recommendedUpper) ?? letters[0];
   const recommendedIndex = letters.indexOf(recommended);
   const [step, setStep] = useState(0);
+  const [heardTarget, setHeardTarget] = useState(false);
   const [message, setMessage] = useState('3 kratka koraka · oko 5 minuta');
   const lessonId = `adaptive-${new Date().toISOString().slice(0, 10)}-${recommended.upper}`;
-  const lessonSyllable = 'АЕИОУ'.includes(recommended.upper) ? `М${recommended.upper}` : `${recommended.upper}А`;
   const displayedLetter = script === 'latin' ? transliterate(recommended.upper) : recommended.upper;
-  const displayedSyllable = script === 'latin' ? transliterate(lessonSyllable) : lessonSyllable;
   const displayWord = (word: LetterWord) => script === 'latin' ? transliterate(word.word) : word.word;
   const example = recommended.words[0];
   const wordChoices = seededChoices([
@@ -741,15 +740,21 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
     letters[(recommendedIndex + 7) % letters.length].words[0],
     letters[(recommendedIndex + 13) % letters.length].words[0]
   ], recommendedIndex);
-  const syllableChoices = seededChoices([
-    lessonSyllable,
-    `М${recommended.upper}`,
-    `${recommended.upper}О`
-  ].filter((value, index, values) => values.indexOf(value) === index), recommendedIndex + 1);
+  const letterChoices = seededChoices([
+    recommended.upper,
+    letters[(recommendedIndex + 4) % letters.length].upper,
+    letters[(recommendedIndex + 9) % letters.length].upper
+  ], recommendedIndex);
+  const wordStartChoices = seededChoices([
+    recommended.upper,
+    letters[(recommendedIndex + 6) % letters.length].upper,
+    letters[(recommendedIndex + 12) % letters.length].upper
+  ], recommendedIndex + 2);
+  const wordTail = Array.from(example.word).slice(1).join('');
   const tasks = [
-    { title: `Poslušaj slovo ${displayedLetter}`, icon: '🔊' },
+    { title: 'Pogodi slovo koje čuješ', icon: '🔊' },
     { title: `Pronađi sliku za slovo ${displayedLetter}`, icon: example.emoji },
-    { title: `Izaberi slog ${displayedSyllable}`, icon: '📖' }
+    { title: `Dopuni reč _${script === 'latin' ? transliterate(wordTail) : wordTail}`, icon: '🧩' }
   ];
 
   const completeStep = (index: number, phrase: string) => {
@@ -798,9 +803,18 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
                 <div><strong>Korak {index + 1}: {task.title}</strong><small>{index < step ? 'Završeno' : index === step ? 'Reši zadatak' : 'Sledeći korak'}</small></div>
               </div>
               {index === step && index === 0 && (
-                <button className="adaptive-listen" onClick={() => completeStep(0, recommended.upper)}>
-                  🔊 Poslušaj slovo {displayedLetter}
-                </button>
+                <>
+                  <button className="adaptive-listen" onClick={() => { setHeardTarget(true); void speak(recommended.upper, sound); }}>
+                    🔊 Pusti glas
+                  </button>
+                  <div className="adaptive-choices syllables" aria-label="Izaberi slovo koje čuješ">
+                    {letterChoices.map((letter) => (
+                      <button key={letter} disabled={!heardTarget} onClick={() => answerStep(0, letter === recommended.upper, letter)}>
+                        {script === 'latin' ? transliterate(letter) : letter}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
               {index === step && index === 1 && (
                 <div className="adaptive-choices" aria-label={`Izaberi sliku za slovo ${displayedLetter}`}>
@@ -812,10 +826,10 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
                 </div>
               )}
               {index === step && index === 2 && (
-                <div className="adaptive-choices syllables" aria-label={`Izaberi slog ${displayedSyllable}`}>
-                  {syllableChoices.map((syllable) => (
-                    <button key={syllable} onClick={() => answerStep(2, syllable === lessonSyllable, syllable)}>
-                      {script === 'latin' ? transliterate(syllable) : syllable}
+                <div className="adaptive-choices syllables" aria-label={`Dopuni reč ${displayWord(example)}`}>
+                  {wordStartChoices.map((letter) => (
+                    <button key={letter} onClick={() => answerStep(2, letter === recommended.upper, `${letter}${wordTail}`)}>
+                      {script === 'latin' ? transliterate(letter) : letter}
                     </button>
                   ))}
                 </div>
@@ -832,10 +846,6 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
 function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const dateKey = new Date().toISOString().slice(0, 10);
   const daySeed = Array.from(dateKey).reduce((sum, character) => sum + character.charCodeAt(0), 0);
-  const dailyLetter = letters[daySeed % letters.length];
-  const dailyLetterIndex = letters.indexOf(dailyLetter);
-  const dailyCount = 2 + (daySeed % 6);
-  const dailyNumber = numberLessons[dailyCount];
   const script = useProgressStore((state) => state.script);
   const [completed, setCompleted] = useState<number[]>([]);
   const [message, setMessage] = useState('Reši tri mala zadatka i osvoji zvezdice.');
@@ -843,24 +853,12 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const alreadyCompleted = useProgressStore((state) => state.profile.completedDailyChallenges.includes(dateKey));
   const difficulty = useProgressStore((state) => state.profile.difficulty);
-  const example = dailyLetter.words[0];
-  const displayedLetter = script === 'latin' ? transliterate(dailyLetter.upper) : dailyLetter.upper;
-  const displayWord = (word: LetterWord) => script === 'latin' ? transliterate(word.word) : word.word;
-  const wordChoices = seededChoices([
-    example,
-    letters[(dailyLetterIndex + 5) % letters.length].words[0],
-    letters[(dailyLetterIndex + 11) % letters.length].words[0]
-  ], daySeed);
-  const letterChoices = seededChoices([
-    dailyLetter.upper,
-    letters[(dailyLetterIndex + 4) % letters.length].upper,
-    letters[(dailyLetterIndex + 9) % letters.length].upper
-  ], daySeed + 1);
-  const countChoices = seededChoices([
-    dailyCount,
-    dailyCount === 2 ? 4 : dailyCount - 1,
-    dailyCount >= 7 ? 5 : dailyCount + 1
-  ], daySeed + 2);
+  const rhyme = rhymeRounds[daySeed % rhymeRounds.length];
+  const logicStart = difficulty === 'easy' ? 0 : difficulty === 'challenge' ? 4 : 2;
+  const firstLogic = logicChallenges[(daySeed + logicStart) % logicChallenges.length];
+  const secondLogic = logicChallenges[(daySeed + logicStart + 3) % logicChallenges.length];
+  const displayText = (value: string) => script === 'latin' ? transliterate(value) : value;
+  const rhymeExplanation = `${displayText(rhyme.prompt)} i ${displayText(rhyme.correct)} se završavaju sličnim glasom.`;
 
   const mark = (step: number, phrase: string) => {
     setCompleted((current) => current.includes(step) ? current : [...current, step]);
@@ -886,16 +884,21 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
       <main className="daily-challenge">
         <div className="daily-hero"><span>🌞</span><div><h2>Tri mala koraka</h2><p>Težina: {difficulty === 'easy' ? 'lako' : difficulty === 'challenge' ? 'izazovno' : 'standardno'}</p></div></div>
         <section className={completed.includes(1) ? 'daily-step done' : 'daily-step'}>
-          <b>Korak 1</b><span>Koje je slovo {displayedLetter}?</span><strong>{completed.includes(1) ? '✓' : '🔤'}</strong>
-          {!completed.includes(1) && <div className="daily-choices">{letterChoices.map((letter) => <button key={letter} onClick={() => answer(1, letter === dailyLetter.upper, dailyLetter.upper)}>{script === 'latin' ? transliterate(letter) : letter}</button>)}</div>}
+          <b>Korak 1 · Rima</b><span>Koja reč se rimuje sa: <strong>{displayText(rhyme.prompt)}</strong>?</span><strong>{completed.includes(1) ? '✓' : '🎵'}</strong>
+          {!completed.includes(1) && <div className="daily-choices">{seededChoices(rhyme.options, daySeed).map((option) => <button key={option} onClick={() => answer(1, option === rhyme.correct, option)}>{displayText(option)}</button>)}</div>}
+          {completed.includes(1) && <p className="daily-explanation">💡 {rhymeExplanation}</p>}
         </section>
         <section className={completed.includes(2) ? 'daily-step done' : 'daily-step'}>
-          <b>Korak 2</b><span>Koja slika počinje slovom {displayedLetter}?</span><strong>{completed.includes(2) ? '✓' : '👀'}</strong>
-          {!completed.includes(2) && <div className="daily-choices pictures">{wordChoices.map((word) => <button key={word.word} onClick={() => answer(2, word.word === example.word, word.word)}><WordIllustration word={word} /><small>{displayWord(word)}</small></button>)}</div>}
+          <b>Korak 2 · Logika</b><span>{firstLogic.prompt}</span><strong>{completed.includes(2) ? '✓' : firstLogic.icon}</strong>
+          {!completed.includes(1) && !completed.includes(2) && <p className="daily-locked">🔒 Prvo reši zadatak sa rimom.</p>}
+          {completed.includes(1) && !completed.includes(2) && <><div className="daily-visual" aria-label="Prikaz logičkog zadatka">{firstLogic.visual}</div><div className="daily-choices">{seededChoices(firstLogic.answers, daySeed + 1).map((option) => <button key={option} onClick={() => answer(2, option === firstLogic.correct, option)}>{option}</button>)}</div></>}
+          {completed.includes(2) && <p className="daily-explanation">💡 {firstLogic.explanation}</p>}
         </section>
         <section className={completed.includes(3) ? 'daily-step done' : 'daily-step'}>
-          <b>Korak 3</b><span>Prebroj: {Array.from({ length: dailyCount }, () => dailyNumber.emoji).join(' ')}</span><strong>{completed.includes(3) ? '✓' : '🔢'}</strong>
-          {!completed.includes(3) && <div className="daily-choices">{countChoices.map((value) => <button key={value} onClick={() => answer(3, value === dailyCount, dailyNumber.word)}>{value}</button>)}</div>}
+          <b>Korak 3 · Mozgalica</b><span>{secondLogic.prompt}</span><strong>{completed.includes(3) ? '✓' : secondLogic.icon}</strong>
+          {!completed.includes(2) && !completed.includes(3) && <p className="daily-locked">🔒 Prvo reši logički zadatak.</p>}
+          {completed.includes(2) && !completed.includes(3) && <><div className="daily-visual" aria-label="Prikaz mozgalice">{secondLogic.visual}</div><div className="daily-choices">{seededChoices(secondLogic.answers, daySeed + 2).map((option) => <button key={option} onClick={() => answer(3, option === secondLogic.correct, option)}>{option}</button>)}</div></>}
+          {completed.includes(3) && <p className="daily-explanation">💡 {secondLogic.explanation}</p>}
         </section>
         <p className="daily-status" role="status">{message}</p>
         <button

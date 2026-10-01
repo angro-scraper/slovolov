@@ -46,18 +46,20 @@ function audioPath(source: string): string {
 }
 
 describe('stvarni lokalni audio za čitanje', () => {
-  it('generator čitanja koristi Sophie profil jednak glasu za Bravo, bez ključa u repozitorijumu', () => {
-    const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-sophie-audio.py'), 'utf8');
-    const profile = readFileSync(resolve(process.cwd(), 'scripts', 'reading-sophie-profile.json'), 'utf8');
-    expect(generator).toContain('sr-RS-SophieNeural');
-    expect(generator).toContain('RATE = "-18%"');
-    expect(profile).toContain('"displayName": "Sophie"');
-    expect(profile).toContain('"rate": "-18%"');
+  it('sledeći paket čitanja koristi odobreni ElevenLabs glas i ne čuva ključ u repozitorijumu', () => {
+    const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-elevenlabs-audio.py'), 'utf8');
+    const profile = readFileSync(resolve(process.cwd(), 'scripts', 'reading-elevenlabs-profile.json'), 'utf8');
+    expect(profile).toContain('"voiceId": "0jvpZ98RZwx5FBOSZAc3"');
+    expect(profile).toContain('"model": "eleven_multilingual_v2"');
+    expect(profile).toContain('"speed": 0.84');
+    expect(profile).toContain('"similarityBoost": 0.42');
+    expect(generator).toContain('serbian_tts_text');
     expect(generator).toContain('STAGE_ROOT');
     expect(generator).toContain('PUBLIC_CATALOG_PATH');
     expect(generator).toContain('sys.stdout.reconfigure');
     expect(generator).not.toContain('SpeechSynthesisUtterance');
-    expect(generator).not.toContain('API_KEY');
+    expect(profile).toContain('"storeApiKeyInRepository": false');
+    expect(profile).not.toMatch(/sk_[A-Za-z0-9]/);
   });
 
   it('svaki prikazani primer ima svoj lokalni MP3', () => {
@@ -78,7 +80,7 @@ describe('stvarni lokalni audio za čitanje', () => {
     expect(sources.every((source) => existsSync(publicPath(source)))).toBe(true);
   });
 
-  it('katalog prikazuje ćirilicu, ali Sophie šalje tačnu srpsku latinicu', () => {
+  it('trenutni katalog prikazuje ćirilicu, ali je za izgovor čuva u srpskoj latinici', () => {
     const catalog = readingCatalog();
     expect(catalog.profile).toMatchObject({
       provider: 'Microsoft Edge TTS',

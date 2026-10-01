@@ -596,10 +596,26 @@ describe('Slovolov glavni tok', () => {
     fireEvent.click(screen.getByRole('button', { name: /Dnevni izazov/i }));
     expect(screen.getByRole('heading', { name: 'Današnja avantura' })).toBeVisible();
     expect(screen.getAllByText(/Korak/)).toHaveLength(3);
-    expect(screen.getByText(/Koje je slovo/i)).toBeVisible();
-    expect(screen.getByText(/Koja slika počinje/i)).toBeVisible();
-    expect(screen.getByText(/Prebroj/i)).toBeVisible();
+    expect(screen.getByText(/Rima/i)).toBeVisible();
+    expect(screen.getByText(/Logika/i)).toBeVisible();
+    expect(screen.getByText(/Mozgalica/i)).toBeVisible();
     expect(screen.getByRole('button', { name: /Preuzmi 3 zvezdice/i })).toBeDisabled();
+  });
+
+  it('dnevni izazov objašnjava tačan odgovor i ne prelazi preko pogrešne rime', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-01T12:00:00.000Z'));
+    render(<App />);
+
+    fireEvent.click(screen.getByRole('button', { name: /Dnevni izazov/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'VOZ' }));
+    expect(screen.getByRole('status')).toHaveTextContent(/Pokušaj ponovo/i);
+    expect(screen.queryByLabelText('Prikaz logičkog zadatka')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'MESEC' }));
+    expect(screen.getByText(/ZEC i MESEC se završavaju/i)).toBeVisible();
+    expect(screen.getByText(/Koliko je zvezdica ukupno/i)).toBeVisible();
+    vi.useRealTimers();
   });
 
   it('Moja lekcija ne završava korak dok dete ne izabere tačan odgovor', () => {
@@ -610,7 +626,8 @@ describe('Slovolov glavni tok', () => {
 
     expect(screen.getByRole('heading', { name: 'Moja pametna lekcija' })).toBeVisible();
     expect(screen.getByText(/Danas ponavljamo slovo A/i)).toBeVisible();
-    fireEvent.click(screen.getByRole('button', { name: /Poslušaj slovo A/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Pusti glas/ }));
+    fireEvent.click(within(screen.getByLabelText('Izaberi slovo koje čuješ')).getByRole('button', { name: 'A' }));
 
     const pictureChoices = within(screen.getByLabelText('Izaberi sliku za slovo A'));
     fireEvent.click(pictureChoices.getByRole('button', { name: /Žirafa/i }));
@@ -618,10 +635,10 @@ describe('Slovolov glavni tok', () => {
     expect(screen.getByLabelText('Izaberi sliku za slovo A')).toBeVisible();
 
     fireEvent.click(pictureChoices.getByRole('button', { name: /Avion/i }));
-    const syllableChoices = within(screen.getByLabelText('Izaberi slog MA'));
-    fireEvent.click(syllableChoices.getByRole('button', { name: 'AO' }));
+    const wordStartChoices = within(screen.getByLabelText('Dopuni reč Avion'));
+    fireEvent.click(wordStartChoices.getByRole('button', { name: 'L' }));
     expect(screen.getByRole('status')).toHaveTextContent(/Pokušaj ponovo/i);
-    fireEvent.click(syllableChoices.getByRole('button', { name: 'MA' }));
+    fireEvent.click(wordStartChoices.getByRole('button', { name: 'A' }));
     expect(screen.getByRole('status')).toHaveTextContent(/lekcija je završena/i);
   });
 

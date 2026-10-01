@@ -4,7 +4,6 @@ Skript nikada ne čita ključ iz repozitorijuma i ne šalje ga u logove. Ključ 
 ID glasa moraju postojati samo u procesu koji vlasnik lokalno pokrene:
 
   $env:ELEVENLABS_API_KEY = '...'
-  $env:ELEVENLABS_READING_VOICE_ID = '...'
   python scripts/generate-reading-elevenlabs-audio.py --generate --promote
 
 Najpre pravi komplet u izolovanom staging folderu. Tek kada svih 241 MP3
@@ -34,8 +33,8 @@ if hasattr(sys.stdout, "reconfigure"):
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILE_PATH = Path(__file__).with_name("reading-elevenlabs-profile.json")
-# Nikada ne mešamo novi Ana paket sa starim Edge/Sophie staging fajlovima.
-STAGE_ROOT = ROOT / ".reading-audio-stage-v14-serbian-latin"
+# Nikada ne mešamo novi ElevenLabs paket sa ranijim Edge/Sophie staging fajlovima.
+STAGE_ROOT = ROOT / ".reading-audio-stage-v16-elevenlabs"
 PUBLIC_ROOT = ROOT / "public" / "audio" / "reading"
 PUBLIC_CATALOG_PATH = PUBLIC_ROOT / "catalog.json"
 PREVIEW_ROOT = ROOT / ".reading-pronunciation-preview"
@@ -80,7 +79,7 @@ SERBIAN_CYRILLIC_TO_LATIN = str.maketrans({
 
 
 def serbian_tts_text(display_text: str) -> str:
-    """Pretvara UI ćirilicu u srpsku latinicu koju Ana pravilno izgovara."""
+    """Pretvara UI ćirilicu u srpsku latinicu za prirodan srpski izgovor."""
     return display_text.translate(SERBIAN_CYRILLIC_TO_LATIN)
 
 
@@ -128,10 +127,10 @@ def require_credentials(profile: dict[str, object]) -> tuple[str, str]:
     voice = profile["voice"]
     assert isinstance(safety, dict) and isinstance(voice, dict)
     api_key = environment_value(str(safety["apiKeyEnvironmentVariable"]))
-    voice_id = environment_value(str(voice["voiceIdEnvironmentVariable"]))
+    voice_id = str(voice["voiceId"]).strip()
     if not api_key or not voice_id:
         raise RuntimeError(
-            "Nedostaje ELEVENLABS_API_KEY ili ELEVENLABS_READING_VOICE_ID. "
+            "Nedostaje ELEVENLABS_API_KEY. "
             "Ključ se ne čuva u repozitorijumu."
         )
     return api_key, voice_id
@@ -223,7 +222,7 @@ def generate_all(profile: dict[str, object], *, force: bool = False) -> None:
         if isinstance(entry, dict)
     }
     can_reuse_profile = existing_manifest.get("profile") == profile
-    # Manifest pamti tačan tekst poslat Ani. Pri promeni jedne rečenice
+    # Manifest pamti tačan tekst poslat servisu. Pri promeni jedne rečenice
     # bezbedno se zadržavaju samo fajlovi istog profila i identičnog spokenText.
     # Tako mali jezički ispravak ne troši kredite na ostalih 240 snimaka.
     write_manifest(
@@ -338,7 +337,7 @@ def promote(profile: dict[str, object]) -> None:
         ),
         encoding="utf-8",
     )
-    print(f"Promoted {len(files)} local Ana SRB MP3 files into public/audio/reading.")
+    print(f"Promoted {len(files)} local ElevenLabs MP3 files into public/audio/reading.")
 
 
 def generate_pronunciation_previews(profile: dict[str, object]) -> None:
