@@ -50,7 +50,9 @@ describe('stvarni lokalni audio za čitanje', () => {
     const generator = readFileSync(resolve(process.cwd(), 'scripts', 'generate-reading-elevenlabs-audio.py'), 'utf8');
     const profile = readFileSync(resolve(process.cwd(), 'scripts', 'reading-elevenlabs-profile.json'), 'utf8');
     expect(profile).toContain('"voiceId": "0jvpZ98RZwx5FBOSZAc3"');
-    expect(profile).toContain('"model": "eleven_multilingual_v2"');
+    expect(profile).toContain('"model": "eleven_v3"');
+    expect(profile).toContain('"languageCode": "sr"');
+    expect(generator).toContain('"language_code": settings["languageCode"]');
     expect(profile).toContain('"speed": 0.84');
     expect(profile).toContain('"similarityBoost": 0.42');
     expect(generator).toContain('serbian_tts_text');

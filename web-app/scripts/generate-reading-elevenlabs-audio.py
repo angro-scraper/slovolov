@@ -157,6 +157,7 @@ def synthesize(*, api_key: str, voice_id: str, profile: dict[str, object], text:
     payload = {
         "text": text,
         "model_id": profile["model"],
+        "language_code": settings["languageCode"],
         "apply_text_normalization": "on",
         "voice_settings": {
             "stability": settings["stability"],

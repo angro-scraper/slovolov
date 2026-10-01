@@ -10,13 +10,13 @@
     "displayName": "Slovolov dečji glas",
     "voiceId": "0jvpZ98RZwx5FBOSZAc3"
   },
-  "model": "eleven_multilingual_v2",
+  "model": "eleven_v3",
   "settings": {
     "speed": 0.84,
     "stability": 1.0,
     "similarityBoost": 0.42,
     "style": 0.0,
-    "languageOverride": null,
+    "languageCode": "sr",
     "speakerBoost": true,
     "outputFormat": "mp3_44100_128"
   },

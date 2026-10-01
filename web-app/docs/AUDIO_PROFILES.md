@@ -10,7 +10,8 @@ Dogovoreni glas je ElevenLabs glas čiji je ID `0jvpZ98RZwx5FBOSZAc3`.
 Tekst se pre slanja obavezno pretvara u **srpsku latinicu**, da bi izgovor
 glasova `lj`, `nj`, `dž`, `đ`, `č`, `ć` i `ž` ostao prirodan.
 
-- model: `eleven_multilingual_v2`;
+- model: `eleven_v3` (srpski je podržan jezik);
+- jezik zahteva: `sr`;
 - brzina: `0.84`;
 - stabilnost: `1.00`;
 - sličnost: `0.42`;
