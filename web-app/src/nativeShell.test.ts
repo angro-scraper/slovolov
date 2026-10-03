@@ -61,6 +61,16 @@ describe('Slovolov paket za prodavnice', () => {
     expect(gradle).not.toMatch(/keyPassword\s+["'][^"']+["']/);
   });
 
+  it('Google Play paket cilja Android 16 i ima sledeći jedinstveni kod verzije', () => {
+    const variables = read('android/variables.gradle');
+    const gradle = read('android/app/build.gradle');
+
+    expect(variables).toMatch(/compileSdkVersion\s*=\s*36/);
+    expect(variables).toMatch(/targetSdkVersion\s*=\s*36/);
+    expect(gradle).toMatch(/versionCode\s+28/);
+    expect(gradle).toContain('versionName "3.3.13"');
+  });
+
   it('Android nativni plejer zadrzava APK audio fajl do kraja reprodukcije', () => {
     const plugin = read('android/app/src/main/java/rs/slovolov/app/SlovolovAudioSessionPlugin.java');
     const activity = read('android/app/src/main/java/rs/slovolov/app/MainActivity.java');
