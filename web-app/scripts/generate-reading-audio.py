@@ -78,14 +78,14 @@ LITERACY_PROMPTS = [
 ]
 
 DAILY_LOGIC_PROMPTS = [
-    ("add-1", "Koliko je zvezdica ukupno?"),
-    ("sub-1", "Tri jabuke, jednu smo pojeli. Koliko je ostalo?"),
-    ("compare-1", "Na kojoj strani ima više?"),
-    ("sequence-1", "Šta dolazi sledeće?"),
-    ("shape-1", "Koji oblik ima tri stranice?"),
-    ("time-1", "Mala kazaljka je na tri, velika na dvanaest. Koliko je sati?"),
-    ("money-1", "Imaš dva novčića od 5. Koliko je ukupno?"),
-    ("logic-1", "Ana je viša od Ive. Iva je viša od Mie. Ko je najviši?"),
+    ("add-1", "Колико је звездица укупно?"),
+    ("sub-1", "Три јабуке, једну смо појели. Колико је остало?"),
+    ("compare-1", "На којој страни има више?"),
+    ("sequence-1", "Шта долази следеће?"),
+    ("shape-1", "Који облик има три странице?"),
+    ("time-1", "Мала казаљка је на три, велика на дванаест. Колико је сати?"),
+    ("money-1", "Имаш два новчића од 5. Колико је укупно?"),
+    ("logic-1", "Ана је виша од Иве. Ива је виша од Мије. Ко је највиши?"),
 ]
 
 

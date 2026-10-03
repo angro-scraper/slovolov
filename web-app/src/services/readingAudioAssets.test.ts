@@ -2,9 +2,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { rhymeRounds, syllableSets, wordReadingRounds } from '../data/readingLessons';
+import { logicChallenges } from '../data/logicChallenges';
 import { readingStories } from '../data/stories';
 import {
   adventureLiteracyAudio,
+  dailyLogicAudio,
   readingRhymeAudio,
   readingStorySentenceAudio,
   readingSyllableAudio,
@@ -82,10 +84,11 @@ describe('stvarni lokalni audio za čitanje', () => {
       ...readingStories.flatMap((story) =>
         story.sentences.map((_, index) => readingStorySentenceAudio(story.id, index))
       ),
-      ...Array.from({ length: 6 }, (_, index) => adventureLiteracyAudio(index + 1))
+      ...Array.from({ length: 6 }, (_, index) => adventureLiteracyAudio(index + 1)),
+      ...logicChallenges.map((challenge) => dailyLogicAudio(challenge.id))
     ];
 
-    expect(sources).toHaveLength(241);
+    expect(sources).toHaveLength(249);
     expect(sources.every((source) => existsSync(publicPath(source)))).toBe(true);
   });
 
@@ -100,7 +103,7 @@ describe('stvarni lokalni audio za čitanje', () => {
       model: 'eleven_v3',
       settings: { languageCode: 'sr', speed: 0.76 }
     });
-    expect(catalog.segments).toHaveLength(241);
+    expect(catalog.segments).toHaveLength(249);
     for (const entry of catalog.segments.values()) {
       expect(entry.displayText).not.toMatch(/[A-Za-z]/);
       expect(entry.spokenText).not.toMatch(/[А-Ша-ш]/);
@@ -133,6 +136,9 @@ describe('stvarni lokalni audio za čitanje', () => {
           catalog.segments.get(audioPath(readingStorySentenceAudio(story.id, index)))?.displayText
         ).toBe(sentence);
       });
+    }
+    for (const challenge of logicChallenges) {
+      expect(catalog.segments.get(audioPath(dailyLogicAudio(challenge.id)))?.displayText).toBeTruthy();
     }
   });
 });

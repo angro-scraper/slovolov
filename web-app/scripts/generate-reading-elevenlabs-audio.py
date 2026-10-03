@@ -319,6 +319,12 @@ def promote(profile: dict[str, object]) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(staged, target)
     segments = load_segments()
+    write_public_catalog(profile, segments)
+    print(f"Promoted {len(files)} local ElevenLabs MP3 files into public/audio/reading.")
+
+
+def write_public_catalog(profile: dict[str, object], segments: list[tuple[Path, str]]) -> None:
+    """Zapisuje katalog iz lokalnih izvora, bez pristupa ElevenLabs-u."""
     PUBLIC_CATALOG_PATH.write_text(
         json.dumps(
             {
@@ -338,7 +344,21 @@ def promote(profile: dict[str, object]) -> None:
         ),
         encoding="utf-8",
     )
-    print(f"Promoted {len(files)} local ElevenLabs MP3 files into public/audio/reading.")
+
+
+def refresh_public_catalog(profile: dict[str, object]) -> None:
+    """Osvežava metapodatke za već proverene javne MP3 fajlove bez novog snimanja."""
+    segments = load_segments()
+    missing = [
+        str(path.relative_to(PUBLIC_ROOT))
+        for path, _ in segments
+        if not path.is_file() or not is_valid_mp3(path.read_bytes())
+    ]
+    if missing:
+        preview = ", ".join(missing[:5])
+        raise RuntimeError(f"Javni audio paket nije potpun: {len(missing)} fajlova nedostaje ili nije MP3 ({preview}).")
+    write_public_catalog(profile, segments)
+    print(f"Refreshed catalog for {len(segments)} local ElevenLabs MP3 files.")
 
 
 def generate_pronunciation_previews(profile: dict[str, object]) -> None:
@@ -379,6 +399,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--generate", action="store_true")
     parser.add_argument("--promote", action="store_true")
+    parser.add_argument("--refresh-catalog", action="store_true", help="Osvežava javni katalog bez mreže i bez snimanja.")
     parser.add_argument("--force", action="store_true", help="Ponovo snima ceo staging paket.")
     parser.add_argument(
         "--pronunciation-preview",
@@ -414,6 +435,8 @@ def main() -> int:
         generate_all(profile, force=args.force)
     if args.promote:
         promote(profile)
+    if args.refresh_catalog:
+        refresh_public_catalog(profile)
     if args.pronunciation_preview:
         generate_pronunciation_previews(profile)
     if args.hard_pronunciation_preview:
@@ -423,11 +446,12 @@ def main() -> int:
         or args.dry_run
         or args.generate
         or args.promote
+        or args.refresh_catalog
         or args.pronunciation_preview
         or args.hard_pronunciation_preview
     ):
         parser.error(
-            "Izaberi --catalog, --dry-run, --generate, --promote, "
+            "Izaberi --catalog, --dry-run, --generate, --promote, --refresh-catalog, "
             "--pronunciation-preview ili --hard-pronunciation-preview."
         )
     return 0

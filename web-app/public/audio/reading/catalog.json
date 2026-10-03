@@ -38,7 +38,7 @@
     },
     "approvedOn": "2026-10-01"
   },
-  "fingerprint": "6a623836cddc108efb24a5525d83798f8230f5f9377494582410327542fe9ece",
+  "fingerprint": "e64c2e7321247f12d280137157c06ba169a901047fcda6ad447f1c8a077deece",
   "segments": [
     {
       "path": "rhyme-mak-prompt.mp3",
@@ -1247,43 +1247,43 @@
     },
     {
       "path": "daily/logic-add-1.mp3",
-      "displayText": "Koliko je zvezdica ukupno?",
+      "displayText": "Колико је звездица укупно?",
       "spokenText": "Koliko je zvezdica ukupno?"
     },
     {
       "path": "daily/logic-sub-1.mp3",
-      "displayText": "Tri jabuke, jednu smo pojeli. Koliko je ostalo?",
+      "displayText": "Три јабуке, једну смо појели. Колико је остало?",
       "spokenText": "Tri jabuke, jednu smo pojeli. Koliko je ostalo?"
     },
     {
       "path": "daily/logic-compare-1.mp3",
-      "displayText": "Na kojoj strani ima više?",
+      "displayText": "На којој страни има више?",
       "spokenText": "Na kojoj strani ima više?"
     },
     {
       "path": "daily/logic-sequence-1.mp3",
-      "displayText": "Šta dolazi sledeće?",
+      "displayText": "Шта долази следеће?",
       "spokenText": "Šta dolazi sledeće?"
     },
     {
       "path": "daily/logic-shape-1.mp3",
-      "displayText": "Koji oblik ima tri stranice?",
+      "displayText": "Који облик има три странице?",
       "spokenText": "Koji oblik ima tri stranice?"
     },
     {
       "path": "daily/logic-time-1.mp3",
-      "displayText": "Mala kazaljka je na tri, velika na dvanaest. Koliko je sati?",
+      "displayText": "Мала казаљка је на три, велика на дванаест. Колико је сати?",
       "spokenText": "Mala kazaljka je na tri, velika na dvanaest. Koliko je sati?"
     },
     {
       "path": "daily/logic-money-1.mp3",
-      "displayText": "Imaš dva novčića od 5. Koliko je ukupno?",
+      "displayText": "Имаш два новчића од 5. Колико је укупно?",
       "spokenText": "Imaš dva novčića od 5. Koliko je ukupno?"
     },
     {
       "path": "daily/logic-logic-1.mp3",
-      "displayText": "Ana je viša od Ive. Iva je viša od Mie. Ko je najviši?",
-      "spokenText": "Ana je viša od Ive. Iva je viša od Mie. Ko je najviši?"
+      "displayText": "Ана је виша од Иве. Ива је виша од Мије. Ко је највиши?",
+      "spokenText": "Ana je viša od Ive. Iva je viša od Mije. Ko je najviši?"
     }
   ]
 }
