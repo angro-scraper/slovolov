@@ -1,5 +1,6 @@
 ext {
-    minSdkVersion = 23
+    // Google Play Protect now rejects new releases below Android 7.0 (API 24).
+    minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.9.2'

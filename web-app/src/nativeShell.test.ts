@@ -67,8 +67,9 @@ describe('Slovolov paket za prodavnice', () => {
 
     expect(variables).toMatch(/compileSdkVersion\s*=\s*36/);
     expect(variables).toMatch(/targetSdkVersion\s*=\s*36/);
-    expect(gradle).toMatch(/versionCode\s+28/);
-    expect(gradle).toContain('versionName "3.3.13"');
+    expect(variables).toMatch(/minSdkVersion\s*=\s*24/);
+    expect(gradle).toMatch(/versionCode\s+29/);
+    expect(gradle).toContain('versionName "3.3.14"');
   });
 
   it('Android nativni plejer zadrzava APK audio fajl do kraja reprodukcije', () => {
