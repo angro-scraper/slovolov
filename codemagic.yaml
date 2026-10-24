@@ -38,7 +38,7 @@ workflows:
       - name: Run web tests and typecheck
         script: |
           cd "$CM_BUILD_DIR/web-app"
-          npm test
+          VITE_STORE_SAFE_CONTENT=false VITE_IOS_PREMIUM_ENABLED=false npm test
           npm run typecheck
       - name: Build store-safe web app and sync Capacitor iOS
         script: |

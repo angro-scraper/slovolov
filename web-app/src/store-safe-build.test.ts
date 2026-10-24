@@ -5,11 +5,14 @@ import { describe, expect, it } from 'vitest';
 describe('prodavnički build bez izvornih priča', () => {
   it('workflow obavezno uključuje dečje-bezbedni režim', () => {
     const workflow = readFileSync(
-      resolve(process.cwd(), '.github', 'workflows', 'store-aab.yml'),
+      resolve(process.cwd(), '..', '.github', 'workflows', 'store-aab.yml'),
       'utf8'
     );
 
     expect(workflow).toContain('VITE_STORE_SAFE_CONTENT: "true"');
+    expect(workflow).toMatch(/- run: npm run cap:sync\s+env:\s+VITE_COMMERCE_ENABLED: "true"\s+VITE_STORE_SAFE_CONTENT: "true"/);
+    const codemagic = readFileSync(resolve(process.cwd(), '..', 'codemagic.yaml'), 'utf8');
+    expect(codemagic).toContain('VITE_STORE_SAFE_CONTENT=false VITE_IOS_PREMIUM_ENABLED=false npm test');
   });
 
   it('nakon store builda ne ostavlja izvorne tekstove ni snimke', () => {
