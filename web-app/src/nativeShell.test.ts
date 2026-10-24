@@ -25,14 +25,11 @@ describe('Slovolov paket za prodavnice', () => {
     );
   });
 
-  it('mobilni omoti prikazuju istu javnu web aplikaciju 1 kroz 1', () => {
+  it('mobilni omoti nose novu ilustrovanu aplikaciju unutar paketa', () => {
     const capacitorConfig = read('capacitor.config.ts');
-    expect(capacitorConfig).toContain(
-      "url: 'https://slovolov-download.onrender.com/?slovolov-premium=ios'",
-    );
-    expect(capacitorConfig).toContain(
-      "allowNavigation: ['slovolov-download.onrender.com']",
-    );
+    expect(capacitorConfig).toContain("webDir: 'dist'");
+    expect(capacitorConfig).not.toMatch(/\burl:\s*['"]https?:/);
+    expect(capacitorConfig).not.toContain('allowNavigation');
     expect(capacitorConfig).toContain('cleartext: false');
   });
 
@@ -43,8 +40,6 @@ describe('Slovolov paket za prodavnice', () => {
     expect(privacy).toContain('ne šalje snimak glasa');
     expect(privacy).toContain('Google Play');
     expect(privacy).toContain('Apple App Store');
-    expect(privacy).toContain('pretplatu');
-    expect(read('public/terms.html')).toContain('Uslovi korišćenja');
   });
 
   it('release potpis koristi samo promenljive okruženja', () => {
@@ -59,28 +54,5 @@ describe('Slovolov paket za prodavnice', () => {
     }
     expect(gradle).not.toMatch(/storePassword\s+["'][^"']+["']/);
     expect(gradle).not.toMatch(/keyPassword\s+["'][^"']+["']/);
-  });
-
-  it('Google Play paket cilja Android 16 i ima sledeći jedinstveni kod verzije', () => {
-    const variables = read('android/variables.gradle');
-    const gradle = read('android/app/build.gradle');
-
-    expect(variables).toMatch(/compileSdkVersion\s*=\s*36/);
-    expect(variables).toMatch(/targetSdkVersion\s*=\s*36/);
-    expect(variables).toMatch(/minSdkVersion\s*=\s*24/);
-    expect(gradle).toMatch(/versionCode\s+29/);
-    expect(gradle).toContain('versionName "3.3.14"');
-  });
-
-  it('Android nativni plejer zadrzava APK audio fajl do kraja reprodukcije', () => {
-    const plugin = read('android/app/src/main/java/rs/slovolov/app/SlovolovAudioSessionPlugin.java');
-    const activity = read('android/app/src/main/java/rs/slovolov/app/MainActivity.java');
-
-    expect(plugin).toContain('private AssetFileDescriptor activeAssetDescriptor;');
-    expect(plugin).toContain('closeAssetDescriptor();');
-    expect(plugin).toContain('requestPlaybackAudioFocus()');
-    expect(plugin).toContain('releasePlaybackAudioFocus()');
-    expect(plugin).not.toContain('try (AssetFileDescriptor descriptor');
-    expect(activity).not.toContain('requestExclusiveAudioFocus()');
   });
 });

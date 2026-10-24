@@ -2,16 +2,18 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { TracePad } from './components/TracePad';
 import { ColoringPad } from './components/ColoringPad';
 import { VoicePractice } from './components/VoicePractice';
-import { isCommerceEnabled } from './config/commerce';
+import { isCommerceEnabled, isIosPremiumEnabled } from './config/commerce';
 import { fairyTaleAges, fairyTales, type FairyTaleAge } from './data/fairyTales';
 import { numberLessons } from './data/numbers';
 import { readingStories, storyAges, type ReadingAge } from './data/stories';
 import { rhymeRounds, syllableSets, wordReadingRounds } from './data/readingLessons';
 import { familyMissions } from './data/familyMissions';
 import { logicChallenges } from './data/logicChallenges';
+import { getStickerCollectionProgress } from './domain/rewardCollections';
+import { getLetterAnimation } from './domain/letterAnimation';
 import { cultureCards } from './data/serbianCulture';
 import { seededChoices } from './domain/choices';
-import { canAccessFeature, canAccessLetter, canAccessNumber, canAccessStory, canAddProfile } from './domain/access';
+import { canAccessFeature, canAccessLetter, canAccessNumber, canAccessStory } from './domain/access';
 import { nextLetterToPractice, summarizeLearning } from './domain/learning';
 import { displayLetter, letters, transliterate, type Letter, type LetterWord } from './domain/letters';
 import {
@@ -28,6 +30,7 @@ import {
   isAdventureLevelUnlocked,
   type AdventureLevel
 } from './domain/adventure';
+import { isTrailUnlocked, trails, trailChoices, type Trail } from './domain/trailGame';
 import { narrateSentences, type NarrationSession } from './services/narration';
 import {
   createCreativeNarrationSources,
@@ -66,7 +69,9 @@ import {
 } from './services/purchases';
 import { useProgressStore } from './store/progress';
 
-type Screen = 'home' | 'adventure' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
+type Screen = 'home' | 'adventure' | 'trail' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
+const OWL_MASCOT_SRC = '/images/mascot-owl-v1.png';
+const coloringPages = letters.map((letter) => ({ id: letter.upper, ...letter.words[0] }));
 
 const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: string }> = [
   { screen: 'adventure', icon: '🗺️', title: 'Moja avantura', subtitle: '36 nivoa koji postaju sve teži' },
@@ -87,11 +92,16 @@ const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: stri
 function WordIllustration({ word, className = '' }: { word: LetterWord; className?: string }) {
   return word.image
     ? <img className={`word-illustration ${className}`} src={word.image} alt="" />
-    : <span className={`word-illustration word-illustration-emoji ${className}`}>{word.emoji}</span>;
+    : <span>{word.emoji}</span>;
+}
+
+function ArrowIcon({ direction = 'right', className = '' }: { direction?: 'left' | 'right'; className?: string }) {
+  const path = direction === 'left' ? 'M19 12H5m7 7-7-7 7-7' : 'M5 12h14m-7-7 7 7-7 7';
+  return <svg className={`arrow-icon ${className}`} viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={path} /></svg>;
 }
 
 function Back({ onClick }: { onClick: () => void }) {
-  return <button className="back" onClick={onClick} aria-label="Nazad">←</button>;
+  return <button className="back" onClick={onClick} aria-label="Nazad"><ArrowIcon direction="left" /></button>;
 }
 
 function Header({ title, onBack }: { title: string; onBack?: () => void }) {
@@ -108,15 +118,32 @@ function Header({ title, onBack }: { title: string; onBack?: () => void }) {
   );
 }
 
+function PlayBanner({ icon, label, title, hint }: { icon: string; label: string; title: string; hint: string }) {
+  return (
+    <section className="play-banner" aria-label={`${label}: ${title}`} data-testid="play-banner">
+      <div className="play-banner-copy">
+        <small>{label}</small>
+        <h2>{title}</h2>
+        <p>{hint}</p>
+      </div>
+      <span className="play-banner-icon" aria-hidden="true">{icon}</span>
+      <img src={OWL_MASCOT_SRC} alt="" aria-hidden="true" />
+      <span className="play-banner-sparkle sparkle-a" aria-hidden="true">✦</span>
+      <span className="play-banner-sparkle sparkle-b" aria-hidden="true">✦</span>
+    </section>
+  );
+}
+
 export function App() {
   const appRef = useRef<HTMLDivElement>(null);
-  const [screen, setScreen] = useState<Screen>('home');
+  const [screen, setScreen] = useState<Screen>(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'adventure' ? 'adventure' : 'home');
   const [selected, setSelected] = useState<Letter>(letters[0]);
+  const [coloringIndex, setColoringIndex] = useState(0);
   const [activeAdventureLevel, setActiveAdventureLevel] = useState<AdventureLevel | null>(null);
+  const [activeTrail, setActiveTrail] = useState<Trail | null>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [letterCase, setLetterCase] = useState<'upper' | 'lower'>('upper');
   const [traceMessage, setTraceMessage] = useState('Prati celo svetlo slovo prstom.');
-  const [coloringMessage, setColoringMessage] = useState('');
   const sound = useProgressStore((state) => state.soundEnabled);
   const darkMode = useProgressStore((state) => state.darkMode);
   const script = useProgressStore((state) => state.script);
@@ -188,15 +215,12 @@ export function App() {
     const refreshEntitlement = () => {
       if (!active || refreshPromise) return;
       refreshPromise = manager.initialize().catch(() => {
-        // Mrežna/StoreKit greška ne sme obrisati poslednje potvrđeno vlasništvo.
-      }).finally(() => {
-        refreshPromise = null;
-      });
+        // Privremeni StoreKit ili mrežni prekid ne sme da zaključa aktivnu pretplatu.
+      }).finally(() => { refreshPromise = null; });
     };
     const refreshWhenVisible = () => {
       if (document.visibilityState === 'visible') refreshEntitlement();
     };
-
     refreshEntitlement();
     window.addEventListener('focus', refreshEntitlement);
     window.addEventListener('pageshow', refreshEntitlement);
@@ -231,33 +255,122 @@ export function App() {
   };
 
   const body = useMemo(() => {
-    if (screen === 'home') return (
-      <>
-        <Header title={`Zdravo, ${profile.name}!`} />
-        <section className="hero">
-          <div><span className="eyebrow">DANAS UČIMO KROZ IGRU</span><h2>Pronađi svoje<br />novo slovo!</h2></div>
-          <div className="hero-art" aria-hidden="true">🐉<span>А</span></div>
-        </section>
-        <main className="menu-grid">
-          {menus.map((item) => {
-            const accessible = canAccessFeature(item.screen, familyUnlocked);
-            return (
-              <button
-                key={item.screen}
-                className={`menu-card menu-${item.screen} ${accessible ? '' : 'content-locked'}`}
-                onClick={() => navigate(item.screen)}
-                aria-label={accessible ? item.title : `${item.title} · Premium zaključano`}
-              >
-                <span className="menu-icon">{item.icon}</span>
-                <span><strong>{item.title}</strong><small>{accessible ? item.subtitle : 'Premium sadržaj'}</small></span>
-                <b aria-hidden="true">{accessible ? '›' : '🔒'}</b>
+    if (screen === 'home') {
+      const completed = profile.completedLearningPaths;
+      const adventureProgress = getAdventureProgress(completed);
+      const nextLevel = adventureWorlds.flatMap((world) => world.levels).find((level) => !completed.includes(level.id));
+      const nextWorld = nextLevel && adventureWorlds.find((world) => world.levels.some((level) => level.id === nextLevel.id));
+
+      return (
+        <div className="game-home">
+          <Header title={`Zdravo, ${profile.name}!`} />
+          <main className="game-home-content">
+            <section className="game-home-hero">
+              <div className="game-home-copy">
+                <span className="eyebrow">SLOVOLOV · TVOJ SVET ZA IGRU I UČENJE</span>
+                <h2>Svaka reč<br />je nova avantura!</h2>
+                <p>Uči, istražuj i skupljaj zvezdice sa Sovicom.</p>
+                <button className="game-home-primary" onClick={() => nextLevel ? openAdventureLevel(nextLevel) : navigate('adventure')}>
+                  {nextLevel ? 'Nastavi avanturu' : 'Istraži avanturu'} <span className="inline-arrow"><ArrowIcon /></span>
+                </button>
+              </div>
+              <div className="game-home-mascot" aria-label="Sovica, tvoj vodič kroz Slovolov" role="img">
+                <span className="mascot-sparkle sparkle-one">✦</span>
+                <span className="mascot-sparkle sparkle-two">✧</span>
+                <img className="mascot-owl" src={OWL_MASCOT_SRC} alt="" />
+                <span className="mascot-speech">Hajde da se igramo!</span>
+              </div>
+              <div className="game-home-cloud cloud-one" aria-hidden="true" />
+              <div className="game-home-cloud cloud-two" aria-hidden="true" />
+            </section>
+
+            <section className="game-home-discovery" aria-label="Uči, čitaj i maštaj" data-testid="home-learning-grid">
+              <div className="game-home-section-heading"><div><small>SOVICA JE SPREMILA</small><h2>Šta ćemo danas?</h2></div></div>
+              <div className="game-discovery-grid">
+                {(['numbers', 'reading', 'fairy-tales', 'creative'] as const).map((screen) => {
+                  const item = menus.find((entry) => entry.screen === screen)!;
+                  const description = screen === 'numbers'
+                    ? `${numberLessons.length} brojeva · slušaj i broji`
+                    : screen === 'reading'
+                      ? `${readingStories.length} kratkih priča · slogovi i reči`
+                      : screen === 'fairy-tales'
+                        ? `${fairyTales.filter((story) => story.age === fairyTaleAges[0]).length} naslova · 2 uzrasta`
+                        : 'Izmisli junaka i svoju priču';
+                  const accessible = canAccessFeature(screen, familyUnlocked);
+                  return (
+                    <button
+                      key={screen}
+                      className={`game-discovery-card discovery-${screen} ${accessible ? '' : 'content-locked'}`}
+                      onClick={() => navigate(screen)}
+                      aria-label={accessible ? `${item.title}. ${description}` : `${item.title} · Premium zaključano`}
+                    >
+                      <span className="discovery-icon" aria-hidden="true">{item.icon}</span>
+                      <span className="discovery-copy"><strong>{item.title}</strong><small>{accessible ? description : '🔒 Premium sadržaj'}</small></span>
+                      <span className="discovery-arrow" aria-hidden="true"><ArrowIcon /></span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="game-home-spotlight" aria-label="Preporučene igre">
+              <button className="game-home-daily" onClick={() => navigate('daily')}>
+                <span className="spotlight-art daily-art" aria-hidden="true">🌞</span>
+                <span><small>KRATKA IGRA ZA DANAS</small><strong>Dnevni izazov</strong><em>Tri zadatka, tri zvezdice</em></span>
+                <b aria-hidden="true">›</b>
               </button>
-            );
-          })}
-        </main>
-        <button className="settings-fab" onClick={() => navigate('settings')} aria-label="Podešavanja">⚙️</button>
-      </>
-    );
+              <button className="game-home-smart" onClick={() => navigate('adaptive')}>
+                <span className="spotlight-art smart-art" aria-hidden="true">🪄</span>
+                <span><small>BAŠ PO TVOJOJ MERI</small><strong>Moja lekcija</strong><em>Ponovi i nauči nešto novo</em></span>
+                <b aria-hidden="true">›</b>
+              </button>
+            </section>
+
+            <section className="game-home-progress" aria-label="Tvoj napredak u avanturi">
+              <div className="game-home-progress-heading">
+                <span className="game-home-progress-icon">🗺️</span>
+                <div><small>TVOJ VELIKI PUT</small><strong>{adventureProgress.completed} od {adventureProgress.total} nivoa</strong></div>
+                <b>{adventureProgress.percent}%</b>
+              </div>
+              <div className="game-home-progress-track"><span style={{ width: `${adventureProgress.percent}%` }} /></div>
+              <p>{nextWorld ? `Sledeće: ${nextWorld.title} · ${nextLevel?.title}` : 'Svaka čast! Istražio/la si ceo Slovolov svet.'}</p>
+            </section>
+
+            <section className="game-home-worlds">
+              <div className="game-home-section-heading"><div><small>IZABERI GDE ĆEMO DANAS</small><h2>Slovolov svet</h2></div><button onClick={() => navigate('adventure')}>Cela mapa <span className="inline-arrow"><ArrowIcon /></span></button></div>
+              <div className="game-world-strip">
+                {adventureWorlds.map((world, index) => {
+                  const worldDone = world.levels.filter((level) => completed.includes(level.id)).length;
+                  const firstOpenLevel = world.levels.find((level) => !completed.includes(level.id));
+                  return (
+                    <button className={`game-world-card world-card-${index + 1}`} key={world.id} onClick={() => navigate('adventure')} style={{ '--world-color': world.color } as React.CSSProperties}>
+                      <span className="game-world-card-art" aria-hidden="true">{['🌳', '📚', '🌼', '⛰️', '🎨', '🌌'][index]}</span>
+                      <span className="game-world-card-copy"><small>OBLAST {index + 1} · {worldDone}/6</small><strong>{world.title}</strong><em>{firstOpenLevel?.title ?? 'Svi nivoi završeni'} <span className="inline-arrow"><ArrowIcon /></span></em></span>
+                      <span className="game-world-card-dots" aria-hidden="true">{world.levels.map((level) => <i key={level.id} className={completed.includes(level.id) ? 'done' : ''} />)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="game-home-activities">
+              <div className="game-home-section-heading"><div><small>JOŠ NAČINA ZA IGRU</small><h2>Mala igrališta</h2></div><button onClick={() => navigate('games')}>Igre <span className="inline-arrow"><ArrowIcon /></span></button></div>
+              <div className="game-activity-strip">
+                {menus.filter((item) => ['learn', 'write', 'coloring', 'quiz', 'progress'].includes(item.screen)).map((item) => {
+                  const accessible = canAccessFeature(item.screen, familyUnlocked);
+                  return (
+                    <button key={item.screen} className={`game-activity-card menu-${item.screen} ${accessible ? '' : 'content-locked'}`} onClick={() => navigate(item.screen)} aria-label={accessible ? item.title : `${item.title} · Premium zaključano`}>
+                      <span className="menu-icon">{item.icon}</span><strong>{item.title}</strong><small>{accessible ? item.subtitle : '🔒 Premium sadržaj'}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </main>
+          <button className="settings-fab" onClick={() => navigate('settings')} aria-label="Podešavanja">⚙️</button>
+        </div>
+      );
+    }
 
     if (screen === 'learn') return (
       <>
@@ -291,11 +404,31 @@ export function App() {
             {displayLetter(selected, script)} <small>{script === 'cyrillic' ? selected.lower : displayLetter(selected, script).toLowerCase()}</small>
           </button>
           <section className="picture-challenge" aria-live="polite">
-            <h2>Pronađi sliku za reč {script === 'cyrillic' ? selected.words[0].word : transliterate(selected.words[0].word)}</h2>
+            <div className="picture-game-scene">
+              <div className="picture-game-title-card">
+                <small>SLIKOVNI LOV</small>
+                <h2>Pronađi sliku za reč {script === 'cyrillic' ? selected.words[0].word : transliterate(selected.words[0].word)}</h2>
+                <p>Koji crtež počinje ovim slovom?</p>
+              </div>
+              {(() => {
+                const animation = getLetterAnimation(selected.upper);
+                return (
+                  <div className={`letter-lesson-animation motion-${animation.motion}`} aria-label={animation.label} data-testid="letter-animation">
+                    <WordIllustration word={selected.words[0]} />
+                  </div>
+                );
+              })()}
+              <img className="picture-game-owl" src={OWL_MASCOT_SRC} alt="" aria-hidden="true" />
+              <button className="picture-game-listen" aria-label={`Poslušaj reč ${selected.words[0].word}`} onClick={() => void speak(`${selected.upper} kao ${selected.words[0].word}`, sound)}>
+                <span aria-hidden="true">🔊</span><small>Poslušaj</small>
+              </button>
+            </div>
+            <p className="picture-options-label">Izaberi jednu sličicu</p>
             <div className="picture-options">
               {seededChoices(selected.words, letters.indexOf(selected))
                 .map((word) => (
                   <button
+                    className="picture-choice-card"
                     key={word.word}
                     aria-label={`Odaberi sliku: ${word.word}`}
                     onClick={() => {
@@ -336,11 +469,11 @@ export function App() {
 
     if (screen === 'write') return (
       <div className="single-screen" data-testid="practice-screen">
-        <Header title={`Pišemo ${displayLetter(selected, script)}`} onBack={() => navigate('home')} />
+        <Header title={`Pišemo ${visibleLetter(selected, letterCase)}`} onBack={() => navigate('home')} />
         <main className="practice">
           <div className="case-switch" aria-label="Izbor veličine slova">
-            <button className={letterCase === 'upper' ? 'active' : ''} onClick={() => { setLetterCase('upper'); setTraceMessage('Prati celo svetlo slovo prstom.'); }}>Veliko slovo</button>
-            <button className={letterCase === 'lower' ? 'active' : ''} onClick={() => { setLetterCase('lower'); setTraceMessage('Prati celo svetlo slovo prstom.'); }}>Malo slovo</button>
+            <button className={letterCase === 'upper' ? 'active' : ''} aria-pressed={letterCase === 'upper'} onClick={() => { setLetterCase('upper'); setTraceMessage(`Prati veliko slovo ${visibleLetter(selected, 'upper')} od vrha do dna.`); }}>Veliko slovo</button>
+            <button className={letterCase === 'lower' ? 'active' : ''} aria-pressed={letterCase === 'lower'} onClick={() => { setLetterCase('lower'); setTraceMessage(`Prati malo slovo ${visibleLetter(selected, 'lower')} od vrha do dna.`); }}>Malo slovo</button>
           </div>
           <div className="practice-letters">
             {letters.map((letter, index) => (
@@ -358,6 +491,8 @@ export function App() {
           <TracePad
             key={`${selected.upper}-${letterCase}-${script}`}
             letter={visibleLetter(selected, letterCase)}
+            letterCase={letterCase}
+            script={script}
             difficulty={profile.difficulty}
             onAttempt={(success) => {
               recordSkillAttempt(`writing:${selected.upper}:${letterCase}`, success);
@@ -372,50 +507,39 @@ export function App() {
 
     if (screen === 'coloring') return (
       <div className="single-screen">
-        <Header title={`Bojanka ${displayLetter(selected, script)}`} onBack={() => navigate('home')} />
+        <Header title="Bojanka" onBack={() => navigate('home')} />
         <main className="coloring">
-          <div className="practice-letters">
-            {letters.map((letter, index) => (
-              <button
-                key={letter.upper}
-                className={`${letter === selected ? 'active' : ''} ${canAccessLetter(index, familyUnlocked) ? '' : 'content-locked'}`}
-                onClick={() => {
-                  if (!canAccessLetter(index, familyUnlocked)) {
-                    navigate('settings');
-                    return;
-                  }
-                  setSelected(letter);
-                  setColoringMessage('');
-                }}
-              >
-                {displayLetter(letter, script)}
-                {!canAccessLetter(index, familyUnlocked) && <small aria-hidden="true">🔒</small>}
-              </button>
-            ))}
+          <div className="coloring-object-nav" aria-label="Izbor predmeta za bojenje">
+            <button className="secondary" aria-label="Prethodni predmet" onClick={() => {
+              const next = (coloringIndex - 1 + coloringPages.length) % coloringPages.length;
+              if (canAccessLetter(next, familyUnlocked)) setColoringIndex(next);
+              else navigate('settings');
+            }}>←</button>
+            <strong>Predmet {coloringIndex + 1} od {coloringPages.length}</strong>
+            <button className="secondary" aria-label="Sledeći predmet" onClick={() => {
+              const next = (coloringIndex + 1) % coloringPages.length;
+              if (canAccessLetter(next, familyUnlocked)) setColoringIndex(next);
+              else navigate('settings');
+            }}>→</button>
           </div>
           <ColoringPad
-            key={`coloring-${selected.upper}-${script}`}
-            letter={displayLetter(selected, script)}
-            illustration={selected.words[0].emoji}
-            illustrationImage={selected.words[0].image}
+            key={`coloring-${coloringPages[coloringIndex].id}`}
+            letter=""
+            objectName={script === 'latin' ? transliterate(coloringPages[coloringIndex].word) : coloringPages[coloringIndex].word}
+            requireDrawing
+            storageKey={`object-${coloringPages[coloringIndex].id}`}
+            illustration={coloringPages[coloringIndex].image}
             onSaved={() => {
-              const saved = selected;
-              const nextIndex = (letters.indexOf(saved) + 1) % letters.length;
-              const next = letters[nextIndex];
-              if (canAccessLetter(nextIndex, familyUnlocked)) {
-                setColoringMessage(`Crtež za ${displayLetter(saved, script)} je sačuvan. Sledeće slovo je ${displayLetter(next, script)}.`);
-                setSelected(next);
-              } else {
-                setColoringMessage(`Crtež za ${displayLetter(saved, script)} je sačuvan. Završio si besplatni deo bojanke.`);
-              }
+              void speak(`Bravo! Obojao si ${coloringPages[coloringIndex].word.toLocaleLowerCase('sr-RS')}. Reč je ${coloringPages[coloringIndex].word}.`, sound);
             }}
           />
-          <p className="coloring-feedback" role="status">{coloringMessage}</p>
+          <p className="coloring-feedback">Oboji {(script === 'latin' ? transliterate(coloringPages[coloringIndex].word) : coloringPages[coloringIndex].word).toLocaleLowerCase('sr-RS')} i nauči novu reč!</p>
         </main>
       </div>
     );
 
-    if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} />;
+    if (screen === 'adventure') return <AdventureMap onBack={() => navigate('home')} onOpen={openAdventureLevel} onPlayTrail={(trail) => { setActiveTrail(trail); navigate('trail'); }} />;
+    if (screen === 'trail' && activeTrail) return <TrailGame trail={activeTrail} onBack={() => navigate('adventure')} onComplete={() => { setActiveTrail(null); navigate('adventure'); }} sound={sound} script={script} />;
     if (screen === 'voice') return <VoiceQuest level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
     if (screen === 'family-missions') return <FamilyMissions level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} />;
     if (screen === 'logic') return <LogicLab level={activeAdventureLevel} onBack={() => navigate('adventure')} onComplete={finishAdventureLevel} sound={sound} />;
@@ -431,10 +555,11 @@ export function App() {
     if (screen === 'creative') return <CreativeStudio onBack={() => activeAdventureLevel ? navigate('adventure') : navigate('home')} sound={sound} onLevelComplete={activeAdventureLevel ? finishAdventureLevel : undefined} adventureDifficulty={activeAdventureLevel?.difficulty} />;
     if (screen === 'progress') return <Progress onBack={() => navigate('home')} sound={sound} />;
     return <Settings onBack={() => navigate('home')} />;
-  }, [activeAdventureLevel, celebrate, coloringMessage, familyUnlocked, finishAdventureLevel, letterCase, navigate, openAdventureLevel, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
+  }, [activeAdventureLevel, celebrate, coloringIndex, familyUnlocked, finishAdventureLevel, letterCase, navigate, openAdventureLevel, profile, recordSkillAttempt, screen, script, selected, sound, traceMessage]);
 
   const appClasses = [
     'app',
+    'game-world',
     darkMode ? 'dark' : '',
     accessibility.reducedMotion ? 'reduced-motion' : '',
     accessibility.highContrast ? 'high-contrast' : '',
@@ -447,57 +572,194 @@ export function App() {
 
 function AdventureMap({
   onBack,
-  onOpen
+  onOpen,
+  onPlayTrail
 }: {
   onBack: () => void;
   onOpen: (level: AdventureLevel) => void;
+  onPlayTrail: (trail: Trail) => void;
 }) {
   const completed = useProgressStore((state) => state.profile.completedLearningPaths);
+  const completedGames = useProgressStore((state) => state.profile.completedGames);
   const progress = getAdventureProgress(completed);
+  const levels = adventureWorlds.flatMap((world) => world.levels);
+  const nextLevel = levels.find((level) => !completed.includes(level.id));
+  const levelPositions = [
+    { x: '16%', y: '37%' }, { x: '50%', y: '31%' }, { x: '84%', y: '37%' },
+    { x: '84%', y: '75%' }, { x: '50%', y: '81%' }, { x: '16%', y: '75%' }
+  ];
+  const regionArt = ['🌳', '📚', '🌼', '⛰️', '🎨', '🌌'];
+  const regionY = ['0%', '20%', '40%', '60%', '80%', '100%'];
   return (
     <div className="adventure-screen">
       <Header title="Moja avantura" onBack={onBack} />
       <main className="adventure-map">
-        <section className="adventure-summary">
-          <div>
+        <section className="map-journey-banner">
+          <div className="map-journey-copy">
             <small>VELIKA SLOVOLOV AVANTURA</small>
-            <h2>{progress.completed}/{progress.total} nivoa</h2>
-            <p>Svaki sledeći nivo donosi malo teži zadatak.</p>
+            <h2>Hajde, staza te zove!</h2>
+            <p>{progress.completed} od {progress.total} nivoa · {progress.percent}% istraženo</p>
+            {nextLevel && <button onClick={() => onOpen(nextLevel)}>Nastavi: {nextLevel.title} <span className="inline-arrow"><ArrowIcon /></span></button>}
           </div>
-          <div className="adventure-ring" style={{ '--progress': `${progress.percent * 3.6}deg` } as React.CSSProperties}>
-            <strong>{progress.percent}%</strong>
+          <div className="map-journey-ring" style={{ '--progress': `${progress.percent * 3.6}deg` } as React.CSSProperties}><strong>{progress.percent}%</strong></div>
+          <img className="map-banner-mascot" src={OWL_MASCOT_SRC} alt="" aria-hidden="true" />
+        </section>
+        <div className="map-key" aria-label="Oznake nivoa">
+          <span><i className="key-open">●</i> Tvoj sledeći nivo</span>
+          <span><i className="key-done">✓</i> Završeno</span>
+          <span><i className="key-locked">🔒</i> Još malo pa stižeš</span>
+        </div>
+        <div className="adventure-worlds new-adventure-map">
+          {adventureWorlds.map((world, worldIndex) => {
+            const worldDone = world.levels.filter((level) => completed.includes(level.id)).length;
+            return (
+              <section
+                className={`adventure-world map-region map-region-${world.id}`}
+                key={world.id}
+                style={{ '--world-color': world.color, '--map-position': regionY[worldIndex] } as React.CSSProperties}
+              >
+                <div className="map-region-backdrop" style={{ backgroundPosition: `center ${regionY[worldIndex]}` }} aria-hidden="true" />
+                <div className="map-region-shade" aria-hidden="true" />
+                <header className="map-region-heading">
+                  <span className="map-region-icon" aria-hidden="true">{regionArt[worldIndex]}</span>
+                  <div><small>OBLAST {worldIndex + 1} <i>·</i> {worldDone}/6 ZVEZDICA</small><h3>{world.title}</h3><p>{world.description}</p></div>
+                  <span className="map-region-trophy" aria-hidden="true">{worldDone === 6 ? '🏆' : '✨'}</span>
+                </header>
+                <svg className="map-region-path" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M16 37 C25 20 39 25 50 31 S75 51 84 37 C93 54 76 70 84 75 S62 91 50 81 S26 61 16 75" />
+                </svg>
+                <div className="map-region-levels">
+                  {world.levels.map((level, levelIndex) => {
+                    const done = completed.includes(level.id);
+                    const unlocked = done || isAdventureLevelUnlocked(level, completed);
+                    const current = unlocked && !done && level.id === nextLevel?.id;
+                    const position = levelPositions[levelIndex];
+                    return (
+                      <button
+                        key={level.id}
+                        className={`map-level-node ${done ? 'done' : ''} ${current ? 'current' : ''} ${unlocked ? 'unlocked' : 'locked'}`}
+                        style={{ '--node-x': position.x, '--node-y': position.y } as React.CSSProperties}
+                        disabled={!unlocked}
+                        onClick={() => onOpen(level)}
+                        aria-label={`Nivo ${level.order}: ${level.title}${done ? ', završeno' : current ? ', sledeći nivo' : unlocked ? '' : ', zaključano'}`}
+                      >
+                        <span className="map-node-face">{done ? '✓' : current ? '🦉' : unlocked ? level.icon : '🔒'}</span>
+                        <strong>{level.order}</strong>
+                        <small>{level.title}</small>
+                        {current && <i className="map-node-sparkle" aria-hidden="true">✦</i>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="map-region-footer"><span>⭐ {worldDone} / 6</span><span>{worldDone === 6 ? 'Oblast završena!' : 'Pronađi sledeći trag'}</span></div>
+              </section>
+            );
+          })}
+        </div>
+        <section className="map-bonus-trails">
+          <div><small>IGRA ZA PREDah</small><h2>Bonus staze</h2><p>Sakupi simbole i otkrij šta se krije na kraju!</p></div>
+          <div className="map-bonus-grid">
+            {trails.map((trail, index) => {
+              const unlocked = isTrailUnlocked(index, completedGames);
+              const done = completedGames.includes(trail.id);
+              return <button key={trail.id} disabled={!unlocked} className={`map-bonus-node ${done ? 'done' : ''}`} onClick={() => onPlayTrail(trail)} aria-label={`${trail.title}${done ? ', završeno' : unlocked ? '' : ', zaključano'}`}>
+                <span>{unlocked ? trail.scene : '🔒'}</span><strong>{trail.title}</strong><small>{done ? 'Završeno ✓' : trail.subtitle}</small>
+              </button>;
+            })}
           </div>
         </section>
-        <div className="adventure-worlds">
-          {adventureWorlds.map((world) => (
-            <section className={`adventure-world adventure-world-${world.id}`} key={world.id} style={{ '--world-color': world.color } as React.CSSProperties}>
-              <div className="world-scenery" aria-hidden="true"><span>{world.id === 'voice' ? '🌲' : world.id === 'reading' ? '📚' : world.id === 'family' ? '🌻' : world.id === 'logic' ? '🏔️' : world.id === 'creative' ? '🎨' : '🌌'}</span><i>✨</i><i>{world.levels.at(-1)?.icon}</i></div>
-              <header><div><small>OBLAST {Math.ceil(world.levels[0].order / 6)}</small><h3>{world.title}</h3><p>{world.description}</p></div><span>{world.levels.at(-1)?.icon}</span></header>
-              <div className="adventure-levels">
-                {world.levels.map((level) => {
-                  const done = completed.includes(level.id);
-                  const unlocked = done || isAdventureLevelUnlocked(level, completed);
-                  return (
-                    <button
-                      key={level.id}
-                      className={`${done ? 'done' : ''} ${unlocked ? '' : 'locked'}`}
-                      disabled={!unlocked}
-                      onClick={() => onOpen(level)}
-                      aria-label={`Nivo ${level.order}: ${level.title}${done ? ', završeno' : unlocked ? '' : ', zaključano'}`}
-                    >
-                      <span>{done ? '✓' : unlocked ? level.icon : '🔒'}</span>
-                      <strong>{level.order}</strong>
-                      <small>{level.title}</small>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
-        </div>
       </main>
     </div>
   );
+}
+
+function TrailGame({
+  trail,
+  onBack,
+  onComplete,
+  sound,
+  script
+}: {
+  trail: Trail;
+  onBack: () => void;
+  onComplete: () => void;
+  sound: boolean;
+  script: 'cyrillic' | 'latin';
+}) {
+  const visibleToken = (token: string) => script === 'latin' ? transliterate(token) : token;
+  const [step, setStep] = useState(0);
+  const [message, setMessage] = useState(`Pronađi ${visibleToken(trail.targets[0])} i dodirni ga.`);
+  const [finished, setFinished] = useState(false);
+  const [collectingToken, setCollectingToken] = useState<string | null>(null);
+  const [incorrectToken, setIncorrectToken] = useState<string | null>(null);
+  const collectTimer = useRef<number | undefined>(undefined);
+  const choices = finished ? [] : trailChoices(trail, step);
+  const completeGame = useProgressStore((state) => state.completeGame);
+  const learnLetter = useProgressStore((state) => state.learnLetter);
+  const learnNumber = useProgressStore((state) => state.learnNumber);
+  const target = trail.targets[step];
+
+  useEffect(() => () => window.clearTimeout(collectTimer.current), []);
+
+  const selectToken = (token: string) => {
+    if (finished || collectingToken) return;
+    if (token !== target) {
+      setIncorrectToken(token);
+      setMessage('Još jednom! Pronađi simbol koji Sovica traži.');
+      void speak('Pokušaj ponovo.', sound);
+      return;
+    }
+    setIncorrectToken(null);
+    setCollectingToken(token);
+    collectTimer.current = window.setTimeout(() => {
+      setCollectingToken(null);
+      const asNumber = Number(token);
+      if (Number.isInteger(asNumber) && token.trim() !== '') learnNumber(asNumber);
+      else learnLetter(token);
+      if (step === trail.targets.length - 1) {
+        completeGame(trail.id);
+        setStep(trail.targets.length);
+        setFinished(true);
+        setMessage('Bravo! Stigao si do cilja i osvojio dve zvezdice.');
+        void speak('Bravo! Stigao si do cilja!', sound);
+        return;
+      }
+      const nextStep = step + 1;
+      setStep(nextStep);
+      setMessage(`Bravo! Sada pronađi ${visibleToken(trail.targets[nextStep])}.`);
+      void speak('Bravo! Nastavi stazom.', sound);
+    }, 520);
+  };
+
+  return <div className={`trail-game trail-game-${trail.id.replace('trail-', '')}`} data-testid="trail-game">
+    <Header title={trail.title} onBack={onBack} />
+    <main className="trail-play-area">
+      <section className="trail-game-card">
+        <div className="trail-scenery" aria-hidden="true">
+          <span className="trail-landmark">{trail.scene}</span>
+          <i>⭐</i><i>✨</i>
+          <span className="trail-cloud trail-cloud-one">☁️</span>
+          <span className="trail-cloud trail-cloud-two">☁️</span>
+          <img className="trail-owl" src={OWL_MASCOT_SRC} alt="" />
+        </div>
+        <small>STAZA {finished ? trail.targets.length : step + 1}/{trail.targets.length}</small>
+        <div className="trail-task-prompt">
+          <h2>{finished ? 'Stigao si do cilja!' : `Sakupi: ${visibleToken(target)}`}</h2>
+          {!finished && <button className="trail-repeat" onClick={() => void speak(visibleToken(target), sound)} aria-label={`Poslušaj slovo ${visibleToken(target)}`}>🔊</button>}
+        </div>
+        <div className="trail-route" aria-label={`Putanja kroz ${trail.title}`}>
+          <span className="trail-route-line" />
+          {trail.targets.map((item, index) => <i key={`${item}-${index}`} className={index < step ? 'passed' : index === step ? 'current' : ''}>{index < step ? '✓' : visibleToken(item)}</i>)}
+          <b style={{ left: `${Math.min(92, 8 + step * 42)}%` }}><img src={OWL_MASCOT_SRC} alt="" /></b>
+        </div>
+        <div className="trail-progress" aria-label={`Napredak ${step} od ${trail.targets.length}`}><span style={{ width: `${(step / trail.targets.length) * 100}%` }} /></div>
+        {!finished ? <div className="trail-tokens" aria-label="Simboli na stazi">
+          {choices.map((token) => <button key={token} disabled={Boolean(collectingToken)} className={`${collectingToken === token ? 'collecting' : ''} ${incorrectToken === token ? 'incorrect' : ''}`} onClick={() => selectToken(token)} aria-label={`Sakupi ${visibleToken(token)}`}>{visibleToken(token)}</button>)}
+        </div> : <button className="primary trail-finish" onClick={onComplete}>Nastavi na mapu 🗺️</button>}
+        <p className={collectingToken ? 'trail-message cheering' : 'trail-message'} role="status">{collectingToken ? 'Sovica nosi simbol na stazu! ✨' : message}</p>
+      </section>
+    </main>
+  </div>;
 }
 
 function VoiceQuest({
@@ -528,7 +790,6 @@ function VoiceQuest({
   const task = tasks[Math.min(tasks.length - 1, difficulty - 1)];
   const [answer, setAnswer] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
-  const [checkedCorrect, setCheckedCorrect] = useState(false);
   const [message, setMessage] = useState('Послушај Совицу и реши задатак.');
   const normalized = (value: string) => transliterate(value).toLocaleUpperCase('sr').replace(/[.!?]/g, '').replace(/\s+/g, ' ').trim();
   const assembled = selected.join(task.kind === 'sentences' ? '|' : ' ');
@@ -537,20 +798,14 @@ function VoiceQuest({
     : normalized(assembled.replace(/\|/g, '|')) === normalized(task.target.replace(/\|/g, '|'));
 
   useEffect(() => {
-    setAnswer('');
-    setSelected([]);
-    setCheckedCorrect(false);
-    setMessage('Послушај Совицу и реши задатак.');
     void speakRecordedPrompt(task.label, adventureLiteracyAudio(difficulty), sound);
   }, [difficulty, sound, task.label]);
 
   const check = () => {
     if (!correct) {
-      setCheckedCorrect(false);
       setMessage('Покушај поново. Погледај редослед и пажљиво напиши.');
       return;
     }
-    setCheckedCorrect(true);
     setMessage('Браво! Тачно си написао и освојио звездицу. ⭐');
     void speak('Bravo! Tačan odgovor!', sound);
   };
@@ -560,7 +815,7 @@ function VoiceQuest({
       <Header title="Piši sa Sovicom" onBack={onBack} />
       <main className="voice-quest">
         <section className="owl-coach">
-          <span aria-hidden="true">🦉</span>
+          <img src={OWL_MASCOT_SRC} alt="" aria-hidden="true" />
           <div><small>NIVO {level?.order ?? 1}</small><h2>{level?.title ?? 'Vežba pisanja'}</h2><p>Sovica čita zadatak, a ti pišeš ili slažeš reči.</p></div>
         </section>
         <button
@@ -569,37 +824,27 @@ function VoiceQuest({
         >
           🔊 Poslušaj Sovicu
         </button>
-        <div className={`voice-phrase ${task.kind === 'sentences' ? 'voice-phrase-story' : ''}`}>
-          <small>{task.label}</small>
-          <strong>{task.kind === 'input' ? task.hint : selected.join(task.kind === 'sentences' ? ' · ' : ' ') || 'ДОДИРНИ РЕЧИ'}</strong>
-          {task.kind !== 'input' && <span>Сложено: {selected.length}/{task.tiles.length}</span>}
-        </div>
+        <div className="voice-phrase"><small>{task.label}</small><strong>{task.kind === 'input' ? task.hint : selected.join(' ') || 'ДОДИРНИ РЕЧИ'}</strong></div>
         {task.kind === 'input' ? (
           <input
             className="literacy-input"
             aria-label={task.label}
             value={answer}
-            onChange={(event) => { setAnswer(event.target.value); setCheckedCorrect(false); }}
+            onChange={(event) => setAnswer(event.target.value)}
             autoCapitalize="characters"
             autoComplete="off"
           />
         ) : (
-          <div className={`literacy-tiles ${task.kind === 'sentences' ? 'literacy-tiles-story' : ''}`}>
+          <div className="literacy-tiles">
             {task.tiles.map((tile) => (
-              <button key={tile} disabled={selected.includes(tile)} onClick={() => {
-                setSelected((current) => [...current, tile]);
-                setCheckedCorrect(false);
-              }}>{tile}</button>
+              <button key={tile} disabled={selected.includes(tile)} onClick={() => setSelected((current) => [...current, tile])}>{tile}</button>
             ))}
-            {selected.length > 0 && <button className="literacy-reset" onClick={() => {
-              setSelected([]);
-              setCheckedCorrect(false);
-            }}>Почни поново</button>}
+            {selected.length > 0 && <button onClick={() => setSelected([])}>Почни поново</button>}
           </div>
         )}
         <p role="status" aria-live="off">{message}</p>
         <button className="secondary" onClick={check}>Провери</button>
-        {checkedCorrect && <button className="primary adventure-complete-action" onClick={onComplete}>Означи као урађено ⭐</button>}
+        {correct && message.startsWith('Браво') && <button className="primary" onClick={onComplete}>Настави авантуру ⭐</button>}
       </main>
     </div>
   );
@@ -718,7 +963,6 @@ function CultureExplorer({
 
 function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const profile = useProgressStore((state) => state.profile);
-  const script = useProgressStore((state) => state.script);
   const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const completeLearningPath = useProgressStore((state) => state.completeLearningPath);
@@ -728,40 +972,22 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
     profile.skillStats
   );
   const recommended = letters.find((letter) => letter.upper === recommendedUpper) ?? letters[0];
-  const recommendedIndex = letters.indexOf(recommended);
   const [step, setStep] = useState(0);
-  const [heardTarget, setHeardTarget] = useState(false);
   const [message, setMessage] = useState('3 kratka koraka · oko 5 minuta');
   const lessonId = `adaptive-${new Date().toISOString().slice(0, 10)}-${recommended.upper}`;
-  const displayedLetter = script === 'latin' ? transliterate(recommended.upper) : recommended.upper;
-  const displayWord = (word: LetterWord) => script === 'latin' ? transliterate(word.word) : word.word;
-  const example = recommended.words[0];
-  const wordChoices = seededChoices([
-    example,
-    letters[(recommendedIndex + 7) % letters.length].words[0],
-    letters[(recommendedIndex + 13) % letters.length].words[0]
-  ], recommendedIndex);
-  const letterChoices = seededChoices([
-    recommended.upper,
-    letters[(recommendedIndex + 4) % letters.length].upper,
-    letters[(recommendedIndex + 9) % letters.length].upper
-  ], recommendedIndex);
-  const wordStartChoices = seededChoices([
-    recommended.upper,
-    letters[(recommendedIndex + 6) % letters.length].upper,
-    letters[(recommendedIndex + 12) % letters.length].upper
-  ], recommendedIndex + 2);
-  const wordTail = Array.from(example.word).slice(1).join('');
+  const lessonSyllable = 'АЕИОУ'.includes(recommended.upper) ? `М${recommended.upper}` : `${recommended.upper}А`;
   const tasks = [
-    { title: 'Pogodi slovo koje čuješ', icon: '🔊' },
-    { title: `Pronađi sliku za slovo ${displayedLetter}`, icon: example.emoji },
-    { title: `Dopuni reč _${script === 'latin' ? transliterate(wordTail) : wordTail}`, icon: '🧩' }
+    { title: `Poslušaj slovo ${recommended.upper}`, icon: '🔊' },
+    { title: `Pronađi ${recommended.words[0].word}`, icon: recommended.words[0].emoji },
+    { title: `Pročitaj slog ${lessonSyllable}`, icon: '📖' }
   ];
 
-  const completeStep = (index: number, phrase: string) => {
+  const completeStep = (index: number) => {
     if (index !== step) return;
     recordSkillAttempt(`adaptive:${recommended.upper}:${index + 1}`, true);
-    void speak(phrase, sound);
+    if (index === 0) void speak(recommended.upper, sound);
+    if (index === 1) void speak(recommended.words[0].word, sound);
+    if (index === 2) void speak(lessonSyllable, sound);
     const nextStep = step + 1;
     setStep(nextStep);
     if (nextStep === tasks.length) {
@@ -773,17 +999,6 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
     }
   };
 
-  const answerStep = (index: number, correct: boolean, phrase: string) => {
-    if (index !== step) return;
-    if (!correct) {
-      recordSkillAttempt(`adaptive:${recommended.upper}:${index + 1}`, false);
-      setMessage('Nije to još to. Pogledaj pažljivo i pokušaj ponovo.');
-      void speak('Pokušaj ponovo.', sound);
-      return;
-    }
-    completeStep(index, phrase);
-  };
-
   return (
     <div className="single-screen">
       <Header title="Moja pametna lekcija" onBack={onBack} />
@@ -792,53 +1007,24 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
           <span>{recommended.words[0].emoji}</span>
           <div>
             <small>PREPORUKA ZA DANAS</small>
-            <h2>Danas ponavljamo slovo {displayedLetter}</h2>
+            <h2>Danas ponavljamo slovo {recommended.upper}</h2>
             <p>{profile.skillStats[`letter:${recommended.upper}`] ? 'Ovo slovo vežbamo još malo.' : 'Ovo je tvoje sledeće novo slovo.'}</p>
           </div>
         </section>
-        <ol className="adaptive-steps" aria-label="Koraci moje lekcije">
+        <div className="adaptive-steps">
           {tasks.map((task, index) => (
-            <li key={task.title} className={`${index < step ? 'done' : ''}${index === step ? ' active' : ''}`}>
-              <div className="adaptive-step-title">
-                <span>{index < step ? '✓' : task.icon}</span>
-                <div><strong>Korak {index + 1}: {task.title}</strong><small>{index < step ? 'Završeno' : index === step ? 'Reši zadatak' : 'Sledeći korak'}</small></div>
-              </div>
-              {index === step && index === 0 && (
-                <>
-                  <button className="adaptive-listen" onClick={() => { setHeardTarget(true); void speak(recommended.upper, sound); }}>
-                    🔊 Pusti glas
-                  </button>
-                  <div className="adaptive-choices syllables" aria-label="Izaberi slovo koje čuješ">
-                    {letterChoices.map((letter) => (
-                      <button key={letter} disabled={!heardTarget} onClick={() => answerStep(0, letter === recommended.upper, letter)}>
-                        {script === 'latin' ? transliterate(letter) : letter}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {index === step && index === 1 && (
-                <div className="adaptive-choices" aria-label={`Izaberi sliku za slovo ${displayedLetter}`}>
-                  {wordChoices.map((word) => (
-                    <button className="adaptive-picture-choice" key={word.word} onClick={() => answerStep(1, word.word === example.word, word.word)}>
-                      <span className="adaptive-picture-art"><WordIllustration word={word} /></span>
-                      <strong>{displayWord(word)}</strong>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {index === step && index === 2 && (
-                <div className="adaptive-choices syllables" aria-label={`Dopuni reč ${displayWord(example)}`}>
-                  {wordStartChoices.map((letter) => (
-                    <button key={letter} onClick={() => answerStep(2, letter === recommended.upper, `${letter}${wordTail}`)}>
-                      {script === 'latin' ? transliterate(letter) : letter}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </li>
+            <button
+              key={task.title}
+              className={`${index < step ? 'done' : ''}${index === step ? ' active' : ''}`}
+              disabled={index > step}
+              onClick={() => completeStep(index)}
+            >
+              <span>{index < step ? '✓' : task.icon}</span>
+              <strong>{task.title}</strong>
+              <small>{index < step ? 'Završeno' : index === step ? 'Dodirni da počneš' : 'Sledeći korak'}</small>
+            </button>
           ))}
-        </ol>
+        </div>
         <p className="adaptive-status" role="status">{message}</p>
       </main>
     </div>
@@ -849,106 +1035,91 @@ function DailyChallenge({ onBack, sound }: { onBack: () => void; sound: boolean 
   const dateKey = new Date().toISOString().slice(0, 10);
   const daySeed = Array.from(dateKey).reduce((sum, character) => sum + character.charCodeAt(0), 0);
   const script = useProgressStore((state) => state.script);
-  const [completed, setCompleted] = useState<number[]>([]);
-  const [message, setMessage] = useState('Reši tri mala zadatka i osvoji zvezdice.');
+  const displayText = (value: string) => script === 'latin' ? transliterate(value) : value;
+  const rhyme = rhymeRounds[daySeed % rhymeRounds.length];
   const completeDailyChallenge = useProgressStore((state) => state.completeDailyChallenge);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const alreadyCompleted = useProgressStore((state) => state.profile.completedDailyChallenges.includes(dateKey));
   const difficulty = useProgressStore((state) => state.profile.difficulty);
-  const rhyme = rhymeRounds[daySeed % rhymeRounds.length];
   const logicStart = difficulty === 'easy' ? 0 : difficulty === 'challenge' ? 4 : 2;
   const firstLogic = logicChallenges[(daySeed + logicStart) % logicChallenges.length];
   const secondLogic = logicChallenges[(daySeed + logicStart + 3) % logicChallenges.length];
-  const displayText = (value: string) => script === 'latin' ? transliterate(value) : value;
-  const rhymeExplanation = `${displayText(rhyme.prompt)} i ${displayText(rhyme.correct)} se završavaju sličnim glasom.`;
-  const playRhymePrompt = () => {
-    void speakRecordedPrompt(
-      rhyme.prompt,
-      readingRhymeAudio(rhyme.id, 'prompt'),
-      sound
-    );
-  };
-  const playLogicPrompt = (challenge: typeof firstLogic) => {
-    void speakRecordedPrompt(
-      challenge.prompt,
-      dailyLogicAudio(challenge.id),
-      sound
-    );
-  };
+  const challenges = [firstLogic, secondLogic];
+  const [completed, setCompleted] = useState<number[]>([]);
+  const [message, setMessage] = useState('Reši tri mala zadatka i osvoji zvezdice.');
+
+  const playRhymePrompt = () => void speakRecordedPrompt(rhyme.prompt, readingRhymeAudio(rhyme.id, 'prompt'), sound);
+  const playLogicPrompt = (challenge: typeof firstLogic) => void speakRecordedPrompt(challenge.prompt, dailyLogicAudio(challenge.id), sound);
 
   useEffect(() => {
-    void speakRecordedPrompt(
-      rhyme.prompt,
-      readingRhymeAudio(rhyme.id, 'prompt'),
-      sound
-    );
-  }, [rhyme.id, rhyme.prompt, sound]);
+    playRhymePrompt();
+  // A new daily seed changes the recorded prompt; avoid re-starting it on each render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rhyme.id, sound]);
 
-  const mark = (step: number, phrase: string) => {
-    setCompleted((current) => current.includes(step) ? current : [...current, step]);
-    recordSkillAttempt(`daily:${dateKey}:${step}`, true);
-    setMessage(step === 3 ? 'Sva tri odgovora su tačna! Preuzmi zvezdice.' : 'Bravo! Reši sledeći zadatak.');
-    const nextNarration = step === 1
-      ? { text: firstLogic.prompt, source: dailyLogicAudio(firstLogic.id) }
-      : step === 2
-        ? { text: secondLogic.prompt, source: dailyLogicAudio(secondLogic.id) }
-        : null;
-    void (async () => {
-      await speakAndWait(phrase, sound);
-      if (nextNarration) {
-        await speakRecordedPrompt(nextNarration.text, nextNarration.source, sound);
-      }
-    })();
-  };
-
-  const answer = (step: number, correct: boolean, phrase: string) => {
-    if (completed.includes(step) || (step > 1 && !completed.includes(step - 1))) return;
-    if (!correct) {
+  const answer = (step: number, choice: string, expected: string) => {
+    if (alreadyCompleted || completed.includes(step) || (step > 1 && !completed.includes(step - 1))) return;
+    if (choice !== expected) {
       recordSkillAttempt(`daily:${dateKey}:${step}`, false);
-      setMessage('Pokušaj ponovo. Nije svaki odgovor tačan.');
+      setMessage('Pokušaj ponovo — uporedi tragove pažljivo.');
       void speak('Pokušaj ponovo.', sound);
       return;
     }
-    mark(step, phrase);
+    setCompleted((current) => [...current, step]);
+    recordSkillAttempt(`daily:${dateKey}:${step}`, true);
+    setMessage(step === 3 ? 'Sva tri odgovora su tačna! Preuzmi zvezdice.' : 'Bravo! Reši sledeći zadatak.');
+    void (async () => {
+      await speakAndWait(choice, sound);
+      const next = step === 1 ? firstLogic : step === 2 ? secondLogic : null;
+      if (next) await speakRecordedPrompt(next.prompt, dailyLogicAudio(next.id), sound);
+      if (step === 3) await speak('Sva tri odgovora su tačna! Osvojio si tri zvezdice.', sound);
+    })();
   };
+
+  const currentStep = alreadyCompleted ? 3 : completed.length;
+  const canAnswer = (step: number) => !alreadyCompleted && !completed.includes(step) && (step === 1 || completed.includes(step - 1));
 
   return (
     <div className="single-screen">
       <Header title="Današnja avantura" onBack={onBack} />
       <main className="daily-challenge">
-        <div className="daily-hero"><span>🌞</span><div><h2>Tri mala koraka</h2><p>Težina: {difficulty === 'easy' ? 'lako' : difficulty === 'challenge' ? 'izazovno' : 'standardno'}</p></div></div>
-        <section className={completed.includes(1) ? 'daily-step done' : 'daily-step'}>
-          <div className="daily-step-heading"><b>Korak 1</b><strong>🎵 Rima</strong></div>
+        <section className="daily-quest-hero">
+          <div className="daily-quest-scene" aria-hidden="true"><span className="daily-quest-moon">☀️</span><img className="daily-quest-owl" src={OWL_MASCOT_SRC} alt="" /><span className="daily-quest-fox">🦊</span><i>✨</i><i>⭐</i></div>
+          <small>DANAŠNJA MISIJA</small>
+          <h2>Tri mala koraka</h2>
+          <p>Rima, logika i mozgalica — razmišljaj i otkrij tragove.</p>
+          <div className="daily-quest-route" aria-label={`Korak ${currentStep} od 3`}>
+            {[0, 1, 2].map((index) => <span key={index} className={index < currentStep ? 'done' : index === currentStep ? 'active' : ''}>{index < currentStep ? '✓' : index + 1}</span>)}
+          </div>
+          <small className="daily-difficulty">Težina: {difficulty === 'easy' ? 'lako' : difficulty === 'challenge' ? 'izazovno' : 'standardno'}</small>
+        </section>
+        <section className={`daily-task-card daily-rhyme-card ${completed.includes(1) || alreadyCompleted ? 'done' : ''}`} aria-label="Korak 1: Rima">
+          <div className="daily-task-title"><h3>Korak 1 · 🎵 Rima</h3>{canAnswer(1) && <button className="daily-listen" aria-label="Poslušaj zadatak sa rimom" onClick={playRhymePrompt}>🔊</button>}</div>
           <p className="daily-prompt">Koja reč se rimuje sa: <strong>{displayText(rhyme.prompt)}</strong>?</p>
-          {!completed.includes(1) && <button className="daily-listen" onClick={playRhymePrompt}>🔊 Poslušaj zadatak</button>}
-          {!completed.includes(1) && <div className="daily-choices">{seededChoices(rhyme.options, daySeed).map((option) => <button key={option} onClick={() => answer(1, option === rhyme.correct, option)}>{displayText(option)}</button>)}</div>}
-          {completed.includes(1) && <p className="daily-explanation">💡 {rhymeExplanation}</p>}
+          {!canAnswer(1) && !completed.includes(1) && !alreadyCompleted && <p className="daily-locked">🔒 Prvo reši ovaj zadatak.</p>}
+          {canAnswer(1) && <div className="daily-answer-grid">{seededChoices(rhyme.options, daySeed).map((option) => <button key={option} onClick={() => answer(1, option, rhyme.correct)}>{displayText(option)}</button>)}</div>}
+          {(completed.includes(1) || alreadyCompleted) && <p className="daily-explanation">💡 {displayText(rhyme.prompt)} i {displayText(rhyme.correct)} završavaju se sličnim glasom.</p>}
         </section>
-        <section className={completed.includes(2) ? 'daily-step done' : 'daily-step'}>
-          <div className="daily-step-heading"><b>Korak 2</b><strong>{completed.includes(2) ? '✓' : firstLogic.icon} Logika</strong></div>
-          <p className="daily-prompt">{firstLogic.prompt}</p>
-          {!completed.includes(1) && !completed.includes(2) && <p className="daily-locked">🔒 Prvo reši zadatak sa rimom.</p>}
-          {completed.includes(1) && !completed.includes(2) && <><button className="daily-listen" onClick={() => playLogicPrompt(firstLogic)}>🔊 Poslušaj zadatak</button><div className="daily-visual" aria-label="Prikaz logičkog zadatka">{firstLogic.visual}</div><div className="daily-choices">{seededChoices(firstLogic.answers, daySeed + 1).map((option) => <button key={option} onClick={() => answer(2, option === firstLogic.correct, option)}>{option}</button>)}</div></>}
-          {completed.includes(2) && <p className="daily-explanation">💡 {firstLogic.explanation}</p>}
+        {challenges.map((challenge, index) => {
+          const step = index + 2;
+          const done = alreadyCompleted || completed.includes(step);
+          const unlocked = canAnswer(step);
+          return <section key={challenge.id} className={`daily-task-card daily-logic-card ${done ? 'done' : ''}`} aria-label={`Korak ${step}: ${index === 0 ? 'Logika' : 'Mozgalica'}`}>
+            <div className="daily-task-title"><h3>Korak {step} · {done ? '✓' : `${challenge.icon} ${index === 0 ? 'Logika' : 'Mozgalica'}`}</h3>{unlocked && <button className="daily-listen" aria-label={`Poslušaj zadatak ${step}`} onClick={() => playLogicPrompt(challenge)}>🔊</button>}</div>
+            <p className="daily-prompt">{challenge.prompt}</p>
+            {!unlocked && !done && <p className="daily-locked">🔒 Prvo reši prethodni zadatak.</p>}
+            {unlocked && <><div className="daily-visual" aria-label={`Slikovni prikaz zadatka ${step}`}>{challenge.visual}</div><div className="daily-answer-grid">{seededChoices(challenge.answers, daySeed + step).map((option) => <button key={option} onClick={() => answer(step, option, challenge.correct)}>{option}</button>)}</div></>}
+            {done && <p className="daily-explanation">💡 {challenge.explanation}</p>}
+          </section>;
+        })}
+        <p className="daily-feedback" role="status">{alreadyCompleted ? 'Današnji izazov je već završen!' : message}</p>
+        <section className="daily-reward-card" aria-label={`${currentStep} od 3 zadatka završeno; nagrada je škrinja sa zvezdicama`}>
+          <img src="/images/reward-chest-v1.png" alt="Otvorena škrinja sa zvezdicama" />
+          <div className="daily-reward-copy"><small>BLAGO TE ČEKA</small><strong>{currentStep === 3 || alreadyCompleted ? 'Škrinja je tvoja!' : 'Još malo do škrinje!'}</strong>
+            <div className="daily-reward-preview" aria-label={`${currentStep} od 3 zadatka završeno`}>{[0, 1, 2].map((index) => <span key={index}>{index < currentStep ? '⭐' : '☆'}</span>)}</div>
+          </div>
         </section>
-        <section className={completed.includes(3) ? 'daily-step done' : 'daily-step'}>
-          <div className="daily-step-heading"><b>Korak 3</b><strong>{completed.includes(3) ? '✓' : secondLogic.icon} Mozgalica</strong></div>
-          <p className="daily-prompt">{secondLogic.prompt}</p>
-          {!completed.includes(2) && !completed.includes(3) && <p className="daily-locked">🔒 Prvo reši logički zadatak.</p>}
-          {completed.includes(2) && !completed.includes(3) && <><button className="daily-listen" onClick={() => playLogicPrompt(secondLogic)}>🔊 Poslušaj zadatak</button><div className="daily-visual" aria-label="Prikaz mozgalice">{secondLogic.visual}</div><div className="daily-choices">{seededChoices(secondLogic.answers, daySeed + 2).map((option) => <button key={option} onClick={() => answer(3, option === secondLogic.correct, option)}>{option}</button>)}</div></>}
-          {completed.includes(3) && <p className="daily-explanation">💡 {secondLogic.explanation}</p>}
-        </section>
-        <p className="daily-status" role="status">{message}</p>
-        <button
-          className="primary daily-reward"
-          disabled={completed.length < 3 || alreadyCompleted}
-          onClick={() => {
-            completeDailyChallenge(dateKey);
-            void speak('Bravo! Osvojio si tri zvezdice!', sound);
-          }}
-        >
-          {alreadyCompleted ? '⭐ Današnji izazov je završen' : 'Preuzmi 3 zvezdice'}
-        </button>
+        <button className="primary daily-reward" disabled={currentStep < 3 || alreadyCompleted} onClick={() => { completeDailyChallenge(dateKey); void speak('Bravo! Osvojio si tri zvezdice!', sound); }}>{alreadyCompleted ? '⭐ Današnji izazov je završen' : 'Preuzmi 3 zvezdice'}</button>
       </main>
     </div>
   );
@@ -964,19 +1135,41 @@ const memoryDeck: MemoryCard[] = [
   { pair: 'М', face: '🐻' }
 ];
 
+const starterWordBuilderRounds = [
+  { word: 'МАМА', image: '👩' },
+  { word: 'МЕД', image: '🍯' },
+  { word: 'МОРЕ', image: '🌊' },
+  { word: 'СОВА', image: '🦉' },
+  { word: 'ЛОПТА', image: '⚽' }
+];
+const starterWordSet = new Set(starterWordBuilderRounds.map(({ word }) => word));
+const wordBuilderRounds = [
+  ...starterWordBuilderRounds,
+  ...wordReadingRounds.flatMap((round) => round.words)
+    .filter(({ word }) => !starterWordSet.has(word))
+];
+
 function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
-  const [mode, setMode] = useState<'match' | 'memory' | 'listen' | 'word'>('match');
+  const [mode, setMode] = useState<'match' | 'memory' | 'listen' | 'word' | 'balloons'>('match');
   const [gameIndex, setGameIndex] = useState(14);
-  const [message, setMessage] = useState('Pronađi sliku za slovo.');
+  const [message, setMessage] = useState('Pronađi sličicu koja počinje ovim slovom.');
+  const [answerFeedback, setAnswerFeedback] = useState<'idle' | 'correct' | 'wrong'>('idle');
+  const [feedbackWord, setFeedbackWord] = useState<string | null>(null);
   const [revealed, setRevealed] = useState<number[]>([]);
   const [matched, setMatched] = useState<string[]>([]);
   const [builtWord, setBuiltWord] = useState('');
+  const [wordRoundIndex, setWordRoundIndex] = useState(0);
+  const [wordCompleted, setWordCompleted] = useState(false);
+  const [balloonScore, setBalloonScore] = useState(0);
   const learnLetter = useProgressStore((state) => state.learnLetter);
   const completeGame = useProgressStore((state) => state.completeGame);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const gameLetter = letters[gameIndex % letters.length];
-  const wordTarget = 'МАМА';
-  const shuffledWord = ['А', 'М', 'А', 'М'];
+  const visibleGameStep = (gameIndex % letters.length) + 1;
+  const gameProgress = Math.round((visibleGameStep / letters.length) * 100);
+  const wordRound = wordBuilderRounds[wordRoundIndex];
+  const wordTarget = wordRound.word;
+  const shuffledWord = [...wordTarget.slice(1), wordTarget[0]];
 
   const openMemoryCard = (index: number) => {
     if (revealed.includes(index) || matched.includes(memoryDeck[index].pair)) return;
@@ -1006,30 +1199,48 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
     <div className="single-screen">
       <Header title="Igre sa slovima" onBack={onBack} />
       <main className="game">
+        <PlayBanner icon="🧩" label="MALO IGRALIŠTE" title="Igraj i istražuj" hint="Slušaj, pronađi par i složi reč." />
         <div className="game-tabs">
-          <button className={mode === 'match' ? 'active' : ''} onClick={() => setMode('match')}>Slovo i slika</button>
+          <button className={mode === 'match' ? 'active' : ''} onClick={() => { setMode('match'); setAnswerFeedback('idle'); setFeedbackWord(null); setMessage('Pronađi sličicu koja počinje ovim slovom.'); }}>Slovo i slika</button>
           <button className={mode === 'memory' ? 'active' : ''} onClick={() => setMode('memory')}>Memory</button>
           <button className={mode === 'listen' ? 'active' : ''} onClick={() => { setMode('listen'); void speak(gameLetter.upper, sound); }}>Pogodi glas</button>
           <button className={mode === 'word' ? 'active' : ''} onClick={() => { setMode('word'); setBuiltWord(''); }}>Složi reč</button>
+          <button className={mode === 'balloons' ? 'active' : ''} onClick={() => { setMode('balloons'); setMessage('Dodirni balon sa slovom koje tražimo.'); }}>Baloni</button>
         </div>
         {mode === 'match' && (
           <>
-            <div className="game-letter">{gameLetter.upper}</div>
-            <p role="status">{message}</p>
+            <section className={`letter-match-stage feedback-${answerFeedback}`} aria-label={`Zadatak sa slovom ${gameLetter.upper}`}>
+              <div className="letter-match-toolbar" role="group" aria-label="Kontrole zadatka">
+                <div className="letter-match-progress-copy"><span>Slovo {visibleGameStep} od {letters.length}</span><small>{gameProgress}%</small></div>
+                <button className="letter-match-listen" aria-label={`Poslušaj slovo ${gameLetter.upper}`} onClick={() => void speak(gameLetter.upper, sound)}>🔊</button>
+              </div>
+              <div className="letter-match-progress" role="progressbar" aria-label="Napredak kroz slova" aria-valuemin={1} aria-valuemax={letters.length} aria-valuenow={visibleGameStep}>
+                <span style={{ width: `${gameProgress}%` }} />
+              </div>
+              <div className="letter-match-focus">
+                <div className="game-letter" aria-label={`Veliko slovo ${gameLetter.upper}`}>{gameLetter.upper}</div>
+              </div>
+              <p className="letter-match-prompt">Pronađi sličicu koja počinje slovom <strong>{gameLetter.upper}</strong></p>
+              <p className="letter-match-message" role="status" aria-live="polite">{message}</p>
+            </section>
             <div className="answer-grid">
-              {[gameLetter.words[0], letters[(gameIndex + 3) % 30].words[0], letters[(gameIndex + 7) % 30].words[0]]
-                .sort((first, second) => first.word.localeCompare(second.word))
+              {seededChoices([gameLetter.words[0], letters[(gameIndex + 3) % letters.length].words[0], letters[(gameIndex + 7) % letters.length].words[0]], gameIndex)
                 .map((word) => (
-                  <button key={word.word} onClick={() => {
+                  <button key={word.word} className={answerFeedback === 'wrong' && feedbackWord === word.word ? 'answer-retry' : ''} onClick={() => {
                     if (word === gameLetter.words[0]) {
                       recordSkillAttempt(`letter:${gameLetter.upper}`, true);
                       learnLetter(gameLetter.upper);
-                      setMessage('Bravo! Tačan odgovor! ⭐');
+                      const nextLetter = letters[(gameIndex + 1) % letters.length].upper;
+                      setAnswerFeedback('correct');
+                      setFeedbackWord(null);
+                      setMessage(`Bravo! ${word.word} počinje slovom ${gameLetter.upper}. Sledeće je ${nextLetter}! ⭐`);
                       void speak('Bravo! Tačan odgovor!', sound);
                       setGameIndex((value) => value + 1);
                     } else {
                       recordSkillAttempt(`letter:${gameLetter.upper}`, false);
-                      setMessage('Pokušaj ponovo.');
+                      setAnswerFeedback('wrong');
+                      setFeedbackWord(word.word);
+                      setMessage('Skoro! Pogledaj sličice još jednom i probaj ponovo.');
                       void speak('Pokušaj ponovo.', sound);
                     }
                   }}>
@@ -1048,11 +1259,11 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
                 return (
                   <button
                     key={`${card.pair}-${index}`}
-                    className={matched.includes(card.pair) ? 'matched' : ''}
+                    className={`${matched.includes(card.pair) ? 'matched' : ''} ${visible ? 'revealed' : 'card-back'}`}
                     aria-label={visible ? `Memory kartica ${index + 1}: ${card.face}` : `Otvori memory karticu ${index + 1}`}
                     onClick={() => openMemoryCard(index)}
                   >
-                    {visible ? card.face : '?'}
+                    {visible ? card.face : <><img src={OWL_MASCOT_SRC} alt="" aria-hidden="true" /><span aria-hidden="true">?</span></>}
                   </button>
                 );
               })}
@@ -1064,8 +1275,7 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
             <button className="sound-orb" aria-label="Poslušaj glas ponovo" onClick={() => void speak(gameLetter.upper, sound)}>🔊</button>
             <h2>Koje slovo čuješ?</h2>
             <div className="quiz-choices">
-              {[gameLetter, letters[(gameIndex + 4) % letters.length], letters[(gameIndex + 9) % letters.length]]
-                .sort((first, second) => first.upper.localeCompare(second.upper))
+              {seededChoices([gameLetter, letters[(gameIndex + 4) % letters.length], letters[(gameIndex + 9) % letters.length]], gameIndex + 1)
                 .map((letter) => (
                   <button key={letter.upper} onClick={() => {
                     const correct = letter === gameLetter;
@@ -1085,31 +1295,81 @@ function GameHub({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           </section>
         )}
         {mode === 'word' && (
-          <section className="word-builder">
-            <span className="word-builder-art">👩</span>
-            <h2>Složi reč МАМА</h2>
-            <div className="built-word" aria-label="Složena reč">{builtWord || '_ _ _ _'}</div>
+          <section className="word-builder" aria-label="Slagalica reči">
+            <div className="word-builder-progress" role="progressbar" aria-label="Napredak u slaganju reči" aria-valuemin={1} aria-valuemax={wordBuilderRounds.length} aria-valuenow={wordRoundIndex + 1}>
+              <span>Reč {wordRoundIndex + 1} od {wordBuilderRounds.length}</span>
+              <div><i style={{ width: `${((wordRoundIndex + 1) / wordBuilderRounds.length) * 100}%` }} /></div>
+            </div>
+            <span className="word-builder-art" aria-hidden="true">{wordRound.image}</span>
+            <h2>Složi reč {wordTarget}</h2>
+            <div className="built-word" aria-label="Složena reč">{builtWord || Array.from({ length: wordTarget.length }, () => '_').join(' ')}</div>
             <div className="letter-tiles">
               {shuffledWord.map((letter, index) => (
-                <button key={`${letter}-${index}`} onClick={() => {
+                <button key={`${letter}-${index}`} aria-label={`Dodaj slovo ${letter} (${index + 1})`} disabled={wordCompleted} onClick={() => {
                   const next = `${builtWord}${letter}`;
                   setBuiltWord(next);
                   if (next.length === wordTarget.length) {
                     const correct = next === wordTarget;
-                    recordSkillAttempt('word:МАМА', correct);
+                    recordSkillAttempt(`word:${wordTarget}`, correct);
                     if (correct) {
-                      completeGame('word-mama');
-                      setMessage('Bravo! Složio si reč МАМА! ⭐');
-                      void speak('Мама', sound);
+                      setWordCompleted(true);
+                      completeGame(`word-builder-${wordRoundIndex + 1}`);
+                      setMessage(`Bravo! Složio si reč ${wordTarget}! ⭐`);
+                      void speak(wordTarget, sound);
                     } else {
-                      setMessage('Skoro! Obriši i pokušaj redom М, А, М, А.');
+                      setMessage(`Skoro! Obriši i pokušaj ponovo da složiš ${wordTarget}.`);
                     }
                   }
                 }}>{letter}</button>
               ))}
             </div>
-            <button className="secondary" onClick={() => { setBuiltWord(''); setMessage('Složi slova pravim redom.'); }}>Obriši reč</button>
+            {!wordCompleted && <button className="secondary" onClick={() => { setBuiltWord(''); setMessage('Složi slova pravim redom.'); }}>Obriši reč</button>}
+            {wordCompleted && <button className="primary" onClick={() => {
+              if (wordRoundIndex === wordBuilderRounds.length - 1) {
+                setWordRoundIndex(0);
+                setMessage('Počinje nova igra reči. Složi prvu reč!');
+              } else {
+                setWordRoundIndex((index) => index + 1);
+                setMessage('Složi slova pravim redom.');
+              }
+              setBuiltWord('');
+              setWordCompleted(false);
+            }}>{wordRoundIndex === wordBuilderRounds.length - 1 ? 'Igraj ponovo' : 'Sledeća reč'}</button>}
             <p role="status">{message}</p>
+          </section>
+        )}
+        {mode === 'balloons' && (
+          <section className="balloon-game" aria-label="Igra sa balonima">
+            <div className="balloon-game-heading">
+              <span className="balloon-game-target" aria-label={`Traženo slovo ${gameLetter.upper}`}>{gameLetter.upper}</span>
+              <div><h2>Pronađi slovo <strong>{gameLetter.upper}</strong></h2><p>⭐ Baloni tačno pogođeni: {balloonScore}</p></div>
+              <button className="sound-orb" aria-label="Ponovi traženo slovo" onClick={() => void speak(gameLetter.upper, sound)}>🔊</button>
+            </div>
+            <div className="balloon-grid">
+              {seededChoices([gameLetter, letters[(gameIndex + 5) % letters.length], letters[(gameIndex + 11) % letters.length]], gameIndex + 2)
+                .map((letter, index) => (
+                  <button
+                    key={`${letter.upper}-${index}`}
+                    className={`letter-balloon balloon-${index + 1}`}
+                    aria-label={`Balon sa slovom ${letter.upper}`}
+                    onClick={() => {
+                      const correct = letter === gameLetter;
+                      recordSkillAttempt(`balloon:${gameLetter.upper}`, correct);
+                      if (!correct) {
+                        setMessage('Skoro! Pogledaj slovo još jednom i probaj drugi balon.');
+                        void speak('Pokušaj ponovo.', sound);
+                        return;
+                      }
+                      completeGame(`balloon-${gameLetter.upper}`);
+                      setBalloonScore((score) => score + 1);
+                      setMessage('Bravo! Balon sa pravim slovom! 🎈');
+                      void speak('Bravo! Pronašao si slovo!', sound);
+                      setGameIndex((value) => value + 1);
+                    }}
+                  >{letter.upper}</button>
+                ))}
+            </div>
+            <p role="status" aria-live="polite">{message}</p>
           </section>
         )}
       </main>
@@ -1166,6 +1426,7 @@ function Quiz({ onBack, sound }: { onBack: () => void; sound: boolean }) {
       <Header title={`Kviz ${Math.min(question + 1, round.length)}/${round.length}`} onBack={onBack} />
       <main className="quiz">
         {question < round.length ? <>
+          <PlayBanner icon="🏅" label={`PITANJE ${question + 1} OD ${round.length}`} title="Mali detektiv" hint="Poslušaj naziv slike i pronađi početno slovo." />
           <p>Poslušaj i pogodi početno slovo.</p>
           <div className="quiz-emoji" role="img" aria-label="Slika za kviz pitanje">
             <WordIllustration word={target} className="quiz-word-illustration" />
@@ -1239,6 +1500,7 @@ function Numbers({ onBack, onFamily, sound }: { onBack: () => void; onFamily: ()
     <div className="single-screen">
       <Header title="Brojevi 0–100" onBack={onBack} />
       <main className="numbers-screen">
+        <PlayBanner icon="🔢" label="BROJEVNA AVANTURA" title="Hajde da brojimo!" hint="Prebroj sličice, napiši broj ili reši zadatak." />
         <div className="number-mode">
           <button className={mode === 'learn' ? 'active' : ''} onClick={() => setMode('learn')}>Uči broj</button>
           <button className={mode === 'write' ? 'active' : ''} onClick={() => setMode('write')}>Piši broj</button>
@@ -1374,7 +1636,6 @@ function Reading({
   const [rhymeIndex, setRhymeIndex] = useState(0);
   const [syllableSetIndex, setSyllableSetIndex] = useState(0);
   const [wordRoundIndex, setWordRoundIndex] = useState(0);
-  const [storySolved, setStorySolved] = useState(false);
   const [message, setMessage] = useState('Slušaj, pa pročitaj naglas.');
   const completeReading = useProgressStore((state) => state.completeReading);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
@@ -1387,13 +1648,13 @@ function Reading({
   const selectStory = (nextIndex: number) => {
     setStoryIndex(nextIndex);
     setActive(0);
-    setStorySolved(false);
     setMessage('Slušaj, pa pročitaj naglas.');
   };
   return (
     <div className="single-screen">
       <Header title="Čitam samostalno" onBack={onBack} />
       <main className="reading">
+        <PlayBanner icon="📖" label="ČAROBNA ČITAONICA" title="Reči oživele" hint="Slušaj, sastavi slogove i otkrij priču." />
         <div className="reading-levels">
           <button className={level === 'phonics' ? 'active' : ''} onClick={() => setLevel('phonics')}>Glasovi i rime</button>
           <button className={level === 'syllables' ? 'active' : ''} onClick={() => setLevel('syllables')}>Slogovi</button>
@@ -1439,7 +1700,7 @@ function Reading({
             </div>
             <p>Dodirni svaki slog, poslušaj ga i ponovi naglas.</p>
             <button className="secondary" onClick={() => { setSyllableSetIndex((value) => (value + 1) % syllableSets.length); setMessage('Nova grupa slogova je spremna.'); }}>Sledeći slogovi</button>
-            {onLevelComplete && <button className="primary adventure-complete-action" onClick={onLevelComplete}>Označi kao urađeno ⭐</button>}
+            {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam slogove ⭐</button>}
           </section>
         )}
         {level === 'words' && (
@@ -1457,7 +1718,7 @@ function Reading({
             </div>
             <p>Prvo pročitaj samostalno, zatim dodirni reč za proveru.</p>
             <button className="secondary" onClick={() => { setWordRoundIndex((value) => (value + 1) % wordReadingRounds.length); setMessage('Nova grupa reči je spremna.'); }}>Sledeće reči</button>
-            {onLevelComplete && <button className="primary adventure-complete-action" onClick={onLevelComplete}>Označi kao urađeno ⭐</button>}
+            {onLevelComplete && <button className="primary" onClick={onLevelComplete}>Završio sam čitanje ⭐</button>}
           </section>
         )}
         {level === 'story' && (
@@ -1473,9 +1734,9 @@ function Reading({
               ))}
             </div>
             <div className="story-navigation">
-              <button aria-label="Prethodna priča" disabled={storyIndex === 0} onClick={() => selectStory(storyIndex - 1)}>←</button>
+              <button aria-label="Prethodna priča" disabled={storyIndex === 0} onClick={() => selectStory(storyIndex - 1)}><ArrowIcon direction="left" /></button>
               <strong>Priča {storyIndex + 1}/{storiesForAge.length}</strong>
-              <button aria-label="Sledeća priča" disabled={storyIndex === storiesForAge.length - 1} onClick={() => selectStory(storyIndex + 1)}>→</button>
+              <button aria-label="Sledeća priča" disabled={storyIndex === storiesForAge.length - 1} onClick={() => selectStory(storyIndex + 1)}><ArrowIcon /></button>
             </div>
             <div className="story-art">{story.art}</div>
             <h2>{story.title}</h2>
@@ -1487,24 +1748,21 @@ function Reading({
             <p className="reading-question">{story.question}</p>
             <div className="reading-answers">
               {story.answers.map((answer) => (
-                <button key={answer} disabled={storySolved} onClick={() => {
+                <button key={answer} onClick={() => {
                   if (answer !== story.correct) {
                     recordSkillAttempt(`reading:${story.id}`, false);
                     setMessage('Pokušaj ponovo. Pročitaj prvu rečenicu.');
                     return;
                   }
                   recordSkillAttempt(`reading:${story.id}`, true);
-                  setStorySolved(true);
-                  setMessage('Bravo! Razumeo si priču. Označi je kao urađenu kada si spreman. ⭐');
+                  completeReading(story.id);
+                  setMessage('Bravo! Razumeo si priču i osvojio zvezdicu! ⭐');
                   void speak('Bravo! Razumeo si priču.', sound);
+                  onLevelComplete?.();
                 }}>{answer}</button>
               ))}
             </div>
             <button className="primary" onClick={() => { setMessage(`Slušaš rečenicu ${active + 1}.`); void speakRecordedPrompt(sentences[active], readingStorySentenceAudio(story.id, active), sound); }}>🔊 Pročitaj rečenicu</button>
-            {storySolved && <button className="primary adventure-complete-action" onClick={() => {
-              completeReading(story.id);
-              onLevelComplete?.();
-            }}>Označi priču kao urađenu ⭐</button>}
           </section>
         )}
         <p className="reading-feedback" role="status" aria-live="off">{message}</p>
@@ -1519,8 +1777,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
   const stories = fairyTales.filter((story) => story.age === age);
   const story = stories[storyIndex];
   const profile = useProgressStore((state) => state.profile);
-  const purchasedPremium = useProgressStore((state) => state.familyAccess.isUnlocked);
-  const premiumActive = !isCommerceEnabled() || purchasedPremium;
+  const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
   const completeReading = useProgressStore((state) => state.completeReading);
   const setStoryBookmark = useProgressStore((state) => state.setStoryBookmark);
   const [activeSentence, setActiveSentence] = useState(profile.storyBookmarks[story.id] ?? 0);
@@ -1555,8 +1812,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
     sessionRef.current?.stop();
     const nextStories = fairyTales.filter((item) => item.age === nextAge);
     const nextStory = nextStories[nextIndex];
-    const catalogIndex = fairyTales.findIndex((item) => item.id === nextStory.id);
-    if (!canAccessStory(catalogIndex, premiumActive)) {
+    if (!canAccessStory(nextIndex, familyUnlocked)) {
       onFamily();
       return;
     }
@@ -1721,7 +1977,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
           ))}
         </div>
         <div className="story-navigation">
-          <button aria-label="Prethodna bajka" disabled={storyIndex === 0} onClick={() => openStory(storyIndex - 1)}>←</button>
+          <button aria-label="Prethodna bajka" disabled={storyIndex === 0} onClick={() => openStory(storyIndex - 1)}><ArrowIcon direction="left" /></button>
           <label className="story-picker">
             <span>Bajka {storyIndex + 1}/{stories.length}</span>
             <select
@@ -1734,7 +1990,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
               ))}
             </select>
           </label>
-          <button aria-label="Sledeća bajka" disabled={storyIndex === stories.length - 1} onClick={() => openStory(storyIndex + 1)}>→</button>
+          <button aria-label="Sledeća bajka" disabled={storyIndex === stories.length - 1} onClick={() => openStory(storyIndex + 1)}><ArrowIcon /></button>
         </div>
         <section
           className="fairy-card storybook-reader"
@@ -1769,7 +2025,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
               aria-label="Prethodna stranica"
               disabled={currentPageIndex === 0}
               onClick={() => openPage(currentPageIndex - 1)}
-            >←</button>
+            ><ArrowIcon direction="left" /></button>
             <div className="storybook-page-progress">
               <strong>Strana {currentPageIndex + 1}/{storyPages.length}</strong>
               <div
@@ -1787,7 +2043,7 @@ function FairyTales({ onBack, onFamily, sound }: { onBack: () => void; onFamily:
               aria-label="Sledeća stranica"
               disabled={isLastPage}
               onClick={() => openPage(currentPageIndex + 1)}
-            >→</button>
+            ><ArrowIcon /></button>
           </div>
           <div className="story-mode-controls">
             <span className={`edition-badge ${story.edition}`}>
@@ -2017,7 +2273,7 @@ function CreativeStudio({
   }, [endingIndex, helperIndex, heroIndex, placeIndex, questIndex, stopStory]);
 
   return (
-    <div className="single-screen creative-screen">
+    <div className="single-screen">
       <Header title="Moja priča" onBack={onBack} />
       <main className="creative-studio">
         <section className="creative-preview">
@@ -2167,6 +2423,7 @@ function Progress({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const summary = summarizeLearning(profile.skillStats);
   const learningMinutes = Math.round(profile.learningSeconds / 60);
   const adventureProgress = getAdventureProgress(profile.completedLearningPaths);
+  const stickerCollections = getStickerCollectionProgress(profile.learnedLetters);
   return (
     <>
       <Header title="Moj napredak" onBack={onBack} />
@@ -2201,6 +2458,21 @@ function Progress({ onBack, sound }: { onBack: () => void; sound: boolean }) {
           </section>
         )}
         <h3>Medalje</h3><div className="medals">{['🥉', '🥈', '🥇'].map((medal, index) => <span key={medal} className={profile.medals.length > index ? '' : 'locked'}>{medal}</span>)}</div>
+        <section className="sticker-collections" aria-label="Kolekcije nalepnica">
+          <h3>Kolekcije nalepnica</h3>
+          {stickerCollections.map((collection) => (
+            <article className="sticker-collection" key={collection.id}>
+              <div className="sticker-collection-heading"><span>{collection.emoji}</span><strong>{collection.name}</strong><small>{collection.earnedCount}/{collection.total} nalepnica</small></div>
+              <div className="sticker-collection-items">
+                {collection.stickers.map((letter) => {
+                  const earned = profile.learnedLetters.includes(letter.upper);
+                  return <span key={letter.upper} className={earned ? 'sticker-earned' : 'sticker-locked'} aria-label={`${letter.words[0].word}${earned ? ' osvojena' : ' zaključana'} nalepnica`}>{earned ? letter.words[0].emoji : '🔒'}</span>;
+                })}
+              </div>
+              <small>{collection.unlocked ? 'Kolekcija je kompletna! 🎉' : 'Nauči još slova da pronađeš sve nalepnice.'}</small>
+            </article>
+          ))}
+        </section>
       </main>
     </>
   );
@@ -2209,6 +2481,7 @@ function Progress({ onBack, sound }: { onBack: () => void; sound: boolean }) {
 function Settings({ onBack }: { onBack: () => void }) {
   const store = useProgressStore();
   const commerceEnabled = isCommerceEnabled();
+  const iosPremium = isIosPremiumEnabled();
   const [parentUnlocked, setParentUnlocked] = useState(false);
   const [gateAnswer, setGateAnswer] = useState('');
   const [gateError, setGateError] = useState('');
@@ -2234,29 +2507,24 @@ function Settings({ onBack }: { onBack: () => void }) {
     fr: 'Les leçons des enfants restent en serbe. Les parents règlent ici l’accessibilité et la difficulté.'
   }[store.parentLanguage];
 
-  const refreshPurchaseOffer = useCallback(async () => {
-    if (!commerceEnabled) return;
-    setPurchaseBusy(true);
-    setPurchaseMessage('Proveravam Apple ponudu…');
-    try {
-      const offer = await purchaseManager.initialize();
-      setPurchaseOffer(offer);
-      setPurchaseMessage(offer.reason ?? 'Apple ponuda je učitana.');
-    } catch (error: unknown) {
-      setPurchaseOffer((current) => ({ ...current, available: false, retryable: true }));
-      setPurchaseMessage(error instanceof Error ? error.message : 'Prodavnica trenutno nije dostupna.');
-    } finally {
-      setPurchaseBusy(false);
-    }
-  }, [commerceEnabled, purchaseManager]);
-
   useEffect(() => {
-    if (!parentUnlocked || !commerceEnabled) return;
-    void refreshPurchaseOffer();
-  }, [commerceEnabled, parentUnlocked, refreshPurchaseOffer]);
-
-  const premiumPrice = purchaseOffer.price ?? '';
-  const verifiedTrialDays = purchaseOffer.trialDays;
+    if (!parentUnlocked || !commerceEnabled) return undefined;
+    let active = true;
+    setPurchaseBusy(true);
+    purchaseManager.initialize()
+      .then((offer) => {
+        if (!active) return;
+        setPurchaseOffer(offer);
+        if (offer.reason) setPurchaseMessage(offer.reason);
+      })
+      .catch((error: unknown) => {
+        if (active) setPurchaseMessage(error instanceof Error ? error.message : 'Prodavnica trenutno nije dostupna.');
+      })
+      .finally(() => {
+        if (active) setPurchaseBusy(false);
+      });
+    return () => { active = false; };
+  }, [commerceEnabled, parentUnlocked, purchaseManager]);
 
   const buyFamily = async () => {
     setPurchaseBusy(true);
@@ -2353,74 +2621,60 @@ function Settings({ onBack }: { onBack: () => void }) {
       <Header title="Podešavanja za roditelje" onBack={onBack} />
       <main className="settings">
         <section className={`family-section ${store.familyAccess.isUnlocked || !commerceEnabled ? 'unlocked' : ''}`}>
+          <div className="premium-world-art" aria-hidden="true">
+            <div className="premium-world-sun" />
+            <span className="premium-world-star premium-star-one">✦</span>
+            <span className="premium-world-star premium-star-two">✧</span>
+            <span className="premium-world-cloud premium-cloud-one">☁</span>
+            <span className="premium-world-cloud premium-cloud-two">☁</span>
+            <div className="premium-world-island"><span>🌳</span><span>📚</span><span>🌼</span></div>
+            <img className="premium-world-owl" src={OWL_MASCOT_SRC} alt="" />
+            <span className="premium-world-ribbon">PORODIČNA AVANTURA</span>
+          </div>
           <div className="family-heading">
-            <span aria-hidden="true">{store.familyAccess.isUnlocked || !commerceEnabled ? '✨' : '👑'}</span>
+            <span aria-hidden="true">{store.familyAccess.isUnlocked || !commerceEnabled ? '✨' : '👨‍👩‍👧‍👦'}</span>
             <div>
               <h2>Slovolov Premium</h2>
               <p>
                 {store.familyAccess.isUnlocked
                   ? 'Pretplata je aktivna'
                   : !commerceEnabled
-                    ? 'Prve 3 bajke i priče su besplatne. Premium je dostupan samo u iOS aplikaciji.'
-                    : purchaseOffer.available
-                      ? `${premiumPrice} mesečno${verifiedTrialDays ? ` · prvih ${verifiedTrialDays} dana besplatno` : ''}`
-                      : 'Ponuda se bezbedno učitava iz App Store-a'}
+                    ? 'Prvih 7 slova, brojevi 0–10 i prve 3 priče su besplatni.'
+                     : iosPremium
+                       ? `${purchaseOffer.price ?? '3,99 €'} mesečno${purchaseOffer.trialDays ? ` · prvih ${purchaseOffer.trialDays} dana besplatno` : ''}`
+                       : purchaseOffer.price ?? 'Cena u Google Play prodavnici'}
               </p>
             </div>
           </div>
           {!store.familyAccess.isUnlocked && commerceEnabled && (
-            <>
-              <div className="family-trust-row" aria-label="Prednosti porodičnog paketa">
-                {verifiedTrialDays && <span>✓ {verifiedTrialDays} dana besplatno</span>}
-                <span>✓ Bez reklama</span>
-                <span>✓ Otkazivanje u Apple nalogu</span>
-              </div>
-              <p className="premium-subscription-disclosure">
-                <strong>Slovolov Premium je auto-obnovljiva mesečna pretplata.</strong>{' '}
-                {purchaseOffer.available
-                  ? <>Cena je {premiumPrice} mesečno{verifiedTrialDays ? `, uz prvih ${verifiedTrialDays} dana besplatno` : ''}.</>
-                  : <>Cena i eventualni probni period biće prikazani čim ih Apple potvrdi.</>}{' '}
-                Pretplata se automatski obnavlja svakog meseca preko Apple-a, osim ako je roditelj otkaže najmanje 24 sata pre kraja tekućeg perioda.
-              </p>
-            </>
+            <div className="family-trust-row" aria-label="Prednosti porodičnog paketa">
+              {iosPremium && purchaseOffer.trialDays && <span>✓ {purchaseOffer.trialDays} dana besplatno</span>}
+              {!iosPremium && <span>✓ Jednokratna kupovina</span>}
+              <span>✓ Bez reklama</span>
+              <span>{iosPremium ? '✓ Otkazivanje u Apple nalogu' : '✓ Google Play kupovina'}</span>
+            </div>
           )}
-          <ul>
-            <li>Prvih 7 slova, brojevi 0–10 i prve 3 priče ostaju besplatni</li>
-            <li>Premium otključava svih 30 slova, brojeve 0–100, igre i Čitanje</li>
-            <li>Celokupna biblioteka i sve buduće priče</li>
-            <li>Više dečjih profila na istom uređaju</li>
+          <ul className="premium-benefits">
+            <li><span aria-hidden="true">🔤</span><span><strong>Cela azbuka</strong><small>Svih 30 slova i brojevi 0–100</small></span></li>
+            <li><span aria-hidden="true">🧩</span><span><strong>Igre i učenje</strong><small>Čitanje, igre i celokupna biblioteka priča</small></span></li>
+            <li><span aria-hidden="true">👨‍👩‍👧</span><span><strong>Za celu porodicu</strong><small>Više dečjih profila na istom uređaju</small></span></li>
           </ul>
           {commerceEnabled && !store.familyAccess.isUnlocked && (
             <div className="family-actions">
               <button className="primary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void buyFamily()}>
-                {purchaseBusy
-                  ? 'Proveravam…'
-                  : verifiedTrialDays
-                    ? `Pokreni ${verifiedTrialDays} dana besplatno`
-                    : purchaseOffer.available
-                      ? 'Pretplati se'
-                      : 'Ponuda nije učitana'}
+                 {purchaseBusy ? 'Proveravam…' : iosPremium && purchaseOffer.trialDays ? `Pokreni ${purchaseOffer.trialDays} dana besplatno` : iosPremium ? 'Pretplati se' : 'Kupi Premium'}
               </button>
-              <button className="secondary" disabled={purchaseBusy} onClick={() => void restoreFamily()}>
+              <button className="secondary" disabled={!purchaseOffer.available || purchaseBusy} onClick={() => void restoreFamily()}>
                 Vrati kupovinu
               </button>
-              {!purchaseOffer.available && (
-                <button className="secondary" disabled={purchaseBusy} onClick={() => void refreshPurchaseOffer()}>
-                  Ponovi proveru ponude
-                </button>
-              )}
             </div>
           )}
-          {store.familyAccess.isUnlocked && <strong className="family-owned">✓ Celokupan Premium sadržaj je aktivan.</strong>}
+          {(store.familyAccess.isUnlocked || !commerceEnabled) && <strong className="family-owned">✓ Premium sadržaj je dostupan svim profilima.</strong>}
           {commerceEnabled && !isNativePurchasePlatform() && !purchaseMessage && (
             <p className="purchase-message">Slovolov Premium je dostupan samo u instaliranoj iOS aplikaciji.</p>
           )}
           {purchaseMessage && <p className="purchase-message" role="status">{purchaseMessage}</p>}
-          <small>
-            Kupovinu potvrđuje roditelj. Plaćanje se vrši preko Apple ID naloga; pretplatom se upravlja i ona se otkazuje u Apple ID podešavanjima → Pretplate.
-            {' '}<a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Uslovi korišćenja</a>
-            {' · '}<a href="https://slovolov-download.onrender.com/privacy.html" target="_blank" rel="noreferrer">Politika privatnosti</a>
-          </small>
+           <small>{iosPremium ? 'Kupovinu potvrđuje roditelj. Mesečna pretplata se automatski obnavlja dok se ne otkaže u Apple ID podešavanjima → Pretplate.' : 'Kupovinu potvrđuje roditelj. Google Play porodična kupovina je jednokratna.'}{' '}<a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noreferrer">Uslovi korišćenja</a>{' · '}<a href="/privacy.html" target="_blank" rel="noreferrer">Politika privatnosti</a></small>
         </section>
         <label><span>🔊 Zvuk</span><input type="checkbox" checked={store.soundEnabled} onChange={store.toggleSound} /></label>
         <label><span>🌙 Tamni režim</span><input type="checkbox" checked={store.darkMode} onChange={store.toggleTheme} /></label>
@@ -2503,7 +2757,7 @@ function Settings({ onBack }: { onBack: () => void }) {
             </div>
           ))}
         </section>
-        {!addingProfile && canAddProfile(store.profiles.length, store.familyAccess.isUnlocked || !commerceEnabled) && (
+        {!addingProfile && (!commerceEnabled || store.familyAccess.isUnlocked) && (
           <button
             className="secondary"
             onClick={() => {
@@ -2515,8 +2769,8 @@ function Settings({ onBack }: { onBack: () => void }) {
             + Dodaj profil
           </button>
         )}
-        {!addingProfile && !canAddProfile(store.profiles.length, store.familyAccess.isUnlocked || !commerceEnabled) && (
-          <p className="purchase-message">🔒 Dodatni dečji profili dostupni su kada pokrenete Premium.</p>
+        {commerceEnabled && !store.familyAccess.isUnlocked && (
+          <p className="parent-note">Slovolov Premium omogućava više profila dece na istom uređaju.</p>
         )}
         {addingProfile && (
           <form className="profile-form new-profile-form" onSubmit={saveNewProfile}>

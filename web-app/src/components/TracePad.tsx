@@ -2,6 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 
 export type TracePoint = { x: number; y: number };
 
+const penColors = [
+  { name: 'Ljubičasta', value: '#4f46e5' },
+  { name: 'Crvena', value: '#ef4444' },
+  { name: 'Narandžasta', value: '#f97316' },
+  { name: 'Žuta', value: '#eab308' },
+  { name: 'Zelena', value: '#22c55e' },
+  { name: 'Plava', value: '#3b82f6' },
+  { name: 'Roze', value: '#ec4899' },
+  { name: 'Tamna', value: '#17213b' }
+];
+const penWidths = [
+  { label: 'Tanka', value: 10 },
+  { label: 'Srednja', value: 18 },
+  { label: 'Debela', value: 28 }
+];
+
 export function evaluateTrace(points: TracePoint[], width: number, height: number, guideHitRatio = 1) {
   if (points.length < 24 || width <= 0 || height <= 0) {
     return { success: false, coverageX: 0, coverageY: 0, pathRatio: 0, guideHitRatio };
@@ -24,7 +40,7 @@ export function evaluateTrace(points: TracePoint[], width: number, height: numbe
   };
 }
 
-function measureGuideHitRatio(letter: string, points: TracePoint[], width: number, height: number) {
+function measureGuideHitRatio(letter: string, points: TracePoint[], width: number, height: number, guideElement?: HTMLElement | null) {
   if (!points.length || width <= 0 || height <= 0) return 0;
   try {
     const mask = document.createElement('canvas');
@@ -33,7 +49,13 @@ function measureGuideHitRatio(letter: string, points: TracePoint[], width: numbe
     const context = mask.getContext('2d', { willReadFrequently: true });
     if (!context) return 1;
     const fontSize = Math.min(width * 0.64, height * 0.74);
-    context.font = `900 ${fontSize}px "Segoe UI Rounded", "Arial Rounded MT Bold", sans-serif`;
+    const guideStyle = guideElement ? window.getComputedStyle(guideElement) : null;
+    const renderedFontSize = guideStyle && Number.parseFloat(guideStyle.fontSize) > 0
+      ? Number.parseFloat(guideStyle.fontSize)
+      : fontSize;
+    const fontWeight = guideStyle?.fontWeight || '900';
+    const fontFamily = guideStyle?.fontFamily || '"Segoe UI Rounded", "Arial Rounded MT Bold", sans-serif';
+    context.font = `${fontWeight} ${renderedFontSize}px ${fontFamily}`;
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillStyle = '#000';
@@ -60,19 +82,25 @@ function measureGuideHitRatio(letter: string, points: TracePoint[], width: numbe
 
 export function TracePad({
   letter,
+  script = 'cyrillic',
+  letterCase = 'upper',
   onComplete,
   onAttempt,
   difficulty = 'standard'
 }: {
   letter: string;
+  script?: 'cyrillic' | 'latin';
+  letterCase?: 'upper' | 'lower';
   onComplete: () => void;
   onAttempt?: (success: boolean) => void;
   difficulty?: 'easy' | 'standard' | 'challenge';
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<TracePoint[]>([]);
+  const strokeGroupsRef = useRef<TracePoint[][]>([]);
   const [drawing, setDrawing] = useState(false);
-
+  const [penColor, setPenColor] = useState('#4f46e5');
+  const [penWidth, setPenWidth] = useState(18);
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -89,6 +117,7 @@ export function TracePad({
       context.lineWidth = 18;
     }
     pointsRef.current = [];
+    strokeGroupsRef.current = [];
   }, [letter]);
 
   const position = (event: React.PointerEvent<HTMLCanvasElement>): TracePoint => {
@@ -98,9 +127,17 @@ export function TracePad({
 
   const start = (event: React.PointerEvent<HTMLCanvasElement>) => {
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     const point = position(event);
     pointsRef.current = [...pointsRef.current, point];
+    strokeGroupsRef.current = [...strokeGroupsRef.current, [point]];
+    const context = event.currentTarget.getContext('2d');
+    if (context) {
+      context.strokeStyle = penColor;
+      context.lineWidth = penWidth;
+    }
+    context?.beginPath();
+    context?.moveTo(point.x, point.y);
     setDrawing(true);
   };
 
@@ -108,15 +145,15 @@ export function TracePad({
     if (!drawing) return;
     event.preventDefault();
     const next = position(event);
-    const previous = pointsRef.current.at(-1);
+    const previous = strokeGroupsRef.current.at(-1)?.at(-1);
     const context = event.currentTarget.getContext('2d');
     if (context && previous) {
-      context.beginPath();
       context.moveTo(previous.x, previous.y);
       context.lineTo(next.x, next.y);
       context.stroke();
     }
     pointsRef.current = [...pointsRef.current, next];
+    strokeGroupsRef.current.at(-1)?.push(next);
   };
 
   const stop = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -124,7 +161,8 @@ export function TracePad({
     setDrawing(false);
     const bounds = event.currentTarget.getBoundingClientRect();
     const currentPoints = pointsRef.current;
-    const guideHitRatio = measureGuideHitRatio(letter, currentPoints, bounds.width, bounds.height);
+    const guideElement = event.currentTarget.parentElement?.querySelector<HTMLElement>('.guide-letter');
+    const guideHitRatio = measureGuideHitRatio(letter, currentPoints, bounds.width, bounds.height, guideElement);
     const adjustedGuideHit = guideHitRatio / ({ easy: 0.82, standard: 1, challenge: 1.14 }[difficulty]);
     const result = evaluateTrace(currentPoints, bounds.width, bounds.height, adjustedGuideHit);
     onAttempt?.(result.success);
@@ -133,15 +171,46 @@ export function TracePad({
 
   const clear = () => {
     const canvas = canvasRef.current;
-    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+    if (canvas) {
+      const bounds = canvas.getBoundingClientRect();
+      canvas.getContext('2d')?.clearRect(0, 0, bounds.width, bounds.height);
+    }
     pointsRef.current = [];
+    strokeGroupsRef.current = [];
   };
 
   return (
     <div className="trace-wrap">
-      <div className="guide-letter" data-testid="guide-letter" aria-hidden="true">{letter}</div>
+      <div className={`guide-letter ${letterCase === 'lower' ? 'guide-letter-lowercase' : ''}`} data-testid="guide-letter" aria-hidden="true">{letter}</div>
       <div className="guide-line guide-line-top" />
       <div className="guide-line guide-line-base" />
+      <div className="trace-toolbar" aria-label="Podešavanja olovke">
+        <div className="trace-tool-row" role="group" aria-label="Boja olovke">
+          <span>Boja</span>
+          <div className="palette">
+            {penColors.map((color) => <button
+              key={color.value}
+              type="button"
+              aria-label={`Boja ${color.name}`}
+              aria-pressed={penColor === color.value}
+              className={penColor === color.value ? 'active' : ''}
+              style={{ background: color.value }}
+              onClick={() => setPenColor(color.value)}
+            />)}
+          </div>
+        </div>
+        <div className="trace-tool-row" role="group" aria-label="Debljina olovke">
+          <span>Debljina</span>
+          <div className="brush-sizes">
+            {penWidths.map((width) => <button
+              key={width.value}
+              type="button"
+              aria-pressed={penWidth === width.value}
+              onClick={() => setPenWidth(width.value)}
+            ><i style={{ width: Math.max(5, width.value / 2), height: Math.max(5, width.value / 2) }} />{width.label}</button>)}
+          </div>
+        </div>
+      </div>
       <canvas
         ref={canvasRef}
         aria-label={`Platno za pisanje slova ${letter}`}

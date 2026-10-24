@@ -1,8 +1,8 @@
 import { Capacitor } from '@capacitor/core';
 import 'cordova-plugin-purchase';
-import { IOS_PREMIUM_MONTHLY_PRODUCT_ID, isCommerceEnabled } from '../config/commerce';
+import { FAMILY_PRODUCT_ID, IOS_PREMIUM_MONTHLY_PRODUCT_ID, isCommerceEnabled } from '../config/commerce';
 
-export { IOS_PREMIUM_MONTHLY_PRODUCT_ID };
+export { FAMILY_PRODUCT_ID, IOS_PREMIUM_MONTHLY_PRODUCT_ID };
 
 export type PurchaseOffer = {
   available: boolean;
@@ -149,8 +149,8 @@ function hasNativePurchasePlugin(): boolean {
 }
 
 /**
- * Capacitor može da prikaže udaljeni web ekran pre nego što Cordova završi
- * ubacivanje StoreKit mosta. Ne smemo tada trajno izabrati web gateway.
+ * Capacitor može da prikaže lokalni web ekran pre nego što Cordova završi
+ * ubacivanje prodavničkog mosta. Ne smemo tada trajno izabrati web gateway.
  */
 async function waitForNativePurchasePlugin(timeoutMs: number): Promise<boolean> {
   if (hasNativePurchasePlugin()) return true;
@@ -178,7 +178,8 @@ async function waitForNativePurchasePlugin(timeoutMs: number): Promise<boolean> 
 export function createNativePurchaseGatewayWhenReady(pluginTimeoutMs = 10_000): PurchaseGateway {
   let delegate: PurchaseGateway | null = null;
   let resolving: Promise<PurchaseGateway | null> | null = null;
-  const unavailableReason = 'Apple kupovina se još povezuje sa aplikacijom. Sačekajte trenutak i ponovite proveru.';
+  const storeName = Capacitor.getPlatform() === 'android' ? 'Google Play' : 'Apple';
+  const unavailableReason = `${storeName} kupovina se još povezuje sa aplikacijom. Sačekajte trenutak i ponovite proveru.`;
 
   const resolveDelegate = async (): Promise<PurchaseGateway | null> => {
     if (delegate) return delegate;
@@ -233,7 +234,11 @@ export function createNativePurchaseGatewayWhenReady(pluginTimeoutMs = 10_000): 
 }
 
 function nativeGateway(): PurchaseGateway {
-  const platform = CdvPurchase.Platform.APPLE_APPSTORE;
+  const isIos = Capacitor.getPlatform() === 'ios';
+  const platform = isIos ? CdvPurchase.Platform.APPLE_APPSTORE : CdvPurchase.Platform.GOOGLE_PLAY;
+  const productId = isIos ? IOS_PREMIUM_MONTHLY_PRODUCT_ID : FAMILY_PRODUCT_ID;
+  const productType = isIos ? CdvPurchase.ProductType.PAID_SUBSCRIPTION : CdvPurchase.ProductType.NON_CONSUMABLE;
+  const storeName = isIos ? 'App Store' : 'Google Play';
   const store = CdvPurchase.store;
   let initialized = false;
   let initializationPromise: Promise<CdvPurchase.IError[]> | null = null;
@@ -244,8 +249,8 @@ function nativeGateway(): PurchaseGateway {
   });
   const ownershipListeners = new Set<(owned: boolean) => void>();
 
-  const product = () => store.get(IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform);
-  const ownsProduct = () => store.owned({ id: IOS_PREMIUM_MONTHLY_PRODUCT_ID, platform });
+  const product = () => store.get(productId, platform);
+  const ownsProduct = () => store.owned({ id: productId, platform });
   const notifyOwnership = () => {
     const owned = ownsProduct();
     ownershipListeners.forEach((listener) => listener(owned));
@@ -302,8 +307,8 @@ function nativeGateway(): PurchaseGateway {
     if (!initialized) {
       if (!initializationPromise) {
         store.register({
-          id: IOS_PREMIUM_MONTHLY_PRODUCT_ID,
-          type: CdvPurchase.ProductType.PAID_SUBSCRIPTION,
+          id: productId,
+          type: productType,
           platform
         });
         store.when().approved((transaction) => transaction.finish());
@@ -312,7 +317,7 @@ function nativeGateway(): PurchaseGateway {
       const errors = await initializationPromise;
       initialized = true;
       const ownershipChecked = await waitForReceiptsReady();
-      const fatal = errors.find((error) => error.productId === IOS_PREMIUM_MONTHLY_PRODUCT_ID || error.platform === platform);
+      const fatal = errors.find((error) => error.productId === productId || error.platform === platform);
       failureMessage = fatal?.message;
       if (fatal) {
         return purchaseOfferFromProduct(undefined, ownsProduct(), fatal.message, ownershipChecked);
@@ -324,7 +329,7 @@ function nativeGateway(): PurchaseGateway {
     }
 
     const ownershipChecked = receiptsReady || await waitForReceiptsReady();
-    return purchaseOfferFromProduct(product(), ownsProduct(), failureMessage, ownershipChecked);
+    return purchaseOfferFromProduct(product(), ownsProduct(), failureMessage ?? `${storeName} ponuda nije učitana.`, ownershipChecked);
   }
 
   return {
@@ -369,11 +374,11 @@ function nativeGateway(): PurchaseGateway {
 let defaultNativeGateway: PurchaseGateway | null = null;
 
 export function createDefaultPurchaseGateway(): PurchaseGateway {
-  if (!isCommerceEnabled() || !Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'ios') return webGateway();
+  if (!isCommerceEnabled() || !Capacitor.isNativePlatform() || !['ios', 'android'].includes(Capacitor.getPlatform())) return webGateway();
   defaultNativeGateway ??= createNativePurchaseGatewayWhenReady();
   return defaultNativeGateway;
 }
 
 export function isNativePurchasePlatform(): boolean {
-  return Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios';
+  return Capacitor.isNativePlatform() && ['ios', 'android'].includes(Capacitor.getPlatform()) && isCommerceEnabled();
 }

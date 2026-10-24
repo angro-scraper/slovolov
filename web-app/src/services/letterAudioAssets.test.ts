@@ -3,18 +3,15 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('srpski izgovor slova', () => {
-  it('generator spaja Slovolov naratora sa provereno izgovorenim glasom slova', () => {
+  it('generator jasno i sporije izgovara slovo bez instrukcije „Ponovi”', () => {
     const generator = readFileSync(
       resolve(process.cwd(), 'scripts', 'generate-letter-audio.py'),
       'utf8'
     );
 
     expect(generator).toContain('VOICE = "sr-RS-SophieNeural"');
-    expect(generator).toContain('REFERENCE_SEGMENTS');
-    expect(generator).toContain('REFERENCE_AUDIO');
-    expect(generator).toContain('Ово је слово');
-    expect(generator).toContain('као {example}.');
-    expect(generator).not.toContain("Ово је слово {letter['upper']}. {letter['upper']} као {example}.");
+    expect(generator).toContain("Ово је слово {letter['upper']}");
+    expect(generator).toContain("{letter['upper']}. {letter['upper']} као {example}");
     expect(generator).not.toContain('Понови:');
     expect(generator).toContain('LETTER_RATE = "-28%"');
     expect(generator).not.toContain('PHONETIC_STARTS');

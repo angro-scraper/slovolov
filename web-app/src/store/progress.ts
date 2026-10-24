@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { isCommerceEnabled } from '../config/commerce';
+import { canAddProfile } from '../domain/access';
 import { recordLearningAttempt, type LearningStats } from '../domain/learning';
 
 export type AccessibilitySettings = {
@@ -233,7 +235,11 @@ export const useProgressStore = create<ProgressState>()(
       setParentLanguage: (parentLanguage) => set({ parentLanguage }),
       addProfile: (name, avatar) => {
         const cleanName = name.trim().slice(0, 32);
-        if (!cleanName) return false;
+        if (!cleanName || (
+          isCommerceEnabled()
+          && get().profiles.length >= 1
+          && !get().familyAccess.isUnlocked
+        )) return false;
         set((state) => {
         const profile = { ...initialProfile, id: crypto.randomUUID(), name: cleanName, avatar };
         return { profiles: [...state.profiles, profile], activeProfileId: profile.id, profile };

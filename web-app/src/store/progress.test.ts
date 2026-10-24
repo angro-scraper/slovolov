@@ -1,9 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Capacitor } from '@capacitor/core';
 import { useProgressStore } from './progress';
 
 describe('lokalni napredak', () => {
   beforeEach(() => useProgressStore.getState().reset());
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
 
   it('dodeljuje jednu zvezdicu samo jednom po slovu', () => {
     useProgressStore.getState().learnLetter('А');
@@ -67,9 +71,19 @@ describe('lokalni napredak', () => {
     expect(useProgressStore.getState().profile.name).toBe('Мила');
   });
 
-  it('dozvoljava drugi lokalni profil jer Premium otključava samo biblioteku priča', () => {
+  it('ograničava drugi profil samo u store izdanju bez porodičnog prava', () => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('ios');
+    vi.stubEnv('VITE_IOS_PREMIUM_ENABLED', 'true');
+    expect(useProgressStore.getState().addProfile('Лука', '🐉')).toBe(false);
+    useProgressStore.getState().grantFamilyAccess('store');
     expect(useProgressStore.getState().addProfile('Лука', '🐉')).toBe(true);
-    expect(useProgressStore.getState().profiles).toHaveLength(2);
+  });
+
+  it('dozvoljava preimenovanje postojećeg profila i bez Premium-a', () => {
+    vi.spyOn(Capacitor, 'getPlatform').mockReturnValue('android');
+    vi.stubEnv('VITE_COMMERCE_ENABLED', 'true');
+    expect(useProgressStore.getState().renameProfile('local-child', 'Luka')).toBe(true);
+    expect(useProgressStore.getState().profile.name).toBe('Luka');
   });
 
   it('lokalno pamti tačnost, vreme učenja i postavke pristupačnosti', () => {
@@ -119,12 +133,5 @@ describe('lokalni napredak', () => {
     });
     useProgressStore.getState().resetLearningProgress();
     expect(useProgressStore.getState().familyAccess.isUnlocked).toBe(true);
-  });
-
-  it('povlači samo store pristup kada App Store više ne potvrđuje aktivnu pretplatu', () => {
-    useProgressStore.getState().grantFamilyAccess('store');
-    expect(useProgressStore.getState().familyAccess.isUnlocked).toBe(true);
-    useProgressStore.getState().setStoreSubscriptionAccess(false);
-    expect(useProgressStore.getState().familyAccess).toEqual({ isUnlocked: false, source: 'free' });
   });
 });

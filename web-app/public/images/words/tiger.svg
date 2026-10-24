@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="coat" x1="36" y1="22" x2="123" y2="137" gradientUnits="userSpaceOnUse"><stop stop-color="#FFBF55"/><stop offset="1" stop-color="#F47C32"/></linearGradient>
+    <linearGradient id="cheek" x1="53" y1="83" x2="108" y2="130" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF8E9"/><stop offset="1" stop-color="#F3E7D7"/></linearGradient>
+  </defs>
+  <ellipse cx="80" cy="144" rx="46" ry="8" fill="#734032" fill-opacity=".12"/>
+  <path d="m28 67 2-38c1-9 11-13 18-7l29 25m55 20-2-38c-1-9-11-13-18-7L83 47" fill="url(#coat)" stroke="#E36D2F" stroke-width="4" stroke-linejoin="round"/>
+  <path d="m42 49 1-17 16 12m58 5-1-17-16 12" fill="#F8A3A1"/>
+  <path d="M29 83c0-38 22-62 51-62s51 24 51 62v19c0 26-22 43-51 43s-51-17-51-43V83Z" fill="url(#coat)" stroke="#E36D2F" stroke-width="4"/>
+  <path d="m54 32 9 27m42-27-9 27M34 61l21 8m71-8-21 8M31 91l22 3m76-3-22 3" stroke="#56342D" stroke-width="9" stroke-linecap="round"/>
+  <path d="M45 99c5-14 17-22 35-22s31 8 36 22c-2 21-16 36-36 36s-33-15-35-36Z" fill="url(#cheek)"/>
+  <ellipse cx="58" cy="76" rx="8" ry="11" fill="#fff"/><ellipse cx="102" cy="76" rx="8" ry="11" fill="#fff"/>
+  <ellipse cx="60" cy="78" rx="4.5" ry="7" fill="#30252A"/><ellipse cx="100" cy="78" rx="4.5" ry="7" fill="#30252A"/>
+  <circle cx="61" cy="75" r="2" fill="white"/><circle cx="101" cy="75" r="2" fill="white"/>
+  <ellipse cx="80" cy="99" rx="9" ry="7" fill="#47302D"/><path d="M80 106v8m0 0c-7 7-13 3-16 0m16 0c7 7 13 3 16 0" stroke="#70463E" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="48" cy="100" r="6" fill="#F38D84" fill-opacity=".48"/><circle cx="112" cy="100" r="6" fill="#F38D84" fill-opacity=".48"/>
+</svg>

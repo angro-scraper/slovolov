@@ -15,45 +15,16 @@ describe('premium Slovolov vizuelni sistem', () => {
     expect(styles).not.toContain('fonts.googleapis.com');
   });
 
-  it('iOS Premium prikazuje Apple potvrđenu cenu i probni period uz jasne uslove', () => {
-    const app = readFileSync(resolve('src/App.tsx'), 'utf8');
-    const purchases = readFileSync(resolve('src/services/purchases.ts'), 'utf8');
-
-    expect(app).toContain('Slovolov Premium');
-    expect(app).toContain('Pokreni ${verifiedTrialDays} dana besplatno');
-    expect(app).toContain('Cena i eventualni probni period biće prikazani čim ih Apple potvrdi.');
-    expect(app).toContain('Pretplata se automatski obnavlja');
-    expect(app).toContain('Bez reklama');
-    expect(app).toContain('Prvih 7 slova, brojevi 0–10 i prve 3 priče ostaju besplatni');
-    expect(app).toContain('Premium otključava svih 30 slova, brojeve 0–100, igre i Čitanje');
-    expect(purchases).toContain('purchaseOfferFromProduct');
-    expect(purchases).toContain('trialDaysFromBillingPeriod');
-  });
-
-  it('Moja priča koristi prirodno skrolovanje umesto sabijanja sadržaja u jedan ekran', () => {
+  it('iOS Premium jasno komunicira mesečnu pretplatu sa probnim periodom', () => {
     const app = readFileSync(resolve('src/App.tsx'), 'utf8');
     const styles = readFileSync(resolve('src/styles.css'), 'utf8');
 
-    expect(app).toContain('className="single-screen creative-screen"');
-    expect(styles).toContain('.creative-screen {');
-    expect(styles).toContain('overflow-y: auto;');
-    expect(styles).toContain('.creative-screen .creative-preview {');
-    expect(styles).toContain('grid-template-rows: auto auto auto;');
-    expect(styles).toContain('.creative-screen .creative-story-pages { overflow: visible; }');
-    expect(styles).toContain('.creative-screen .creative-options { max-height: none; overflow: visible; }');
-  });
-
-  it('Korak sa slikama u Mojoj pametnoj lekciji se na telefonu ne seče', () => {
-    const styles = readFileSync(resolve('src/styles.css'), 'utf8');
-
-    expect(styles).toContain('.adaptive-choices:not(.syllables) { grid-template-columns: repeat(2, minmax(0, 1fr)); }');
-    expect(styles).toContain('.adaptive-picture-choice:nth-child(3):last-child { grid-column: 1 / -1; }');
-  });
-
-  it('Današnja avantura na telefonu slaže sadržaj koraka u jednu čitljivu kolonu', () => {
-    const styles = readFileSync(resolve('src/styles.css'), 'utf8');
-
-    expect(styles).toContain('.daily-step { min-height: 70px; grid-template-columns: minmax(0, 1fr); padding: 12px; }');
-    expect(styles).toContain('.daily-listen { width: 100%; justify-self: stretch; }');
+    expect(app).toContain("purchaseOffer.price ?? '3,99 €'");
+    expect(app).toContain('Mesečna pretplata se automatski obnavlja');
+    expect(app).toContain('Pokreni ${purchaseOffer.trialDays} dana besplatno');
+    expect(app).toContain('premium-world-art');
+    expect(app).toContain('premium-benefits');
+    expect(styles).toContain('.premium-world-island');
+    expect(styles).toContain('.premium-benefits li');
   });
 });

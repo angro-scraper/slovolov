@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="fur" x1="34" y1="24" x2="126" y2="142" gradientUnits="userSpaceOnUse"><stop stop-color="#B77D62"/><stop offset="1" stop-color="#85503F"/></linearGradient>
+    <linearGradient id="muzzle" x1="56" y1="84" x2="103" y2="126" gradientUnits="userSpaceOnUse"><stop stop-color="#FFD89C"/><stop offset="1" stop-color="#F4AE64"/></linearGradient>
+  </defs>
+  <ellipse cx="80" cy="143" rx="45" ry="8" fill="#60413A" fill-opacity=".12"/>
+  <circle cx="42" cy="46" r="25" fill="#744638"/><circle cx="42" cy="46" r="14" fill="#F2B99A"/>
+  <circle cx="118" cy="46" r="25" fill="#744638"/><circle cx="118" cy="46" r="14" fill="#F2B99A"/>
+  <path d="M25 78c0-34 24-55 55-55s55 21 55 55v23c0 25-23 42-55 42s-55-17-55-42V78Z" fill="url(#fur)"/>
+  <path d="M44 91c6-12 17-19 36-19s31 7 37 19c-2 21-17 37-37 37S46 112 44 91Z" fill="url(#muzzle)"/>
+  <ellipse cx="58" cy="74" rx="7" ry="10" fill="#292331"/><ellipse cx="102" cy="74" rx="7" ry="10" fill="#292331"/>
+  <circle cx="60" cy="71" r="2.5" fill="white"/><circle cx="104" cy="71" r="2.5" fill="white"/>
+  <ellipse cx="80" cy="91" rx="10" ry="7" fill="#43302E"/><path d="M80 98v7m0 0c-7 7-14 4-17 0m17 0c7 7 14 4 17 0" stroke="#694037" stroke-width="4" stroke-linecap="round"/>
+  <path d="M36 59c5-19 22-33 42-35" stroke="white" stroke-opacity=".18" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="51" cy="91" r="6" fill="#F28C85" fill-opacity=".5"/><circle cx="109" cy="91" r="6" fill="#F28C85" fill-opacity=".5"/>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <defs>
+    <linearGradient id="wool" x1="35" y1="38" x2="126" y2="125" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFDF6"/><stop offset="1" stop-color="#E7E7F2"/></linearGradient>
+    <linearGradient id="horn" x1="25" y1="55" x2="62" y2="100" gradientUnits="userSpaceOnUse"><stop stop-color="#D5A66B"/><stop offset="1" stop-color="#A66C49"/></linearGradient>
+  </defs>
+  <ellipse cx="81" cy="143" rx="46" ry="8" fill="#5F5B6C" fill-opacity=".12"/>
+  <path d="M45 104 41 135m25-25-1 27m31-27 2 27m22-33 4 31" stroke="#78645D" stroke-width="10" stroke-linecap="round"/>
+  <path d="M37 88c-11-3-17-16-12-27 5-11 18-14 28-7-1-13 9-23 21-22 9-13 28-11 34 2 14-4 27 7 25 21 13 8 12 27-2 34 0 16-15 27-30 21-10 10-28 8-34-5-15 4-29-2-30-17Z" fill="url(#wool)" stroke="#DCDCE9" stroke-width="3"/>
+  <path d="M44 66c-17 3-23 19-15 31 8 10 20 9 27 2V67l-12-1Zm72 0c17 3 23 19 15 31-8 10-20 9-27 2V67l12-1Z" fill="url(#horn)" stroke="#946047" stroke-width="3"/>
+  <path d="M48 78c0-21 14-35 32-35s32 14 32 35v24c0 20-13 32-32 32s-32-12-32-32V78Z" fill="#FFF0DB" stroke="#E8D6BD" stroke-width="3"/>
+  <ellipse cx="66" cy="83" rx="5.5" ry="8" fill="#292331"/><ellipse cx="94" cy="83" rx="5.5" ry="8" fill="#292331"/>
+  <circle cx="67.5" cy="80.5" r="2" fill="white"/><circle cx="95.5" cy="80.5" r="2" fill="white"/>
+  <ellipse cx="80" cy="98" rx="8" ry="6" fill="#B77F78"/><path d="M80 104c-4 6-10 5-13 1m13-1c4 6 10 5 13 1" stroke="#85615F" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="57" cy="97" r="5" fill="#F4A6A2" fill-opacity=".55"/><circle cx="103" cy="97" r="5" fill="#F4A6A2" fill-opacity=".55"/>
+</svg>

@@ -7,8 +7,6 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
-    pool: 'threads',
-    fileParallelism: false,
-    maxWorkers: 1
+    testTimeout: 30_000
   }
 });

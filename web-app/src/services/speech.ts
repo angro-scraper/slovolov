@@ -8,42 +8,22 @@ import {
   activateNativeAudioSession,
   releaseNativeAudioSession
 } from './nativeAudioSession';
-import {
-  startNativeAudioPlayback,
-  type NativeAudioPlaybackHandle
-} from './nativeAudioPlayback';
 
 let activeAudio: HTMLAudioElement | null = null;
-let activeNativePlayback: NativeAudioPlaybackHandle | null = null;
 let activeCompletion: ((completed: boolean) => void) | null = null;
 let playbackGeneration = 0;
-
-function nativePlaybackSource(localSource: string): string {
-  const versionedSource = versionAudioUrl(localSource);
-  // Kada Android WebView učitava aplikaciju sa Rendera, relativna adresa bi u
-  // native dodatku izgledala kao lokalni APK asset. Apsolutna adresa čuva
-  // localhost kao lokalni razvojni slučaj, a javni host preuzima svež snimak.
-  try {
-    return new URL(versionedSource, window.location.href).href;
-  } catch {
-    return versionedSource;
-  }
-}
 
 function stopOtherVoices(releaseSession = true): void {
   playbackGeneration += 1;
   const previousAudio = activeAudio;
-  const previousNativePlayback = activeNativePlayback;
   const previousCompletion = activeCompletion;
   activeAudio = null;
-  activeNativePlayback = null;
   activeCompletion = null;
   stopAllAppAudio();
   if (previousAudio) {
     previousAudio.pause();
     previousAudio.currentTime = 0;
   }
-  void previousNativePlayback?.stop();
   previousCompletion?.(false);
   if (releaseSession) {
     void releaseNativeAudioSession();
@@ -67,6 +47,9 @@ async function playSource(
   // između dva pitanja jer bi time TalkBack/VoiceOver ponovo dobio WebView.
   stopOtherVoices(false);
   const generation = playbackGeneration;
+  const audio = new Audio(versionAudioUrl(localSource));
+  activeAudio = audio;
+  audio.currentTime = 0;
   let finish: ((completed: boolean) => void) | null = null;
   const completion = waitForEnd
     ? new Promise<boolean>((resolve) => {
@@ -75,14 +58,10 @@ async function playSource(
       })
     : null;
 
-  let finished = false;
   const finishPlayback = (completed: boolean) => {
-    if (finished) return;
-    finished = true;
-    const isCurrent = generation === playbackGeneration;
+    const isCurrent = activeAudio === audio;
     if (isCurrent) {
       activeAudio = null;
-      activeNativePlayback = null;
       activeCompletion = null;
     }
     finish?.(completed);
@@ -91,30 +70,6 @@ async function playSource(
       void releaseNativeAudioSession();
     }
   };
-
-  // Android WebView nije pouzdan na svim telefonima i tabletima, naročito
-  // kada je aplikacija instalirana kao Capacitor omot. Zato Android lokalne
-  // snimke prvo pušta kroz MediaPlayer koji čita direktno iz APK assets-a.
-  // U browseru i na iOS-u ovaj poziv vraća null i ostaje postojeći HTML tok.
-  const nativePlayback = await startNativeAudioPlayback(nativePlaybackSource(localSource), {
-    onStarted: () => undefined,
-    onEnded: () => finishPlayback(true),
-    onError: () => finishPlayback(false)
-  });
-  if (nativePlayback) {
-    if (generation !== playbackGeneration || finished) {
-      await nativePlayback.stop();
-      finishPlayback(false);
-      return false;
-    }
-    activeNativePlayback = nativePlayback;
-    return completion ?? true;
-  }
-
-  const audio = new Audio(versionAudioUrl(localSource));
-  activeAudio = audio;
-  audio.preload = 'auto';
-  audio.currentTime = 0;
   audio.onended = () => {
     finishPlayback(true);
   };
@@ -128,7 +83,7 @@ async function playSource(
     const nativeActivation = activateNativeAudioSession();
     await audio.play();
     await nativeActivation;
-    if (generation !== playbackGeneration || activeAudio !== audio || finished) {
+    if (generation !== playbackGeneration || activeAudio !== audio) {
       audio.pause();
       audio.currentTime = 0;
       finishPlayback(false);

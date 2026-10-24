@@ -148,9 +148,7 @@ describe('audio pripovedanje', () => {
     expect(nativeStart.mock.calls[0][0]).toContain(
       '/audio/stories/ivica-i-marica-sazeta-1.mp3'
     );
-    expect(nativeStart.mock.calls[0][0]).toBe(
-      `/audio/stories/ivica-i-marica-sazeta-1.mp3?v=${AUDIO_ASSET_VERSION}`
-    );
+    expect(nativeStart.mock.calls[0][0]).toMatch(/^https?:\/\//);
     session.pause();
     session.resume();
     session.stop();
