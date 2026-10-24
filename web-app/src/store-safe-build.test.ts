@@ -24,4 +24,15 @@ describe('prodavnički build bez izvornih priča', () => {
       expect(readdirSync(storyAudio).every((name) => /-sazeta-\d+\.(mp3|ogg)$/i.test(name))).toBe(true);
     }
   });
+
+  it('iOS minimalna verzija je usklađena u Podfile i Xcode projektu', () => {
+    const podfile = readFileSync(resolve(process.cwd(), 'ios', 'App', 'Podfile'), 'utf8');
+    const project = readFileSync(
+      resolve(process.cwd(), 'ios', 'App', 'App.xcodeproj', 'project.pbxproj'),
+      'utf8'
+    );
+    expect(podfile).toContain("platform :ios, '15.0'");
+    expect(project).toContain('IPHONEOS_DEPLOYMENT_TARGET = 15.0;');
+    expect(project).not.toContain('IPHONEOS_DEPLOYMENT_TARGET = 14.0;');
+  });
 });
