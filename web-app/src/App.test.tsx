@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { Capacitor } from '@capacitor/core';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -79,11 +79,16 @@ describe('Slovolov glavni tok', () => {
       .toHaveAttribute('src', '/images/mascot-owl-v1.png');
   });
 
-  it('na prvom ekranu jasno ističe direktne ulaze u brojeve, priče i bajke', () => {
+  it('na prvom ekranu prikazuje osam većih ulaza sa učenjem i pisanjem na početku', () => {
     render(<App />);
 
     const discovery = screen.getByRole('region', { name: 'Uči, čitaj i maštaj' });
-    expect(discovery.querySelectorAll('button')).toHaveLength(4);
+    const cards = Array.from(discovery.querySelectorAll('button'));
+    expect(cards).toHaveLength(8);
+    expect(cards[0]).toHaveTextContent('Nauči slova');
+    expect(cards[1]).toHaveTextContent('Piši slova');
+    expect(discovery).toContainElement(screen.getByRole('button', { name: /Dnevni izazov/i }));
+    expect(discovery).toContainElement(screen.getByRole('button', { name: /Moja lekcija/i }));
     expect(discovery).toContainElement(screen.getByRole('button', { name: /Brojevi 0–100\. 101 brojeva/i }));
     expect(discovery).toContainElement(screen.getByRole('button', { name: /Čitanje\. 60 kratkih priča/i }));
     expect(discovery).toContainElement(screen.getByRole('button', { name: /Bajke i priče\. 37 naslova/i }));
@@ -748,7 +753,30 @@ describe('Slovolov glavni tok', () => {
 
     expect(screen.getByRole('heading', { name: 'Moja pametna lekcija' })).toBeVisible();
     expect(screen.getByText(/Danas ponavljamo slovo A/i)).toBeVisible();
-    expect(screen.getByText(/3 kratka koraka/i)).toBeVisible();
+    expect(screen.getByRole('progressbar', { name: 'Napredak moje lekcije' })).toHaveAttribute('aria-valuenow', '0');
+    expect(screen.getByRole('region', { name: 'Pitanje 1: Koje slovo čuješ?' })).toHaveTextContent('Odgovor:');
+    expect(screen.getByRole('region', { name: 'Pitanje 2: Pronađi sliku' })).toHaveTextContent('Odgovor:');
+    expect(screen.getByRole('region', { name: 'Pitanje 3: Dopuni slog' })).toHaveTextContent('Odgovor:');
+  });
+
+  it('moja lekcija ne dodeljuje zvezdice bez tri tačna odgovora', () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Moja lekcija/i }));
+    const initialStars = useProgressStore.getState().profile.stars;
+    const first = within(screen.getByRole('region', { name: 'Pitanje 1: Koje slovo čuješ?' }));
+    const wrong = first.getAllByRole('button').find((button) => button.textContent !== 'A' && !button.hasAttribute('aria-label'))!;
+    fireEvent.click(wrong);
+    expect(screen.getByRole('progressbar', { name: 'Napredak moje lekcije' })).toHaveAttribute('aria-valuenow', '0');
+    expect(useProgressStore.getState().profile.stars).toBe(initialStars);
+
+    fireEvent.click(first.getByRole('button', { name: 'A' }));
+    const picture = within(screen.getByRole('region', { name: 'Pitanje 2: Pronađi sliku' }));
+    fireEvent.click(picture.getByRole('button', { name: 'Slika: Avion' }));
+    expect(useProgressStore.getState().profile.stars).toBe(initialStars);
+    const syllable = within(screen.getByRole('region', { name: 'Pitanje 3: Dopuni slog' }));
+    fireEvent.click(syllable.getByRole('button', { name: 'A' }));
+    expect(screen.getByRole('progressbar', { name: 'Napredak moje lekcije' })).toHaveAttribute('aria-valuenow', '3');
+    expect(useProgressStore.getState().profile.stars).toBe(initialStars + 3);
   });
 
   it('igre sadrže slušni zadatak i slaganje reči', () => {

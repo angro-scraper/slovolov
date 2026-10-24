@@ -136,7 +136,10 @@ function PlayBanner({ icon, label, title, hint }: { icon: string; label: string;
 
 export function App() {
   const appRef = useRef<HTMLDivElement>(null);
-  const [screen, setScreen] = useState<Screen>(() => import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'adventure' ? 'adventure' : 'home');
+  const [screen, setScreen] = useState<Screen>(() => {
+    const preview = new URLSearchParams(window.location.search).get('preview');
+    return import.meta.env.DEV && (preview === 'adventure' || preview === 'adaptive' || preview === 'daily') ? preview : 'home';
+  });
   const [selected, setSelected] = useState<Letter>(letters[0]);
   const [coloringIndex, setColoringIndex] = useState(0);
   const [activeAdventureLevel, setActiveAdventureLevel] = useState<AdventureLevel | null>(null);
@@ -287,9 +290,17 @@ export function App() {
             <section className="game-home-discovery" aria-label="Uči, čitaj i maštaj" data-testid="home-learning-grid">
               <div className="game-home-section-heading"><div><small>SOVICA JE SPREMILA</small><h2>Šta ćemo danas?</h2></div></div>
               <div className="game-discovery-grid">
-                {(['numbers', 'reading', 'fairy-tales', 'creative'] as const).map((screen) => {
+                {(['learn', 'write', 'reading', 'numbers', 'daily', 'adaptive', 'fairy-tales', 'creative'] as const).map((screen) => {
                   const item = menus.find((entry) => entry.screen === screen)!;
-                  const description = screen === 'numbers'
+                  const description = screen === 'learn'
+                    ? 'Upoznaj 30 slova i njihove glasove'
+                    : screen === 'write'
+                      ? 'Piši velika i mala slova prstom'
+                    : screen === 'daily'
+                      ? 'Tri zadatka za danas'
+                    : screen === 'adaptive'
+                      ? 'Tri pitanja baš za tebe'
+                    : screen === 'numbers'
                     ? `${numberLessons.length} brojeva · slušaj i broji`
                     : screen === 'reading'
                       ? `${readingStories.length} kratkih priča · slogovi i reči`
@@ -311,19 +322,6 @@ export function App() {
                   );
                 })}
               </div>
-            </section>
-
-            <section className="game-home-spotlight" aria-label="Preporučene igre">
-              <button className="game-home-daily" onClick={() => navigate('daily')}>
-                <span className="spotlight-art daily-art" aria-hidden="true">🌞</span>
-                <span><small>KRATKA IGRA ZA DANAS</small><strong>Dnevni izazov</strong><em>Tri zadatka, tri zvezdice</em></span>
-                <b aria-hidden="true">›</b>
-              </button>
-              <button className="game-home-smart" onClick={() => navigate('adaptive')}>
-                <span className="spotlight-art smart-art" aria-hidden="true">🪄</span>
-                <span><small>BAŠ PO TVOJOJ MERI</small><strong>Moja lekcija</strong><em>Ponovi i nauči nešto novo</em></span>
-                <b aria-hidden="true">›</b>
-              </button>
             </section>
 
             <section className="game-home-progress" aria-label="Tvoj napredak u avanturi">
@@ -356,7 +354,7 @@ export function App() {
             <section className="game-home-activities">
               <div className="game-home-section-heading"><div><small>JOŠ NAČINA ZA IGRU</small><h2>Mala igrališta</h2></div><button onClick={() => navigate('games')}>Igre <span className="inline-arrow"><ArrowIcon /></span></button></div>
               <div className="game-activity-strip">
-                {menus.filter((item) => ['learn', 'write', 'coloring', 'quiz', 'progress'].includes(item.screen)).map((item) => {
+                {menus.filter((item) => ['coloring', 'quiz', 'progress'].includes(item.screen)).map((item) => {
                   const accessible = canAccessFeature(item.screen, familyUnlocked);
                   return (
                     <button key={item.screen} className={`game-activity-card menu-${item.screen} ${accessible ? '' : 'content-locked'}`} onClick={() => navigate(item.screen)} aria-label={accessible ? item.title : `${item.title} · Premium zaključano`}>
@@ -963,6 +961,7 @@ function CultureExplorer({
 
 function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean }) {
   const profile = useProgressStore((state) => state.profile);
+  const script = useProgressStore((state) => state.script);
   const familyUnlocked = useProgressStore((state) => state.familyAccess.isUnlocked);
   const recordSkillAttempt = useProgressStore((state) => state.recordSkillAttempt);
   const completeLearningPath = useProgressStore((state) => state.completeLearningPath);
@@ -972,30 +971,40 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
     profile.skillStats
   );
   const recommended = letters.find((letter) => letter.upper === recommendedUpper) ?? letters[0];
-  const [step, setStep] = useState(0);
-  const [message, setMessage] = useState('3 kratka koraka · oko 5 minuta');
+  const [solved, setSolved] = useState<number[]>([]);
+  const [message, setMessage] = useState('Odgovori na sva tri pitanja i osvoji 3 zvezdice.');
   const lessonId = `adaptive-${new Date().toISOString().slice(0, 10)}-${recommended.upper}`;
   const lessonSyllable = 'АЕИОУ'.includes(recommended.upper) ? `М${recommended.upper}` : `${recommended.upper}А`;
-  const tasks = [
-    { title: `Poslušaj slovo ${recommended.upper}`, icon: '🔊' },
-    { title: `Pronađi ${recommended.words[0].word}`, icon: recommended.words[0].emoji },
-    { title: `Pročitaj slog ${lessonSyllable}`, icon: '📖' }
-  ];
+  const recommendedIndex = letters.indexOf(recommended);
+  const letterChoices = seededChoices([
+    recommended.upper,
+    letters[(recommendedIndex + 4) % letters.length].upper,
+    letters[(recommendedIndex + 11) % letters.length].upper
+  ], recommendedIndex);
+  const pictureChoices = seededChoices([
+    recommended.words[0],
+    letters[(recommendedIndex + 7) % letters.length].words[0],
+    letters[(recommendedIndex + 15) % letters.length].words[0]
+  ], recommendedIndex + 1);
+  const show = (value: string) => script === 'latin' ? transliterate(value) : value;
 
-  const completeStep = (index: number) => {
-    if (index !== step) return;
+  const answer = (index: number, choice: string, expected: string) => {
+    if (solved.includes(index)) return;
+    if (choice !== expected) {
+      recordSkillAttempt(`adaptive:${recommended.upper}:${index + 1}`, false);
+      setMessage(`Pitanje ${index + 1}: pokušaj ponovo, pažljivo pogledaj ili poslušaj.`);
+      void speak('Pokušaj ponovo.', sound);
+      return;
+    }
     recordSkillAttempt(`adaptive:${recommended.upper}:${index + 1}`, true);
-    if (index === 0) void speak(recommended.upper, sound);
-    if (index === 1) void speak(recommended.words[0].word, sound);
-    if (index === 2) void speak(lessonSyllable, sound);
-    const nextStep = step + 1;
-    setStep(nextStep);
-    if (nextStep === tasks.length) {
+    const nextSolved = [...solved, index];
+    setSolved(nextSolved);
+    if (nextSolved.length === 3) {
       completeLearningPath(lessonId);
       setMessage('Bravo! Pametna lekcija je završena. Osvojio si 3 zvezdice! ⭐');
       void speak('Bravo! Završio si svoju lekciju!', sound);
     } else {
-      setMessage(`Odlično! Još ${tasks.length - nextStep} ${tasks.length - nextStep === 1 ? 'korak' : 'koraka'}.`);
+      setMessage(`Odlično! Tačno ${nextSolved.length} od 3. Nastavi sa preostalim pitanjima.`);
     }
   };
 
@@ -1004,26 +1013,32 @@ function AdaptiveLesson({ onBack, sound }: { onBack: () => void; sound: boolean 
       <Header title="Moja pametna lekcija" onBack={onBack} />
       <main className="adaptive-lesson">
         <section className="adaptive-hero">
-          <span>{recommended.words[0].emoji}</span>
+          <WordIllustration word={recommended.words[0]} />
           <div>
             <small>PREPORUKA ZA DANAS</small>
             <h2>Danas ponavljamo slovo {recommended.upper}</h2>
             <p>{profile.skillStats[`letter:${recommended.upper}`] ? 'Ovo slovo vežbamo još malo.' : 'Ovo je tvoje sledeće novo slovo.'}</p>
           </div>
         </section>
+        <div className="adaptive-progress" role="progressbar" aria-label="Napredak moje lekcije" aria-valuemin={0} aria-valuemax={3} aria-valuenow={solved.length}>
+          <span style={{ width: `${solved.length / 3 * 100}%` }} />
+        </div>
         <div className="adaptive-steps">
-          {tasks.map((task, index) => (
-            <button
-              key={task.title}
-              className={`${index < step ? 'done' : ''}${index === step ? ' active' : ''}`}
-              disabled={index > step}
-              onClick={() => completeStep(index)}
-            >
-              <span>{index < step ? '✓' : task.icon}</span>
-              <strong>{task.title}</strong>
-              <small>{index < step ? 'Završeno' : index === step ? 'Dodirni da počneš' : 'Sledeći korak'}</small>
-            </button>
-          ))}
+          <section className={`adaptive-question ${solved.includes(0) ? 'done' : ''}`} aria-label="Pitanje 1: Koje slovo čuješ?">
+            <div className="adaptive-question-heading"><span>1</span><div><small>SLUŠAJ</small><h3>Koje slovo čuješ?</h3></div><button className="adaptive-listen" aria-label="Poslušaj slovo" onClick={() => void speak(recommended.upper, sound)}>🔊</button></div>
+            <div className="adaptive-answer-slot">Odgovor: <strong>{solved.includes(0) ? show(recommended.upper) : '○'}</strong></div>
+            <div className="adaptive-choice-row">{letterChoices.map((choice) => <button key={choice} disabled={solved.includes(0)} onClick={() => answer(0, choice, recommended.upper)}>{show(choice)}</button>)}</div>
+          </section>
+          <section className={`adaptive-question ${solved.includes(1) ? 'done' : ''}`} aria-label="Pitanje 2: Pronađi sliku">
+            <div className="adaptive-question-heading"><span>2</span><div><small>GLEDAJ</small><h3>Pronađi sliku: {show(recommended.words[0].word)}</h3></div></div>
+            <div className="adaptive-answer-slot">Odgovor: <strong>{solved.includes(1) ? show(recommended.words[0].word) : '○'}</strong></div>
+            <div className="adaptive-picture-row">{pictureChoices.map((choice) => <button key={choice.word} disabled={solved.includes(1)} aria-label={`Slika: ${show(choice.word)}`} onClick={() => answer(1, choice.word, recommended.words[0].word)}><WordIllustration word={choice} /><small>{show(choice.word)}</small></button>)}</div>
+          </section>
+          <section className={`adaptive-question ${solved.includes(2) ? 'done' : ''}`} aria-label="Pitanje 3: Dopuni slog">
+            <div className="adaptive-question-heading"><span>3</span><div><small>SLOŽI</small><h3>Dopuni slog {show(lessonSyllable.replace(recommended.upper, '_'))}</h3></div></div>
+            <div className="adaptive-answer-slot">Odgovor: <strong>{solved.includes(2) ? show(lessonSyllable) : show(lessonSyllable.replace(recommended.upper, '□'))}</strong></div>
+            <div className="adaptive-choice-row">{letterChoices.map((choice) => <button key={choice} disabled={solved.includes(2)} onClick={() => answer(2, choice, recommended.upper)}>{show(choice)}</button>)}</div>
+          </section>
         </div>
         <p className="adaptive-status" role="status">{message}</p>
       </main>

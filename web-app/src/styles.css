@@ -75,17 +75,21 @@ body {
 .game-home-spotlight { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .game-home-discovery { min-width: 0; }
 .game-discovery-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.game-discovery-card { min-width: 0; min-height: 92px; position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr) 22px; align-items: center; gap: 10px; padding: 11px; overflow: hidden; border: 1px solid rgba(138,149,190,.18); border-radius: 22px; color: #202746; background: white; box-shadow: 0 8px 22px rgba(40,45,100,.08); text-align: left; transition: transform .16s ease, box-shadow .16s ease; }
+.game-discovery-card { min-width: 0; min-height: 116px; position: relative; display: grid; grid-template-columns: 54px minmax(0, 1fr) 22px; align-items: center; gap: 11px; padding: 14px; overflow: hidden; border: 1px solid rgba(138,149,190,.18); border-radius: 22px; color: #202746; background: white; box-shadow: 0 8px 22px rgba(40,45,100,.08); text-align: left; transition: transform .16s ease, box-shadow .16s ease; }
 .game-discovery-card:active { transform: scale(.97); }
 .game-discovery-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
 .discovery-numbers { background: linear-gradient(125deg, #fff9d7, #fff 72%); }
 .discovery-reading { background: linear-gradient(125deg, #eafff5, #fff 72%); }
 .discovery-fairy-tales { background: linear-gradient(125deg, #f0eaff, #fff 72%); }
 .discovery-creative { background: linear-gradient(125deg, #e9f5ff, #fff 72%); }
-.discovery-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 16px; background: rgba(255,255,255,.78); box-shadow: inset 0 0 0 1px rgba(100,90,180,.09); font-size: 1.75rem; }
+.discovery-learn { background: linear-gradient(125deg, #e5edff, #fff 72%); }
+.discovery-write { background: linear-gradient(125deg, #fff0da, #fff 72%); }
+.discovery-daily { background: linear-gradient(125deg, #fff9d7, #fff 72%); }
+.discovery-adaptive { background: linear-gradient(125deg, #f0eaff, #fff 72%); }
+.discovery-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 17px; background: rgba(255,255,255,.78); box-shadow: inset 0 0 0 1px rgba(100,90,180,.09); font-size: 2rem; }
 .discovery-copy { min-width: 0; display: grid; gap: 3px; }
-.discovery-copy strong { font-size: .92rem; font-weight: 1000; line-height: 1.1; }
-.discovery-copy small { color: #66718a; font-size: .66rem; font-weight: 800; line-height: 1.2; }
+.discovery-copy strong { font-size: 1.03rem; font-weight: 1000; line-height: 1.16; }
+.discovery-copy small { color: #66718a; font-size: .76rem; font-weight: 800; line-height: 1.25; }
 .discovery-arrow { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: var(--purple); background: rgba(91,78,232,.1); }
 .discovery-arrow .arrow-icon { width: 14px; height: 14px; stroke-width: 3; }
 .game-discovery-card.content-locked { filter: saturate(.55); }
@@ -569,10 +573,12 @@ body {
   .game-home-copy p { margin-bottom: 11px; }
   .game-home-discovery .game-home-section-heading { margin-bottom: 7px; }
   .game-discovery-grid { gap: 8px; }
-  .game-discovery-card { min-height: 78px; grid-template-columns: 38px minmax(0, 1fr) 18px; gap: 7px; padding: 8px; border-radius: 18px; }
-  .discovery-icon { width: 38px; height: 38px; border-radius: 13px; font-size: 1.45rem; }
-  .discovery-copy strong { font-size: .78rem; }
-  .discovery-copy small { font-size: .56rem; }
+  .game-discovery-card { min-height: 104px; grid-template-columns: 46px minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 6px 8px; padding: 11px; border-radius: 19px; }
+  .discovery-icon { width: 46px; height: 46px; border-radius: 14px; font-size: 1.68rem; }
+  .discovery-copy { grid-column: 1 / -1; }
+  .discovery-copy strong { font-size: .91rem; }
+  .discovery-copy small { font-size: .7rem; }
+  .game-discovery-card .discovery-arrow { justify-self: end; align-self: center; }
   .discovery-arrow { width: 18px; height: 18px; }
   .discovery-arrow .arrow-icon { width: 12px; height: 12px; }
   .mascot-owl { width: 118%; height: 118%; }
@@ -738,29 +744,29 @@ body {
   box-shadow: 0 18px 40px rgba(79,70,229,.22);
 }
 .adaptive-hero > span { font-size: 4.5rem; text-align: center; filter: drop-shadow(0 8px 10px rgba(30,27,75,.28)); }
+.adaptive-hero > .word-illustration { width: 88px; height: 88px; object-fit: contain; }
 .adaptive-hero small { color: #fde68a; font-weight: 900; letter-spacing: .1em; }
 .adaptive-hero h2 { margin: 4px 0; font: 900 clamp(1.25rem, 5vw, 1.9rem) var(--font-family); }
 .adaptive-hero p { margin: 0; color: #ede9fe; font-weight: 800; }
-.adaptive-steps { display: grid; gap: 9px; }
-.adaptive-steps button {
-  min-height: 76px;
-  display: grid;
-  grid-template-columns: 52px 1fr;
-  grid-template-rows: 1fr 1fr;
-  align-items: center;
-  column-gap: 12px;
-  padding: 11px 15px;
-  border: 2px solid #e5e7f6;
-  border-radius: 22px;
-  background: var(--surface);
-  color: inherit;
-  text-align: left;
-}
-.adaptive-steps button > span { grid-row: 1 / 3; display: grid; place-items: center; width: 50px; height: 50px; border-radius: 17px; background: #eef2ff; font-size: 1.55rem; }
-.adaptive-steps button strong { align-self: end; font-size: 1rem; }.adaptive-steps button small { align-self: start; color: #6b7280; font-weight: 800; }
-.adaptive-steps button.active { border-color: #6366f1; box-shadow: 0 8px 24px rgba(79,70,229,.12); }
-.adaptive-steps button.done { border-color: #86efac; background: #f0fdf4; }.adaptive-steps button.done > span { background: #dcfce7; color: #15803d; }
-.adaptive-steps button:disabled { opacity: .58; }
+.adaptive-progress { height: 11px; overflow: hidden; border-radius: 99px; background: #e8e4fa; }
+.adaptive-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #6455ea, #5bcf94); transition: width .25s; }
+.adaptive-steps { display: grid; gap: 14px; }
+.adaptive-question { padding: 16px; border: 2px solid #e5e7f6; border-radius: 24px; background: var(--surface); box-shadow: 0 9px 24px rgba(55,49,125,.08); }
+.adaptive-question.done { border-color: #86efac; background: #f0fdf4; }
+.adaptive-question-heading { display: flex; align-items: center; gap: 12px; }
+.adaptive-question-heading > span { flex: none; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; color: #fff; background: #6755e8; font-size: 1.2rem; font-weight: 1000; }
+.adaptive-question-heading > div { flex: 1; min-width: 0; }
+.adaptive-question-heading small { color: #6957d3; font-size: .68rem; letter-spacing: .1em; font-weight: 1000; }
+.adaptive-question-heading h3 { margin: 1px 0 0; font-size: 1.08rem; line-height: 1.2; }
+.adaptive-listen { width: 48px; height: 48px; border: 0; border-radius: 17px; background: #eeeaff; font-size: 1.35rem; }
+.adaptive-answer-slot { display: flex; justify-content: space-between; align-items: center; min-height: 46px; margin: 14px 0 12px; padding: 8px 13px; border: 2px dashed #c7bdfa; border-radius: 15px; color: #5148a5; background: #faf9ff; font-size: .88rem; font-weight: 900; }
+.adaptive-answer-slot strong { color: #31258d; font-size: 1.16rem; }
+.adaptive-choice-row, .adaptive-picture-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.adaptive-choice-row button, .adaptive-picture-row button { min-height: 50px; border: 2px solid #ddd8fa; border-radius: 16px; color: #4f43d4; background: #f2f0ff; font-size: 1.15rem; font-weight: 1000; box-shadow: 0 4px 0 #ddd8fa; }
+.adaptive-choice-row button:disabled, .adaptive-picture-row button:disabled { opacity: .6; }
+.adaptive-picture-row button { display: grid; justify-items: center; align-content: center; gap: 4px; min-height: 100px; padding: 6px; font-size: 2rem; }
+.adaptive-picture-row .word-illustration { width: 48px; height: 48px; object-fit: contain; }
+.adaptive-picture-row small { max-width: 100%; overflow-wrap: anywhere; color: #3c3573; font-size: .72rem; }
 .adaptive-status, .creative-status { min-height: 24px; margin: 0; color: var(--purple); font-weight: 900; text-align: center; }
 
 .game-tabs { grid-template-columns: repeat(4, 1fr); }
