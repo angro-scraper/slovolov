@@ -1,12 +1,15 @@
-"""Generiše odobrene lokalne Sophie snimke za module čitanja.
+"""Alternativni generator Sophie snimaka za module čitanja.
 
 Skript ne koristi glas telefona. Svi izlazi su statični MP3 resursi koji se
-isporučuju uz PWA/Capacitor aplikaciju.
+isporučuju uz PWA/Capacitor aplikaciju. Ne prepisuje odobreni Ida paket
+bez eksplicitne opcije --replace-approved-voice.
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
+import json
 from pathlib import Path
 
 import edge_tts
@@ -132,6 +135,21 @@ async def generate(path: Path, text: str) -> None:
 
 
 async def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--replace-approved-voice",
+        action="store_true",
+        help="Namerno zamenjuje već odobreni ElevenLabs paket drugim naratorom.",
+    )
+    args = parser.parse_args()
+    catalog_path = AUDIO_ROOT / "catalog.json"
+    if catalog_path.is_file() and not args.replace_approved_voice:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        if catalog.get("profile", {}).get("provider") == "ElevenLabs":
+            raise RuntimeError(
+                "Odobreni Ida snimci su već prisutni. Za namernu zamenu glasa "
+                "potrebna je opcija --replace-approved-voice."
+            )
     segments = all_segments()
     if len(segments) != 241:
         raise RuntimeError(f"Očekivano je 241 segmenata, pronađeno {len(segments)}.")

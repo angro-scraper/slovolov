@@ -31,7 +31,7 @@ export function resolveLetterAudio(text: string): LetterAudioMatch | undefined {
       index: exact.index,
       kind: 'sound',
       source: versionAudioUrl(
-        `/audio/letters/${String(exact.index + 1).padStart(2, '0')}-lesson.mp3`
+        `/audio/letters/${String(exact.index + 1).padStart(2, '0')}-sound.mp3`
       )
     };
   }

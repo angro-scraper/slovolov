@@ -110,7 +110,7 @@ describe('isključivo lokalni govor aplikacije', () => {
   it('izgovor slova koristi lokalni paket i nikada glas telefona', async () => {
     await speak('Ј');
 
-    expect(created.at(-1)?.src).toContain('/audio/letters/11-lesson.mp3');
+    expect(created.at(-1)?.src).toContain('/audio/letters/11-sound.mp3');
     expect(synthSpeak).not.toHaveBeenCalled();
   });
 
