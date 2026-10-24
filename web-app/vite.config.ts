@@ -36,8 +36,7 @@ export default defineConfig(({ mode }) => {
         'icons/slovolov-icon-192.png',
         'icons/slovolov-icon-512.png',
         'audio/feedback/*.mp3',
-        'audio/creative/*.mp3',
-        'audio/reading/**/*.mp3'
+        'audio/creative/*.mp3'
       ],
       manifest: {
         name: 'Slovolov — učimo srpska slova',
@@ -56,6 +55,21 @@ export default defineConfig(({ mode }) => {
         globPatterns: ['**/*.{js,css,html,svg,json,woff2}'],
         navigateFallback: '/index.html',
         runtimeCaching: [
+          {
+            // Capacitor već isporučuje MP3 lokalno. Masovni precache čitanja
+            // zagušuje WebView pri prvom pokretanju; PWA ih čuva po potrebi.
+            urlPattern: ({ url }) => url.pathname.startsWith('/audio/reading/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'slovolov-reading-audio-v17',
+              expiration: {
+                maxEntries: 300,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              },
+              cacheableResponse: { statuses: [0, 200] },
+              rangeRequests: true
+            }
+          },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/audio/letters/'),
             handler: 'CacheFirst',

@@ -47,7 +47,9 @@ describe('PWA audio knjige', () => {
   it('sve Moje knjige mogu da se slušaju offline istim naratorom', () => {
     const config = readFileSync(resolve(process.cwd(), 'vite.config.ts'), 'utf8');
     expect(config).toContain("'audio/creative/*.mp3'");
-    expect(config).toContain("'audio/reading/**/*.mp3'");
+    expect(config).not.toContain("'audio/reading/**/*.mp3'");
+    expect(config).toContain("url.pathname.startsWith('/audio/reading/')");
+    expect(config).toContain("cacheName: 'slovolov-reading-audio-v17'");
     const audioRoot = resolve(process.cwd(), 'public', 'audio', 'creative');
     for (const filename of [
       'opening-h1-p1.mp3',
