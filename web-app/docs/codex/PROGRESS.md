@@ -41,3 +41,30 @@ tabletu/telefonu pre javne Play objave.
   `npm run build` — uspešno, 144 PWA precache stavke (poznato upozorenje za
   glavni JS paket od 548,81 kB); `git diff --check` — bez whitespace grešaka.
 - U ovoj tački Android 3.4.1 (31) i iOS 3.4.1 još nisu poslati prodavnicama.
+
+## Predaja kandidata 3.4.1 prodavnicama — 25. oktobar 2026.
+
+- Commit `212bcb6` je poslat u namenski javni repozitorijum
+  `angro-scraper/slovolov` na `main`, uz vlasnikovo izričito odobrenje za
+  izdavanje. Stariji prototip i BriefAI nisu dirani.
+- GitHub Actions `store-aab.yml`, run `40183366745`, uspešno je završio testove,
+  Capacitor sinhronizaciju i potpisani Android bundle. Preuzet je
+  `app-release.aab` (79.870.950 bajtova), SHA-256
+  `9E9308F8D10F7DF51829382BF4E8A17FE2E4794A1D2C5DDD627898943E34DF2F`;
+  `jarsigner -verify` je potvrdio `jar verified`.
+- Sa Google Play pregleda povučen je stari zahtev za 30 (3.4.0). U proizvodni
+  kanal dodat je tačno bundle 31 (3.4.1), cilj SDK 36, sa 100% uvođenjem u sve
+  prethodno ciljane zemlje. Play prikazuje novu verziju kao jedinu promenu na
+  pregledu. Jedino neblokirajuće upozorenje odnosi se na fajl za odmaskiranje.
+- U App Store Connect napravljen je iOS nacrt 3.4.1 i sačuvani su opis promena
+  i tačne napomene za pregled. Codemagic App Store Release je ručno pokrenut
+  iz taga `ios-release-3.4.1-20261025`, build
+  `6addd9434a72334e32e4f6b5`. Testovi, sinhronizacija, potpisivanje i IPA
+  izrada su prošli; otprema builda 16, verzije 3.4.1, za `rs.slovolov.app`
+  uspela je bez grešaka, sa minimumom iOS 15.0. Codemagic je potom podneo
+  verziju Apple-u na pregled; App Store Connect nezavisno prikazuje iOS 3.4.1,
+  build 16, sa statusom `Waiting for Review`.
+- Završna provera: Google Play prikazuje samo proizvodnu 31 (3.4.1) pod
+  `Promene na pregledu`, a Apple iOS 3.4.1 build 16 kao `Waiting for Review`.
+  Obe prodavnice su podešene za javno izdavanje posle odobrenja, ali nijedna
+  nova verzija još nije potvrđena kao javno dostupna.
