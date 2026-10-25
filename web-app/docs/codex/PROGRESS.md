@@ -27,3 +27,17 @@ Provere:
 U trenutku provere nijedan Android uredjaj ili emulator nije bio povezan kroz
 `adb devices`, pa stvarni zvucni smoke test mora biti ponovljen na prijavljenom
 tabletu/telefonu pre javne Play objave.
+
+## Kandidat 3.4.1 — 25. oktobar 2026.
+
+- Polazna tačka je izdanje 3.4.0 (`8b62cdb`) i tri lokalna commita za vraćanje
+  odobrenih naratora, tri odgovora u pametnoj lekciji i odloženo keširanje zvuka
+  (`64926a8`, `3e4bace`, `001400d`). Stari prototip nije uključen.
+- Kandidat je podignut na Android `versionCode 31` / `versionName 3.4.1` i iOS
+  marketinšku verziju `3.4.1`; Codemagic sam dodeljuje sledeći raspoloživi iOS
+  build broj. Android 3.4.0 (30) je u trenutku provere i dalje na Play pregledu;
+  iOS 3.4.0 build 15 je `Ready for Distribution`.
+- Provere: `npm test -- --maxWorkers=2` — 52 fajla, 248/248 testova;
+  `npm run build` — uspešno, 144 PWA precache stavke (poznato upozorenje za
+  glavni JS paket od 548,81 kB); `git diff --check` — bez whitespace grešaka.
+- U ovoj tački Android 3.4.1 (31) i iOS 3.4.1 još nisu poslati prodavnicama.

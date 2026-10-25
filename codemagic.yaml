@@ -18,7 +18,7 @@ workflows:
       vars:
         BUNDLE_ID: "rs.slovolov.app"
         APP_STORE_APPLE_ID: "6795110827"
-        MARKETING_VERSION: "3.4.0"
+        MARKETING_VERSION: "3.4.1"
         XCODE_WORKSPACE: "App.xcworkspace"
         XCODE_SCHEME: "App"
         VITE_STORE_SAFE_CONTENT: "true"
