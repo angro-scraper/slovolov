@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 640" role="img" aria-label="Balon za bojenje">
+  <g fill="#fff" stroke="#171717" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 48C142 48 68 139 68 253c0 106 82 184 188 240 106-56 188-134 188-240C444 139 370 48 256 48Z"/>
+    <path d="M140 118c22 119 52 245 116 375" fill="none"/>
+    <path d="M256 49c-2 136-2 292 0 444" fill="none"/>
+    <path d="M372 118c-22 119-52 245-116 375" fill="none"/>
+    <path d="M229 489 256 516l27-27-14-25h-26Z"/>
+    <path d="M256 516c-4 37-10 69-27 101m27-101c4 37 10 69 27 101" fill="none"/>
+    <path d="M108 244c4-75 37-129 91-157" fill="none" stroke-width="7"/>
+    <circle cx="182" cy="220" r="12"/>
+    <circle cx="332" cy="306" r="10"/>
+    <circle cx="207" cy="353" r="8"/>
+  </g>
+</svg>

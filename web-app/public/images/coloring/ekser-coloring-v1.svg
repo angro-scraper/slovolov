@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 768" role="img" aria-label="Ekser za bojenje">
+  <g fill="#fff" stroke="#171717" stroke-linecap="round" stroke-linejoin="round" stroke-width="12">
+    <path d="M145 92c0-33 27-60 60-60h102c33 0 60 27 60 60v42H145Z"/>
+    <path d="M160 136h192v40H160z"/>
+    <path d="M188 176h136v434L256 718l-68-108Z"/>
+    <path d="m205 202 102 0v34H205z"/>
+    <path d="m205 270 102 0v34H205z"/>
+    <path d="m205 338 102 0v34H205z"/>
+    <path d="m205 406 102 0v34H205z"/>
+    <path d="m205 474 102 0v34H205z"/>
+    <path d="m205 542 102 0v50H205z"/>
+    <path d="M166 96h76" fill="none" stroke-width="9"/>
+    <path d="M346 96h-76" fill="none" stroke-width="9"/>
+  </g>
+</svg>

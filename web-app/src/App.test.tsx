@@ -926,11 +926,38 @@ describe('Slovolov glavni tok', () => {
     const canvas = screen.getByLabelText(/Bojanka za/);
     Object.defineProperty(canvas, 'getBoundingClientRect', { value: () => ({ left: 0, top: 0, width: 260, height: 420 }) });
     fireEvent.pointerDown(canvas, { pointerId: 1, clientX: 100, clientY: 100 });
+    fireEvent.pointerMove(canvas, { pointerId: 1, clientX: 120, clientY: 120 });
     fireEvent.pointerUp(canvas, { pointerId: 1, clientX: 120, clientY: 120 });
     fireEvent.click(screen.getByRole('button', { name: /Gotovo, obojio sam/i }));
     expect(screen.getByText(/Bravo! Obojao si avion\. Reč: AVION\./i)).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Sledeći predmet' }));
     expect(screen.getByText(/Predmet\s+2\s+od\s+30/)).toBeVisible();
+  });
+
+  it('svih 30 predmeta bojanke koristi postojeću tablu ili provereni zaseban crtež', () => {
+    const sources: string[] = [];
+    vi.stubGlobal('Image', class {
+      naturalWidth = 1536;
+      naturalHeight = 1024;
+      onload: (() => void) | null = null;
+      set src(value: string) { sources.push(value); this.onload?.(); }
+    });
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: /Bojanka/i }));
+    const expected = new Map([
+      [0, '/images/coloring/airplane-coloring-v1.png'],
+      [1, '/images/coloring/balloon-coloring-v1.svg'],
+      [6, '/images/coloring/ekser-coloring-v1.svg'],
+      [11, '/images/coloring/whale-coloring-v1.svg'],
+      [22, '/images/coloring/rug-coloring-v1.svg'],
+      [25, '/images/coloring/bread-coloring-v1.svg']
+    ]);
+    for (let index = 0; index < 30; index += 1) {
+      if (index > 0) fireEvent.click(screen.getByRole('button', { name: 'Sledeći predmet' }));
+      const path = expected.get(index) ?? `/images/coloring/objects-sheet-${Math.floor(index / 6) + 1}-v1.png`;
+      expect(sources.at(-1)).toBe(path);
+      expect(readFileSync(resolve(process.cwd(), `public${path}`)).byteLength).toBeGreaterThan(100);
+    }
   });
 
   it('roditelj unosi ime novog profila i kasnije ga menja', async () => {

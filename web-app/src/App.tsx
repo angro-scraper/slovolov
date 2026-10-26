@@ -72,6 +72,13 @@ import { useProgressStore } from './store/progress';
 type Screen = 'home' | 'adventure' | 'trail' | 'voice' | 'family-missions' | 'logic' | 'culture' | 'adaptive' | 'daily' | 'learn' | 'lesson' | 'write' | 'coloring' | 'games' | 'quiz' | 'numbers' | 'reading' | 'fairy-tales' | 'creative' | 'progress' | 'settings';
 const OWL_MASCOT_SRC = '/images/mascot-owl-v1.png';
 const coloringPages = letters.map((letter) => ({ id: letter.upper, ...letter.words[0] }));
+const coloringSpriteSheets = [
+  '/images/coloring/objects-sheet-1-v1.png',
+  '/images/coloring/objects-sheet-2-v1.png',
+  '/images/coloring/objects-sheet-3-v1.png',
+  '/images/coloring/objects-sheet-4-v1.png',
+  '/images/coloring/objects-sheet-5-v1.png'
+];
 
 const menus: Array<{ screen: Screen; icon: string; title: string; subtitle: string }> = [
   { screen: 'adventure', icon: '🗺️', title: 'Moja avantura', subtitle: '36 nivoa koji postaju sve teži' },
@@ -525,13 +532,31 @@ export function App() {
             letter=""
             objectName={script === 'latin' ? transliterate(coloringPages[coloringIndex].word) : coloringPages[coloringIndex].word}
             requireDrawing
-            storageKey={`object-${coloringPages[coloringIndex].id}`}
-            illustration={coloringPages[coloringIndex].image}
+            storageKey={`object-detail-v3-${coloringPages[coloringIndex].id}`}
+            illustration={coloringPages[coloringIndex].emoji}
+            illustrationImage={coloringIndex === 0
+              ? '/images/coloring/airplane-coloring-v1.png'
+              : coloringIndex === 1
+                ? '/images/coloring/balloon-coloring-v1.svg'
+              : coloringIndex === 6
+                ? '/images/coloring/ekser-coloring-v1.svg'
+              : coloringIndex === 11
+                ? '/images/coloring/whale-coloring-v1.svg'
+              : coloringIndex === 22
+                ? '/images/coloring/rug-coloring-v1.svg'
+              : coloringIndex === 25
+                ? '/images/coloring/bread-coloring-v1.svg'
+              : coloringSpriteSheets[Math.floor(coloringIndex / 6)]}
+            templateIndex={coloringIndex === 0 || coloringIndex === 1 || coloringIndex === 6 || coloringIndex === 11 || coloringIndex === 22 || coloringIndex === 25 ? 0 : coloringIndex % 6}
+            templateColumns={coloringIndex === 0 || coloringIndex === 1 || coloringIndex === 6 || coloringIndex === 11 || coloringIndex === 22 || coloringIndex === 25 ? 1 : 3}
+            templateRows={coloringIndex === 0 || coloringIndex === 1 || coloringIndex === 6 || coloringIndex === 11 || coloringIndex === 22 || coloringIndex === 25 ? 1 : 2}
+            templateCropInsetLeft={coloringIndex === 23 ? 0.28 : undefined}
+            templateCropInsetRight={coloringIndex === 10 ? 0.12 : undefined}
             onSaved={() => {
               void speak(`Bravo! Obojao si ${coloringPages[coloringIndex].word.toLocaleLowerCase('sr-RS')}. Reč je ${coloringPages[coloringIndex].word}.`, sound);
             }}
           />
-          <p className="coloring-feedback">Oboji {(script === 'latin' ? transliterate(coloringPages[coloringIndex].word) : coloringPages[coloringIndex].word).toLocaleLowerCase('sr-RS')} i nauči novu reč!</p>
+          <p className="coloring-feedback">Dodirni zatvoren deo slike da ga popuniš bojom ili prevuci prstom da crtaš.</p>
         </main>
       </div>
     );

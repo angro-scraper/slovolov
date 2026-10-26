@@ -14,15 +14,15 @@ describe('Slovolov nativne izdanje', () => {
     expect(androidBuild).toMatch(/com\.android\.tools\.build:gradle:8\.(?:9|[1-9]\d)\./);
   });
 
-  it('koristi sledeći Android kod i iOS build za izdanje 3.4.1', () => {
+  it('koristi sledeći Android kod i iOS build za izdanje 3.4.2', () => {
     const packageJson = JSON.parse(readProjectFile('package.json')) as { version: string };
     const androidBuild = readProjectFile('android/app/build.gradle');
     const iosProject = readProjectFile('ios/App/App.xcodeproj/project.pbxproj');
 
-    expect(packageJson.version).toBe('3.4.1');
-    expect(androidBuild).toMatch(/versionCode\s+31\b/);
-    expect(androidBuild).toMatch(/versionName\s+"3\.4\.1"/);
-    expect(iosProject.match(/CURRENT_PROJECT_VERSION = 16;/g)).toHaveLength(2);
-    expect(iosProject.match(/MARKETING_VERSION = 3\.4\.1;/g)).toHaveLength(2);
+    expect(packageJson.version).toBe('3.4.2');
+    expect(androidBuild).toMatch(/versionCode\s+32\b/);
+    expect(androidBuild).toMatch(/versionName\s+"3\.4\.2"/);
+    expect(iosProject.match(/CURRENT_PROJECT_VERSION = 17;/g)).toHaveLength(2);
+    expect(iosProject.match(/MARKETING_VERSION = 3\.4\.2;/g)).toHaveLength(2);
   });
 });

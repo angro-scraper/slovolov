@@ -68,3 +68,32 @@ tabletu/telefonu pre javne Play objave.
   `Promene na pregledu`, a Apple iOS 3.4.1 build 16 kao `Waiting for Review`.
   Obe prodavnice su podešene za javno izdavanje posle odobrenja, ali nijedna
   nova verzija još nije potvrđena kao javno dostupna.
+
+## Kandidat 3.4.2 — samo bojanka, 26. oktobar 2026.
+
+- Osnova je javni commit `212bcb6` za već poslato izdanje 3.4.1; lokalni
+  `8e55678` iznad njega menjao je samo ovaj izveštaj. Rad je na grani
+  `codex/autonomous-stabilization/coloring-3-4-2`, bez zahvata u naratore,
+  pretplatu, čitanje, lekciju ili ostale ekrane.
+- Preneti su samo prikaz i interakcija bojanke, 11 grafičkih fajlova i testovi.
+  Svih 11 fajlova su SHA-256 identični prethodno pregledanim lokalnim crtežima.
+  Novi regresioni test prolazi kroz svih 30 predmeta, proverava rutiranje i
+  postojanje odgovarajućeg fajla; odvojene konture čuvaju avion, balon, ekser,
+  kita, ćilim i hleb od prelivanja susednih sličica.
+- Neophodna oznaka novog izdanja je 3.4.2: Android `versionCode 32`, iOS
+  izvorni build 17. Codemagic i dalje sam određuje sledeći slobodan iOS build
+  broj i zadržava postojeće store-safe/premium postavke.
+- Polazna zbirka pre izmena: `npm test -- --run --maxWorkers=2` — 248/248.
+  Posle portovanja: ista komanda — 258/258; ciljani testovi nakon konačne
+  provere svih 30 putanja — 74/74. `npm run build` i oba store-safe builda
+  (Android i iOS promenljive kao u objavnom toku) su uspešni.
+- `npx cap copy android`, `:app:installDebug` za zasebni
+  `rs.slovolov.app.coloringpreview`, `npx cap sync android`, `:app:bundleRelease`
+  i `npx cap copy ios` su uspešni. Emulator prikazuje čiste crteže za predmet
+  1 (avion) i 7 (ekser), bez pada aplikacije; snimci su u
+  `C:\Users\49162\AppData\Local\Temp\slovolov-release-coloring-1.png` i
+  `C:\Users\49162\AppData\Local\Temp\slovolov-release-coloring-7.png`.
+- Lokalni AAB ima svih 11 grafičkih fajlova, ali je **nepotpisan** (`jarsigner`
+  javlja `jar is unsigned`), pa nije za Play upload. Potpisani paket zahteva
+  postojeći GitHub Actions secret tok; iOS IPA zahteva Codemagic. Do ovog
+  zapisa nije bilo push-a, pokretanja tih tokova niti predaje prodavnicama.
