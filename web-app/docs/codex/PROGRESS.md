@@ -102,3 +102,36 @@ tabletu/telefonu pre javne Play objave.
   proizvodnu 31 (3.4.1) pod `Promene na pregledu`. Odvojena izmena ikonice
   Play listinga je sačuvana, ali još nije poslata na pregled. Nijedna od tih
   postojećih promena nije menjana tokom pripreme bojanke.
+
+## Predaja bojanke 3.4.2 — 26. oktobar 2026.
+
+- Vlasnik je izričito odobrio izuzetak za Slovolov 3.4.2: push, potpisani
+  Android build i slanje oba paketa u prodavnice. `git ls-remote` je pre
+  push-a potvrdio da je javni `main` još na `212bcb6`. Commit `7238d72`
+  (bojanka `9b6cc98` i release dokumentacija) poslat je bez force opcije u
+  `angro-scraper/slovolov` na `main`.
+- GitHub Actions `store-aab.yml`, run `40338386854`, završio je uspešno na
+  tačno `7238d72`. Preuzet je potpisani `app-release.aab` (87.328.608
+  bajtova); `jarsigner -verify` javlja `jar verified` (uobičajena napomena o
+  self-signed upload certifikatu). Play je učitao paket kao **32 (3.4.2)**,
+  cilj SDK 36, bez gubitka podržanih uređaja. Jedino neblokirajuće upozorenje
+  je izostanak fajla za odmaskiranje, kao i ranije.
+- U Play proizvodnom kanalu sačuvano je izdanje `Slovolov 3.4.2 - bojanka`,
+  100% za sve postojeće ciljane zemlje, sa napomenom samo o 30 detaljnijih
+  ilustracija. Zasebna neposlata izmena ikonice je ostavljena za kasnije.
+  Slanje tačno jedne promene (bojanke) zamenilo je prethodni 3.4.1 pregled;
+  Play sada prikazuje 3.4.2 pod `Promene na pregledu` i brze provere pre
+  konačnog pregleda.
+- Tag `ios-release-3.4.2-20261026` poslat je na `7238d72`. Codemagic
+  workflow `Slovolov iOS App Store Release`, build #20
+  (`6adf62b54a72334e32e55d71`) ručno je pokrenut iz tog taga. Testovi,
+  iOS sinhronizacija, potpisani IPA, upload i završna App Store distribucija
+  su završili; Codemagic prikazuje status `finished`. U App Store Connect-u
+  napravljen je nacrt 3.4.2 sa novostima samo za bojanku i automatskim
+  objavljivanjem posle odobrenja. Apple prikazuje verziju **3.4.2 build 17**
+  kao `Waiting for Review`.
+- Poslednja nezavisna provera: Google Play prikazuje samo proizvodnu 3.4.2
+  pod `Promene na pregledu`, dok je izmena listing ikonice i dalje jedina
+  neposlata promena. Apple prikazuje 3.4.2 build 17 pod `Waiting for Review`.
+  Nijedna verzija 3.4.2 još nije potvrđena kao javno dostupna; uključena je
+  postojeća tiha dnevna provera statusa prodavnica, ažurirana za 3.4.2.
