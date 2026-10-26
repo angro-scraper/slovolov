@@ -97,3 +97,8 @@ tabletu/telefonu pre javne Play objave.
   javlja `jar is unsigned`), pa nije za Play upload. Potpisani paket zahteva
   postojeći GitHub Actions secret tok; iOS IPA zahteva Codemagic. Do ovog
   zapisa nije bilo push-a, pokretanja tih tokova niti predaje prodavnicama.
+- Naknadna samo-čitanje provera u prodavnicama: App Store Connect prikazuje
+  iOS 3.4.1 build 16 kao `Ready for Distribution`; Google Play i dalje drži
+  proizvodnu 31 (3.4.1) pod `Promene na pregledu`. Odvojena izmena ikonice
+  Play listinga je sačuvana, ali još nije poslata na pregled. Nijedna od tih
+  postojećih promena nije menjana tokom pripreme bojanke.
